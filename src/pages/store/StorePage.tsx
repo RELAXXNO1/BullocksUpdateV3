@@ -10,7 +10,30 @@ export default function StorePage() {
   const { products, loading } = useProducts();
   const { getContentBySection } = useStoreContent();
   const [scrolled, setScrolled] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
   const visibleProducts = products.filter(p => p.isVisible);
+  const uniqueCategories = [...new Set(products.map(p => p.category))];
+
+  const handleCategorySelect = (category?: string) => {
+    setSelectedCategory(category);
+  };
+
+  console.log('🛍️ Store Products Debug', {
+    totalProducts: products.length,
+    visibleProductsCount: visibleProducts.length,
+    visibleProducts: visibleProducts.map(p => ({
+      id: p.id,
+      name: p.name,
+      isVisible: p.isVisible,
+      category: p.category
+    })),
+    allProductDetails: products.map(p => ({
+      id: p.id,
+      name: p.name,
+      isVisible: p.isVisible,
+      category: p.category
+    }))
+  });
 
   const heroContent = getContentBySection('hero');
   const productsContent = getContentBySection('products');
@@ -133,7 +156,35 @@ export default function StorePage() {
             </p>
           </motion.div>
         )}
-        <ProductGrid products={visibleProducts} />
+        <div className="flex justify-center space-x-4 mb-8">
+          <button
+            onClick={() => handleCategorySelect(undefined)}
+            className={`px-4 py-2 rounded-full transition-colors ${
+              selectedCategory === undefined 
+                ? 'bg-primary-600 text-white' 
+                : 'bg-dark-600 text-secondary-300 hover:bg-dark-500'
+            }`}
+          >
+            All Products
+          </button>
+          {uniqueCategories.map(category => (
+            <button
+              key={category}
+              onClick={() => handleCategorySelect(category)}
+              className={`px-4 py-2 rounded-full capitalize transition-colors ${
+                selectedCategory === category 
+                  ? 'bg-primary-600 text-white' 
+                  : 'bg-dark-600 text-secondary-300 hover:bg-dark-500'
+              }`}
+            >
+              {category}
+            </button>
+          ))}
+        </div>
+        <ProductGrid 
+          products={visibleProducts} 
+          selectedCategory={selectedCategory} 
+        />
       </section>
     </div>
   );

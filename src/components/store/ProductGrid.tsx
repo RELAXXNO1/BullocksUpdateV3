@@ -1,20 +1,21 @@
-import React from 'react';
-import { motion, MotionProps } from 'framer-motion';
+import React from 'react'; 
+import { motion } from 'framer-motion'; 
 import type { Product } from '../../types/product';
 import { trackEvent } from '../../lib/firebase';
 
 interface ProductGridProps {
   products: Product[];
+  selectedCategory?: string;
 }
 
-interface ProductCardProps extends MotionProps {
+interface ProductCardProps extends React.ComponentProps<typeof motion.div> {
   product: Product;
   index: number;
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ 
   product, 
-  index, 
+  index,
   ...motionProps 
 }) => {
   const handleProductView = () => {
@@ -28,17 +29,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
   return (
     <motion.div 
       key={product.id}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ 
-        delay: index * 0.1,
-        duration: 0.5,
-        type: 'spring',
-        stiffness: 100
-      }}
-      className="group hover-lift cursor-pointer depth-shader advanced-hover"
-      onClick={handleProductView}
       {...motionProps}
+      onClick={handleProductView}
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay: index * 0.1 }}
     >
       <div className="bg-dark-600 rounded-ultra-elegant overflow-hidden shadow-deep-shadow border border-dark-400/30 transition-elegant transform hover:scale-[1.02] relative">
         {/* Shader-like Gradient Overlay */}
@@ -85,16 +80,35 @@ const ProductCard: React.FC<ProductCardProps> = ({
   );
 };
 
-const ProductGrid: React.FC<ProductGridProps> = ({ products }) => {
+const ProductGrid: React.FC<ProductGridProps> = ({ products, selectedCategory }) => {
+  const filteredProducts = selectedCategory 
+    ? products.filter(product => product.category === selectedCategory)
+    : products;
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 px-4 md:px-8 lg:px-16 py-12 bg-gradient-mesh bg-opacity-50">
-      {products.map((product, index) => (
-        <ProductCard 
-          key={product.id}
-          product={product} 
-          index={index} 
-        />
-      ))}
+    <div>
+      {selectedCategory && (
+        <div className="text-center mb-8">
+          <h3 className="text-2xl font-bold text-primary-400 capitalize">
+            {selectedCategory} Products
+          </h3>
+        </div>
+      )}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 px-4 md:px-8 lg:px-16 py-12 bg-gradient-mesh bg-opacity-50">
+        {filteredProducts.length > 0 ? (
+          filteredProducts.map((product, index) => (
+            <ProductCard 
+              key={product.id}
+              product={product} 
+              index={index} 
+            />
+          ))
+        ) : (
+          <div className="col-span-full text-center text-gray-400 py-16">
+            No products found in this category.
+          </div>
+        )}
+      </div>
     </div>
   );
 };

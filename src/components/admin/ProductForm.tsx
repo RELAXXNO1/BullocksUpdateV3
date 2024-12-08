@@ -184,6 +184,19 @@ export function ProductForm({ product, onSubmit, onClose }: ProductFormProps) {
             </div>
           )}
 
+          <div className="flex items-center space-x-4 mt-4">
+            <Label>Product Visibility</Label>
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                checked={formData.isVisible}
+                onChange={(e) => setFormData({ ...formData, isVisible: e.target.checked })}
+                className="mr-2"
+              />
+              <span>{formData.isVisible ? 'Visible in Store' : 'Hidden from Store'}</span>
+            </div>
+          </div>
+
           <div>
             <Label>Product Image</Label>
             <input
@@ -201,16 +214,6 @@ export function ProductForm({ product, onSubmit, onClose }: ProductFormProps) {
                 />
               </div>
             )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={formData.isVisible}
-              onChange={(e) => setFormData({ ...formData, isVisible: e.target.checked })}
-              className="rounded bg-slate-700 border-slate-600 text-blue-500 focus:ring-blue-500"
-            />
-            <label className="text-sm font-medium">Visible in store</label>
           </div>
 
           <div className="flex justify-end gap-2 pt-4 sticky bottom-0 bg-slate-800 border-t border-slate-700 mt-8">

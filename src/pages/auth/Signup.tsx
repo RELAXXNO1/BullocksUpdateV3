@@ -30,7 +30,7 @@ export default function Signup() {
     setLoading(true);
     try {
       await signup(formData.email, formData.password);
-      navigate('/login');
+      navigate('/');
     } catch (error) {
       setError('Failed to create account. Please try again.');
     } finally {
