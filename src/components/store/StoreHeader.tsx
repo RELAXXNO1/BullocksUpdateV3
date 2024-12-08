@@ -68,7 +68,7 @@ export default function StoreHeader() {
                 key={label}
                 onClick={action}
                 title={title}
-                className="group flex flex-col items-center text-secondary-400 hover:text-primary-400 transition-elegant"
+                className="group flex flex-col items-center text-secondary-400 hover:text-primary-400 transition-elegant px-3 py-2 -m-2 hover:bg-dark-600/20 rounded-lg cursor-pointer"
               >
                 <Icon className="h-6 w-6 group-hover:scale-110 transition-transform" />
                 <span className="text-xs mt-1 opacity-70 group-hover:opacity-100 transition-opacity">
