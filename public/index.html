@@ -1,0 +1,11 @@
+@@ .. @@
+   <body>
+     <div id="root"></div>
++    <svg width="0" height="0">
++      <filter id="smoke-filter">
++        <feTurbulence type="fractalNoise" baseFrequency="0.01" numOctaves="3" />
++        <feDisplacementMap in="SourceGraphic" scale="30" />
++      </filter>
++    </svg>
+     <script type="module" src="/src/main.tsx"></script>
+   </body>

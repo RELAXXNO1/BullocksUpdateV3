@@ -1,0 +1,130 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Enhanced admin validation function
+    function isAdmin() {
+      return request.auth != null && 
+             (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+              request.auth.token.email == 'harbosamah@gmail.com') &&
+             request.time > timestamp.date(2023, 1, 1);  // Prevent very old admin tokens
+    }
+
+    // Enhanced user validation function
+    function isValidUser() {
+      return request.auth != null && 
+             request.auth.token.email_verified == true;
+    }
+
+    // Allow admins full access to all collections
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+
+    // Products collection rules with additional flexibility
+    match /products/{productId} {
+      // Allow reading all products publicly
+      allow read: if true;
+
+      // Strict admin-only write rules with data validation
+      allow create, update, delete: if isAdmin() && 
+        validateProductData(request.resource.data);
+
+      // Validation function for product data
+      function validateProductData(product) {
+        let isValidCategory = product.category in 
+          ['thca-flower', 'vapes', 'tobacco', 'edibles', 'glass-pipes'];
+        
+        let hasValidAttributes = 
+          (product.attributes == null) || 
+          validateCategoryAttributes(product.category, product.attributes);
+        
+        return product.name is string && 
+               product.name.size() > 0 && 
+               product.name.size() <= 100 &&
+               product.price is number && 
+               product.price > 0 &&
+               isValidCategory &&
+               hasValidAttributes;
+      }
+
+      // Validate category-specific attributes
+      function validateCategoryAttributes(category, attributes) {
+        // THC-A Flower attributes
+        let validateThcaFlowerAttributes = 
+          (attributes.thcaContent is number || attributes.thcaContent == null) &&
+          (attributes.strain is string || attributes.strain == null) &&
+          (attributes.weight is number || attributes.weight == null) &&
+          (attributes.origin is string || attributes.origin == null);
+
+        // Vapes attributes  
+        let validateVapesAttributes = 
+          (attributes.type is string || attributes.type == null) &&
+          (attributes.capacity is number || attributes.capacity == null) &&
+          (attributes.batteryCapacity is number || attributes.batteryCapacity == null) &&
+          (attributes.coilType is string || attributes.coilType == null);
+
+        // Tobacco attributes
+        let validateTobaccoAttributes = 
+          (attributes.type is string || attributes.type == null) &&
+          (attributes.weight is number || attributes.weight == null) &&
+          (attributes.flavor is string || attributes.flavor == null) &&
+          (attributes.origin is string || attributes.origin == null);
+
+        // Edibles attributes
+        let validateEdiblesAttributes = 
+          (attributes.type is string || attributes.type == null) &&
+          (attributes.thcContent is number || attributes.thcContent == null) &&
+          (attributes.cbdContent is number || attributes.cbdContent == null) &&
+          (attributes.servingSize is string || attributes.servingSize == null) &&
+          (attributes.servingsPerPackage is number || attributes.servingsPerPackage == null);
+
+        // Glass & Pipes attributes
+        let validateGlassPipesAttributes = 
+          (attributes.type is string || attributes.type == null) &&
+          (attributes.material is string || attributes.material == null) &&
+          (attributes.height is number || attributes.height == null) &&
+          (attributes.jointSize is string || attributes.jointSize == null) &&
+          (attributes.percolators is number || attributes.percolators == null);
+
+        // Validate based on category
+        return 
+          (category == 'thca-flower' && validateThcaFlowerAttributes) ||
+          (category == 'vapes' && validateVapesAttributes) ||
+          (category == 'tobacco' && validateTobaccoAttributes) ||
+          (category == 'edibles' && validateEdiblesAttributes) ||
+          (category == 'glass-pipes' && validateGlassPipesAttributes);
+      }
+    }
+
+    // Admins collection rules
+    match /admins/{userId} {
+      allow read, write: if request.auth.token.email == 'harbosamah@gmail.com';
+    }
+
+    // Users collection rules
+    match /users/{userId} {
+      allow read, write: if isAdmin() || request.auth.uid == userId;
+    }
+
+    // Analytics events collection
+    match /analytics_events/{eventId} {
+      allow read: if isAdmin();
+      allow create: if true && 
+                    request.time > resource.data.timestamp + duration.value(5, 's');
+    }
+
+    // Categories collection rules
+    match /categories/{categoryId} {
+      allow read: if true;  // Public read
+      allow create, update, delete: if isAdmin() && 
+        validateCategoryData(request.resource.data);
+
+      // Validation function for category data  
+      function validateCategoryData(category) {
+        return category.name is string && 
+               category.name.size() > 0 && 
+               category.name.size() <= 50;
+      }
+    }
+  }
+}

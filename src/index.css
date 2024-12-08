@@ -1,0 +1,133 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background-color: theme('colors.dark.500');
+  --text-color: theme('colors.secondary.50');
+  --accent-color: theme('colors.primary.400');
+  --mouse-x: 50%;
+  --mouse-y: 50%;
+}
+
+/* Base styles */
+body {
+  @apply bg-dark-500 text-secondary-50 font-sans antialiased selection:bg-primary-400 selection:text-white;
+  @apply min-h-screen relative overflow-x-hidden;
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  @apply bg-dark-500/50;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-dark-400/50 rounded-full hover:bg-dark-300/50 transition-colors;
+}
+
+/* Primary Gradient Layer */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: 
+    linear-gradient(125deg, rgba(0, 0, 0, 0.3) 0%, transparent 40%),
+    radial-gradient(circle at var(--mouse-x) var(--mouse-y),
+      rgba(20, 184, 166, 0.2),
+      rgba(20, 184, 166, 0.05) 30%,
+      transparent 60%
+    );
+  filter: url('#smoke-filter');
+  mix-blend-mode: screen;
+  opacity: 0.6;
+  z-index: -2;
+  animation: smoke 20s ease infinite alternate;
+}
+
+/* Secondary Gradient Layer */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: 
+    radial-gradient(circle at 20% 20%, rgba(20, 184, 166, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(20, 184, 166, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(20, 184, 166, 0.05) 0%, transparent 100%);
+  z-index: -1;
+  animation: smoke-pulse 15s ease-in-out infinite alternate;
+}
+
+/* Animations */
+@keyframes smoke {
+  0% {
+    transform: translate(-5%, -5%) scale(1);
+    filter: blur(20px);
+  }
+  50% {
+    transform: translate(5%, 5%) scale(1.05);
+    filter: blur(25px);
+  }
+  100% {
+    transform: translate(-5%, -5%) scale(1);
+    filter: blur(20px);
+  }
+}
+
+@keyframes smoke-pulse {
+  0% {
+    opacity: 0.4;
+    transform: scale(1);
+    filter: blur(30px);
+  }
+  100% {
+    opacity: 0.7;
+    transform: scale(1.05);
+    filter: blur(35px);
+  }
+}
+
+/* Utility Classes */
+.transition-elegant {
+  @apply transition-all duration-300 ease-in-out;
+}
+
+.hover-lift {
+  @apply transition-transform duration-300 hover:-translate-y-1 hover:scale-[1.02] hover:shadow-super-elegant;
+}
+
+.glassmorphism {
+  @apply bg-white/5 backdrop-blur-md border border-white/10;
+}
+
+.gradient-text {
+  @apply bg-gradient-to-r from-teal-300 to-teal-500 bg-clip-text text-transparent;
+}
+
+/* Advanced Hover Effects */
+.advanced-hover {
+  @apply transition-all duration-300 ease-in-out;
+}
+
+.advanced-hover:hover {
+  @apply transform -translate-y-1 shadow-super-elegant;
+}
+
+/* Depth Effects */
+.depth-shader {
+  position: relative;
+  overflow: hidden;
+}
+
+.depth-shader::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  @apply bg-gradient-elegant opacity-50;
+  pointer-events: none;
+}
