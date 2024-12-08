@@ -3,6 +3,7 @@ import { Phone, MapPin, Clock, User } from 'lucide-react';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LOGO_PATH, STORE_INFO } from '../../config/constants';
+import ReactDOM from 'react-dom';
 
 export default function StoreHeader() {
   const [showHours, setShowHours] = useState(false);
@@ -14,6 +15,49 @@ export default function StoreHeader() {
   const handleLocation = () => {
     window.open(STORE_INFO.mapUrl);
   };
+
+  const HoursModal = () => {
+    return ReactDOM.createPortal(
+      <AnimatePresence>
+        {showHours && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              className="bg-dark-600 rounded-super-elegant p-8 max-w-md w-full shadow-super-elegant border border-dark-400/30"
+            >
+              <h3 className="text-2xl font-display font-bold gradient-text mb-6 text-center">
+                Store Hours
+              </h3>
+              <div className="space-y-4">
+                <div className="bg-dark-500 p-4 rounded-elegant">
+                  <h4 className="font-semibold text-primary-400 mb-2">In-Store Hours</h4>
+                  <p className="text-secondary-300">Open Daily: 8:00 AM - 10:00 PM</p>
+                </div>
+                <div className="bg-dark-500 p-4 rounded-elegant">
+                  <h4 className="font-semibold text-primary-400 mb-2">Drive-Thru Hours</h4>
+                  <p className="text-secondary-300">Open Daily: 8:00 AM - 11:00 PM</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowHours(false)}
+                className="mt-6 w-full bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 px-4 rounded-elegant transition-elegant"
+              >
+                Close
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>,
+      document.body
+    );
+  }
 
   return (
     <header className="bg-dark-600/80 shadow-[0_4px_30px_rgba(0,0,0,0.3)] sticky top-0 z-40 backdrop-blur-md border-b border-dark-400/30 relative overflow-hidden">
@@ -89,44 +133,7 @@ export default function StoreHeader() {
           </motion.div>
         </div>
       </div>
-
-      <AnimatePresence>
-        {showHours && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
-          >
-            <motion.div 
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
-              className="bg-dark-600 rounded-super-elegant p-8 max-w-md w-full shadow-super-elegant border border-dark-400/30"
-            >
-              <h3 className="text-2xl font-display font-bold gradient-text mb-6 text-center">
-                Store Hours
-              </h3>
-              <div className="space-y-4">
-                <div className="bg-dark-500 p-4 rounded-elegant">
-                  <h4 className="font-semibold text-primary-400 mb-2">In-Store Hours</h4>
-                  <p className="text-secondary-300">Open Daily: 8:00 AM - 10:00 PM</p>
-                </div>
-                <div className="bg-dark-500 p-4 rounded-elegant">
-                  <h4 className="font-semibold text-primary-400 mb-2">Drive-Thru Hours</h4>
-                  <p className="text-secondary-300">Open Daily: 8:00 AM - 11:00 PM</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowHours(false)}
-                className="mt-6 w-full bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 px-4 rounded-elegant transition-elegant"
-              >
-                Close
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <HoursModal />
     </header>
   );
 }
