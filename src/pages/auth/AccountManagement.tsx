@@ -2,27 +2,13 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { PhoneInput } from '../../components/ui/PhoneInput';
 import { AlertTriangle, UserX } from 'lucide-react';
 
 export default function AccountManagement() {
-  const { user, addPhoneNumber, deleteAccount, logout } = useAuth();
+  const { user, deleteAccount, logout } = useAuth();
   const navigate = useNavigate();
-  const [phoneNumber, setPhoneNumber] = useState('');
   const [error, setError] = useState('');
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
-
-  const handleAddPhoneNumber = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    
-    try {
-      await addPhoneNumber(phoneNumber);
-      setPhoneNumber('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to add phone number');
-    }
-  };
 
   const handleDeleteAccount = async () => {
     try {
@@ -60,23 +46,6 @@ export default function AccountManagement() {
             <p className="text-gray-300">{user.email}</p>
           </div>
 
-          <form onSubmit={handleAddPhoneNumber} className="mb-6">
-            <h3 className="text-lg font-semibold mb-2">Add Phone Number</h3>
-            <div className="flex gap-2">
-              <PhoneInput
-                value={phoneNumber}
-                onChange={(value) => setPhoneNumber(value)}
-                placeholder="Enter phone number"
-              />
-              <button
-                type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Add
-              </button>
-            </div>
-          </form>
-
           <div className="border-t border-slate-700 pt-6">
             <h3 className="text-lg font-semibold mb-2 text-red-500 flex items-center gap-2">
               <UserX className="h-5 w-5" /> Delete Account
@@ -99,25 +68,28 @@ export default function AccountManagement() {
               className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
             >
               <div className="bg-slate-800 rounded-2xl p-6 max-w-md w-full">
-                <div className="flex items-center gap-3 mb-4 text-red-500">
-                  <AlertTriangle className="h-8 w-8" />
-                  <h3 className="text-xl font-bold">Confirm Account Deletion</h3>
+                <div className="flex items-center justify-center mb-4">
+                  <AlertTriangle className="h-12 w-12 text-red-500" />
                 </div>
-                <p className="text-gray-300 mb-6">
-                  Are you sure you want to delete your account? This action cannot be undone.
+                <h3 className="text-xl font-bold text-center mb-4 text-red-500">
+                  Confirm Account Deletion
+                </h3>
+                <p className="text-center text-gray-300 mb-6">
+                  Are you sure you want to permanently delete your account? 
+                  This action cannot be undone.
                 </p>
-                <div className="flex gap-4">
+                <div className="flex space-x-4">
                   <button
                     onClick={() => setShowDeleteConfirmation(false)}
-                    className="flex-1 py-2 px-4 bg-slate-700 text-gray-300 rounded-lg hover:bg-slate-600"
+                    className="flex-1 py-2 px-4 bg-slate-700 text-gray-300 rounded-lg hover:bg-slate-600 transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleDeleteAccount}
-                    className="flex-1 py-2 px-4 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                    className="flex-1 py-2 px-4 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
                   >
-                    Delete Account
+                    Delete
                   </button>
                 </div>
               </div>

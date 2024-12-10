@@ -11,7 +11,6 @@ import { auth, db, ADMIN_CONFIG, checkAdminStatus, initializeAdmin } from '../li
 
 interface AuthUser extends FirebaseUser {
   isAdmin: boolean;
-  phoneNumber: string | null;
 }
 
 export function useAuth() {
