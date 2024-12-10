@@ -20,6 +20,7 @@ const navItems: NavItem[] = [
   { icon: Package, label: 'Products', path: '/admin/products' },
   { icon: Edit2, label: 'Store Content', path: '/admin/store-content' },
   { icon: Image, label: 'Photo Bank', path: '/admin/photo-bank' },
+  { icon: MessageSquare, label: 'Customer AI Assistant', locked: true },
   { icon: ShoppingCart, label: 'Shopping Cart and Orders', locked: true },
   { icon: Users, label: 'UIX Editor', locked: true },
   { icon: Tag, label: 'Admin Management', locked: true },

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ProductModal } from './ProductModal';
 import { Product } from '../../types/product';
@@ -6,10 +6,28 @@ import { WATERMARK_LOGO_PATH } from '../../config/constants';
 
 interface ProductGridProps {
   products: Product[];
+  initialCategory?: string;
 }
 
-export const ProductGrid: React.FC<ProductGridProps> = ({ products }) => {
+export const ProductGrid: React.FC<ProductGridProps> = ({ 
+  products, 
+  initialCategory = 'All Products' 
+}) => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory);
+
+  // Get unique categories from products
+  const categories = useMemo(() => {
+    const allCategories = ['All Products', ...new Set(products.map(p => p.category))];
+    return allCategories;
+  }, [products]);
+
+  // Filter products based on selected category
+  const filteredProducts = useMemo(() => {
+    return selectedCategory === 'All Products' 
+      ? products 
+      : products.filter(product => product.category === selectedCategory);
+  }, [products, selectedCategory]);
 
   const handleProductClick = (product: Product) => {
     setSelectedProduct(product);
@@ -21,9 +39,29 @@ export const ProductGrid: React.FC<ProductGridProps> = ({ products }) => {
 
   return (
     <div className="container mx-auto px-4">
+      {/* Category Filter */}
+      <div className="flex justify-center space-x-4 mb-6 overflow-x-auto scrollbar-hide">
+        {categories.map((category) => (
+          <motion.button
+            key={category}
+            onClick={() => setSelectedCategory(category)}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
+              selectedCategory === category 
+                ? 'bg-teal-600 text-white' 
+                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+            }`}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            {category}
+          </motion.button>
+        ))}
+      </div>
+
+      {/* Product Grid */}
       <div className="overflow-x-auto scrollbar-hide">
         <div className="inline-flex space-x-6 pb-4 min-w-full">
-          {products.map((product) => (
+          {filteredProducts.map((product) => (
             <motion.div 
               key={product.id}
               onClick={() => handleProductClick(product)}
@@ -63,6 +101,13 @@ export const ProductGrid: React.FC<ProductGridProps> = ({ products }) => {
           ))}
         </div>
       </div>
+
+      {/* No Products Message */}
+      {filteredProducts.length === 0 && (
+        <div className="text-center text-slate-400 py-8">
+          No products found in this category.
+        </div>
+      )}
 
       <AnimatePresence>
         {selectedProduct && (

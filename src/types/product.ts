@@ -15,7 +15,10 @@ export const ProductSchema = z.object({
   isActive: z.boolean().optional()
 });
 
-export type Product = z.infer<typeof ProductSchema>;
+export type Product = z.infer<typeof ProductSchema> & {
+  category: string;
+};
+
 export type ProductFormData = Product & {
   imageFile?: File;
 };
