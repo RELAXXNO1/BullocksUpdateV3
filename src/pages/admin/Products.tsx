@@ -5,8 +5,7 @@ import { ProductForm } from '../../components/admin/ProductForm';
 import { Product } from '../../types/product';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
-import { Trash2, Edit } from 'lucide-react';
-import { Package } from 'lucide-react';
+import { Trash2, Edit, Package } from 'lucide-react';
 
 export default function Products() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -77,10 +76,8 @@ export default function Products() {
           rounded-xl 
           text-center 
           space-y-6 
-          shadow-xl 
           relative 
           overflow-hidden">
-          {/* Subtle shader effect */}
           <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-teal-700/10 to-transparent opacity-30"></div>
           
           <div className="bg-teal-700/50 p-4 rounded-full border border-teal-600/50 relative z-10">
@@ -104,62 +101,56 @@ export default function Products() {
         </div>
       )}
 
-      {products.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {products.map(product => (
-            <Card 
-              key={product.id} 
-              className="p-4 
-                bg-gradient-to-br from-teal-800/80 to-teal-900/80 
-                border border-teal-700/50 
-                rounded-xl 
-                shadow-lg 
-                hover:shadow-xl 
-                transition-all 
-                duration-300 
-                relative 
-                overflow-hidden 
-                group"
-            >
-              {/* Subtle shader effect */}
-              <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-teal-700/10 to-transparent opacity-30 pointer-events-none"></div>
-              
-              {product.imageUrl && (
-                <div className="relative mb-4 overflow-hidden rounded-t-lg">
-                  <img 
-                    src={product.imageUrl} 
-                    alt={product.name} 
-                    className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105" 
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-b from-transparent to-teal-900/50 opacity-75"></div>
-                </div>
-              )}
-              
-              <div className="relative z-10 text-white">
-                <div className="flex justify-between items-center mb-2">
-                  <h2 className="text-lg font-semibold text-teal-100">{product.name}</h2>
-                  <p className="text-teal-300 font-medium">${product.price.toFixed(2)}</p>
-                </div>
-                
-                <div className="flex justify-end space-x-2 mt-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {products.map((product) => (
+          <div 
+            key={product.id} 
+            className="bg-slate-800/50 backdrop-blur-xl rounded-2xl 
+              shadow-xl ring-1 ring-white/10 p-4 
+              hover:ring-blue-500/50 transition-all duration-300 
+              group relative overflow-hidden"
+          >
+            <div className="relative mb-4">
+              <img 
+                src={product.images?.[0] || '/placeholder.png'} 
+                alt={product.name} 
+                className="w-full h-48 object-cover rounded-xl 
+                  transition-transform duration-300 
+                  group-hover:scale-105"
+              />
+            </div>
+
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-white mb-2">
+                {product.name}
+              </h3>
+              <div className="flex justify-between items-center">
+                <span className="text-emerald-500 font-bold">
+                  ${product.price.toFixed(2)}
+                </span>
+                <div className="flex space-x-2">
                   <button 
                     onClick={() => handleEditProduct(product)}
-                    className="text-teal-200 hover:text-white bg-teal-700/50 hover:bg-teal-600/70 p-2 rounded-md transition-all duration-200"
+                    className="bg-blue-600/10 text-blue-400 
+                      hover:bg-blue-600/20 p-2 rounded-full 
+                      transition-colors"
                   >
-                    <Edit size={20} />
+                    <Edit className="h-5 w-5" />
                   </button>
                   <button 
-                    onClick={() => handleDeleteProduct(product.id!)}
-                    className="text-red-300 hover:text-red-100 bg-red-700/50 hover:bg-red-600/70 p-2 rounded-md transition-all duration-200"
+                    onClick={() => handleDeleteProduct(product.id)}
+                    className="bg-red-600/10 text-red-400 
+                      hover:bg-red-600/20 p-2 rounded-full 
+                      transition-colors"
                   >
-                    <Trash2 size={20} />
+                    <Trash2 className="h-5 w-5" />
                   </button>
                 </div>
               </div>
-            </Card>
-          ))}
-        </div>
-      )}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

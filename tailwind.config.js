@@ -131,6 +131,18 @@ export default {
   },
   plugins: [
     require('@tailwindcss/forms'),
-    tailwindcssAnimate
+    tailwindcssAnimate,
+    function({ addUtilities }) {
+      const newUtilities = {
+        '.scrollbar-hide::-webkit-scrollbar': {
+          'display': 'none'
+        },
+        '.scrollbar-hide': {
+          '-ms-overflow-style': 'none',
+          'scrollbar-width': 'none'
+        }
+      }
+      addUtilities(newUtilities)
+    }
   ],
 };

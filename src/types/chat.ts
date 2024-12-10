@@ -7,6 +7,7 @@ export interface Message {
     sessionId: string;
     category?: string;
     originalInput?: string;
+    userName?: string;
   };
 }
 
@@ -25,6 +26,7 @@ export interface AIResponse {
     category?: string;
     originalInput?: string;
     processedAt?: number;
+    suggestedQuestions?: string[];
   };
 }
 
@@ -40,6 +42,8 @@ export interface ConversationContext {
   messages: Message[];
   lastInteractionTimestamp: number;
   currentTopic?: string;
+  systemPrompt: string;
+  responseFormat?: ResponseFormat;
 }
 
 export interface KnowledgeBaseEntry {
@@ -47,6 +51,17 @@ export interface KnowledgeBaseEntry {
   context: string;
   relevanceThreshold?: number;
 }
+
+export interface ResponseFormat {
+  type: 'default' | 'list' | 'table' | 'code';
+  style?: 'professional' | 'friendly' | 'technical';
+  emoji?: boolean;
+  maxLength?: number;
+}
+
+export type ChatKnowledge = {
+  [key: string]: string;
+};
 
 export const KNOWLEDGE_BASE: KnowledgeBaseEntry[] = [
   {

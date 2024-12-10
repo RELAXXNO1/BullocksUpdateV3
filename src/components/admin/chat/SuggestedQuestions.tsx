@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HelpCircle } from 'lucide-react';
 import { useChatStore } from '../../../store/useChatStore';
+import { v4 as uuidv4 } from 'uuid';
 
 const suggestedQuestions = [
   {
@@ -39,9 +40,15 @@ export const SuggestedQuestions: React.FC = () => {
 
   const handleQuestionClick = (question: string) => {
     addMessage({
+      id: uuidv4(),
       content: question,
       sender: 'user',
-      timestamp: new Date()
+      timestamp: Date.now(),
+      context: {
+        sessionId: 'suggested_question',
+        originalInput: question,
+        category: 'suggested_question'
+      }
     });
     setIsTyping(true);
     setIsOpen(false);
