@@ -4,13 +4,14 @@ import {
   signInWithEmailAndPassword, 
   signOut, 
   User as FirebaseUser,
-  createUserWithEmailAndPassword
+  createUserWithEmailAndPassword,
 } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { auth, db, ADMIN_CONFIG, checkAdminStatus, initializeAdmin } from '../lib/firebase';
 
 interface AuthUser extends FirebaseUser {
   isAdmin: boolean;
+  phoneNumber: string | null;
 }
 
 export function useAuth() {
@@ -23,7 +24,7 @@ export function useAuth() {
         const isAdmin = await checkAdminStatus(firebaseUser.uid);
         setUser({
           ...firebaseUser,
-          isAdmin
+          isAdmin: isAdmin as boolean
         });
         
         // Initialize admin if the user is an admin
@@ -90,18 +91,20 @@ export function useAuth() {
       }, { merge: true });
 
       // Set user with admin status
-      const authUser: AuthUser = {
+      setUser({
         ...firebaseUser,
         isAdmin
-      };
-      setUser(authUser);
+      } as AuthUser);
 
       // Initialize admin if the user is an admin
       if (isAdmin) {
         await initializeAdmin();
       }
 
-      return authUser;
+      return {
+        ...firebaseUser,
+        isAdmin
+      } as AuthUser;
     } catch (error) {
       console.error('🚨 Login Error:', error);
       
@@ -122,5 +125,58 @@ export function useAuth() {
 
   const logout = () => signOut(auth);
 
-  return { user, loading, login, logout, signup };
+  const addPhoneNumber = async (phoneNumber: string) => {
+    if (!user) {
+      throw new Error('User must be logged in to add phone number');
+    }
+
+    try {
+      // Update Firestore document with phone number
+      await setDoc(doc(db, 'users', user.uid), {
+        phoneNumber
+      }, { merge: true });
+
+      // Update local user state
+      setUser(prev => prev ? { 
+        ...prev, 
+        phoneNumber: phoneNumber // Ensure phoneNumber is set correctly in user state
+      } : null);
+
+      return true;
+    } catch (error) {
+      console.error('Error adding phone number:', error);
+      throw error;
+    }
+  };
+
+  const deleteAccount = async () => {
+    if (!user) {
+      throw new Error('No user logged in');
+    }
+
+    try {
+      // Delete user document from Firestore
+      await deleteDoc(doc(db, 'users', user.uid));
+
+      // Delete Firebase Authentication user
+      await user.delete();
+
+      // Sign out and reset user state
+      setUser(null);
+      return true;
+    } catch (error) {
+      console.error('Account deletion error:', error);
+      throw error;
+    }
+  };
+
+  return { 
+    user, 
+    loading, 
+    login, 
+    logout, 
+    signup,
+    addPhoneNumber,  
+    deleteAccount    
+  };
 }

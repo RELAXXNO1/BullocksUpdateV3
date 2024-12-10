@@ -1,247 +1,732 @@
-import { useState } from 'react';
-import { X, Save } from 'lucide-react';
-import { Label } from '../ui/Label';
-import { DEFAULT_CATEGORIES } from '../../config/categories';
-import { validateProductForm } from '../../utils/productValidation';
-import type { Product, ProductFormData, ProductCategory } from '../../types/product';
+import React, { useState, useCallback, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ChevronRight, ChevronLeft, X, PlusCircle, CheckCircle2 } from 'lucide-react';
+import { FaImage } from 'react-icons/fa';
+import { collection, addDoc, updateDoc, doc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '../../lib/firebase';
+import type { Product, ProductFormData } from '../../types/product';
+import { DEFAULT_CATEGORIES } from '../../constants/categories';
+import type { CategoryConfig } from '../../constants/categories';
+import type { FormStep } from '../../types/form';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '../ui/Button';
+import { PhotobankPopup } from './PhotobankPopup';
+import { uploadToPhotobank } from '../../lib/photobank';
 
-interface ProductFormProps {
-  product?: Product | null;
-  onSubmit: (data: ProductFormData) => Promise<void>;
-  onClose: () => void;
-}
+type ProductFormProps = {
+  onClose?: () => void;
+  initialProduct?: Product;
+};
 
-export function ProductForm({ product, onSubmit, onClose }: ProductFormProps) {
-  const [formData, setFormData] = useState<ProductFormData>({
-    name: product?.name || '',
-    description: product?.description || '',
-    price: product?.price || 0,
-    category: product?.category || '',
-    imageUrl: product?.imageUrl || '',
-    isVisible: product?.isVisible ?? true,
-    attributes: {} // Always initialize attributes as an empty object
-  });
-  const [imageFile, setImageFile] = useState<File>();
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<string[]>([]);
+export function ProductForm({ onClose, initialProduct }: ProductFormProps) {
+  const navigate = useNavigate();
+  
+  const [currentStep, setCurrentStep] = useState<FormStep>('category');
+  const [formData, setFormData] = useState<ProductFormData>(() => ({
+    category: initialProduct?.category || '',
+    name: initialProduct?.name || '',
+    description: initialProduct?.description || '',
+    price: initialProduct?.price || 0,
+    attributes: initialProduct?.attributes || {},
+    isVisible: initialProduct?.isVisible ?? true,
+    images: initialProduct?.images || [],
+    createdAt: initialProduct?.createdAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }));
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setErrors([]);
+  const [isPhotobankOpen, setIsPhotobankOpen] = useState(false);
 
-    const validationResult = validateProductForm({ ...formData, imageFile });
+  const [imageFiles, setImageFiles] = useState<(File | string)[]>(
+    initialProduct?.images?.map(img => img) || []
+  );
+
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [newCategory, setNewCategory] = useState('');
+
+  const selectedCategory = useMemo(() => 
+    DEFAULT_CATEGORIES.find(cat => cat.slug === formData.category), 
+    [formData.category]
+  );
+
+  const updateFormData = useCallback((updates: Partial<ProductFormData>) => {
+    setFormData(prev => {
+      const updatedAttributes = updates.attributes 
+        ? Object.fromEntries(
+            Object.entries(updates.attributes).map(([key, value]) => [
+              key, 
+              typeof value === 'boolean' 
+                ? (value ? '1' : '0') 
+                : (value !== undefined ? String(value) : '')
+            ])
+          )
+        : prev.attributes;
+
+      return {
+        ...prev,
+        ...updates,
+        attributes: {
+          ...prev.attributes,
+          ...updatedAttributes
+        },
+        updatedAt: new Date().toISOString()
+      };
+    });
+  }, []);
+
+  const validateStep = useCallback(() => {
+    const categoryAttributes = selectedCategory?.attributes?.fields || [];
     
-    if (!validationResult.valid) {
-      setErrors(validationResult.errors);
-      setLoading(false);
+    switch (currentStep) {
+      case 'category':
+        return !!formData.category;
+      
+      case 'details':
+        const basicDetailsValid = !!(
+          formData.name.trim() && 
+          (formData.description || '').trim() && 
+          formData.price > 0
+        );
+
+        const attributesValid = categoryAttributes.every(attr => {
+          const value = formData.attributes?.[attr.name];
+          if (!attr.required) return true;
+
+          switch (attr.type) {
+            case 'text':
+              return value && String(value).trim() !== '';
+            case 'number':
+              return value !== undefined && value !== null && value !== '';
+            case 'select':
+              return value && value !== '';
+            case 'boolean':
+              return value !== undefined;
+            default:
+              return true;
+          }
+        });
+
+        return basicDetailsValid && attributesValid;
+      
+      case 'images':
+        return imageFiles.length > 0;
+      
+      default:
+        return false;
+    }
+  }, [currentStep, formData, selectedCategory, imageFiles]);
+
+  const handleNextStep = useCallback(() => {
+    if (!validateStep()) {
+      console.warn(`Invalid input for step: ${currentStep}`);
       return;
     }
 
+    const stepOrder: FormStep[] = ['category', 'details', 'images'];
+    const currentIndex = stepOrder.indexOf(currentStep);
+    if (currentIndex < stepOrder.length - 1) {
+      setCurrentStep(stepOrder[currentIndex + 1]);
+    }
+  }, [currentStep, validateStep]);
+
+  const handlePreviousStep = useCallback(() => {
+    const stepOrder: FormStep[] = ['category', 'details', 'images'];
+    const currentIndex = stepOrder.indexOf(currentStep);
+    if (currentIndex > 0) {
+      setCurrentStep(stepOrder[currentIndex - 1]);
+    }
+  }, [currentStep]);
+
+  const handleImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement> | string[]) => {
+    let newFiles: (File | string)[] = [];
+
+    if (Array.isArray(e)) {
+      // Direct image URLs from photobank
+      newFiles = e;
+    } else {
+      // File upload from local device
+      newFiles = Array.from(e.target.files || []).filter(file => {
+        const isValidType = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type);
+        const isValidSize = file.size <= 10 * 1024 * 1024; // 10MB max
+        
+        return isValidType && isValidSize;
+      });
+    }
+
     try {
-      await onSubmit({ ...formData, imageFile });
+      // Process files for upload
+      const uploadPromises = newFiles.map(async (file) => {
+        // If it's already a URL, return it
+        if (typeof file === 'string') return file;
+
+        // Upload to photobank
+        const uploadResult = await uploadToPhotobank({
+          file, 
+          category: 'Product Images', 
+          tags: [formData.name]
+        });
+
+        return uploadResult.downloadURL;
+      });
+
+      const processedImageUrls = await Promise.all(uploadPromises);
+      
+      // Update image files and form data
+      setImageFiles(prev => [...prev, ...processedImageUrls]);
+      updateFormData({
+        images: [...(formData.images || []), ...processedImageUrls]
+      });
     } catch (error) {
-      if (error instanceof Error) {
-        setErrors([error.message]);
+      console.error('Image upload failed:', error);
+      updateFormData({});
+    }
+
+    // Prevent default for file input events
+    if (!(e instanceof Array) && e.preventDefault) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }, [formData.name, formData.images, updateFormData]);
+
+  const uploadImages = useCallback(async (): Promise<string[]> => {
+    const uploadPromises = imageFiles.map(async (file) => {
+      // If it's already a URL, return it
+      if (typeof file === 'string') return file;
+      
+      try {
+        // First, try uploading to photobank
+        const photobankUpload = await uploadToPhotobank({
+          file, 
+          category: 'Product Images', 
+          tags: [formData.name]
+        });
+
+        return photobankUpload.downloadURL;
+      } catch (photobankError) {
+        console.warn('Photobank upload failed, falling back to Firebase:', photobankError);
+        
+        // Fallback to Firebase upload
+        try {
+          const filename = `products/${Date.now()}_${file.name}`;
+          const storageRef = ref(storage, filename);
+          
+          const uploadResult = await uploadBytes(storageRef, file);
+          const downloadURL = await getDownloadURL(uploadResult.ref);
+          
+          return downloadURL;
+        } catch (firebaseError) {
+          console.error('Firebase upload error:', firebaseError);
+          throw firebaseError;
+        }
       }
-    } finally {
-      setLoading(false);
+    });
+
+    return Promise.all(uploadPromises);
+  }, [imageFiles, formData.name]);
+
+  const handleSubmit = useCallback(async () => {
+    const steps: FormStep[] = ['category', 'details', 'images'];
+    const invalidStep = steps.find(step => !validateStep());
+
+    if (invalidStep) {
+      console.warn(`Submission failed: Invalid step ${invalidStep}`);
+      return;
     }
+
+    const imageUrls = await uploadImages();
+      
+    const productData: ProductFormData = {
+      ...formData,
+      description: formData.description || '',
+      images: imageUrls,
+      attributes: Object.fromEntries(
+        Object.entries(formData.attributes || {}).map(([key, value]) => [
+          key, 
+          value !== undefined ? String(value) : ''
+        ])
+      ),
+      createdAt: initialProduct?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    if (initialProduct) {
+      const productRef = doc(db, 'products', initialProduct.id!);
+      await updateDoc(productRef, productData);
+    } else {
+      const productsCollection = collection(db, 'products');
+      await addDoc(productsCollection, productData);
+    }
+
+    onClose?.();
+    navigate('/admin/products');
+  }, [formData, imageFiles, initialProduct, navigate, onClose, uploadImages, validateStep]);
+
+  const renderCategoryStep = () => (
+    <div className="space-y-6">
+      <h3 className="text-xl font-semibold text-teal-100 mb-4">
+        Select Product Category
+      </h3>
+      
+      <div className="bg-teal-900/80 border border-teal-700/50 rounded-xl p-6 space-y-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {DEFAULT_CATEGORIES.map((category) => (
+            <button
+              key={category.slug}
+              onClick={() => updateFormData({ category: category.slug })}
+              className={`
+                p-4 rounded-lg text-left transition-all duration-300
+                ${formData.category === category.slug 
+                  ? 'bg-teal-600 text-white ring-2 ring-teal-500' 
+                  : 'bg-teal-800 text-teal-200 hover:bg-teal-700'}
+              `}
+            >
+              <div className="flex justify-between items-center">
+                <span className="font-semibold">{category.name}</span>
+                {formData.category === category.slug && (
+                  <CheckCircle2 className="w-5 h-5 text-white" />
+                )}
+              </div>
+              <p className="text-xs text-teal-300 mt-1 line-clamp-2">
+                {category.description}
+              </p>
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-6 border-t border-teal-700/50 pt-6">
+          {!isCreatingCategory ? (
+            <button 
+              onClick={() => setIsCreatingCategory(true)}
+              className="w-full flex items-center justify-center space-x-2 
+                bg-teal-800 text-teal-300 hover:bg-teal-700 
+                py-3 rounded-lg transition-colors duration-300"
+            >
+              <PlusCircle className="w-5 h-5" />
+              <span>Create New Category</span>
+            </button>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex space-x-4">
+                <input 
+                  type="text"
+                  value={newCategory}
+                  onChange={(e) => setNewCategory(e.target.value)}
+                  placeholder="Enter new category name"
+                  className="flex-grow px-3 py-2 bg-teal-800 border border-teal-700 
+                    rounded text-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-500 
+                    placeholder-teal-500"
+                />
+                <button
+                  onClick={() => {
+                    if (!newCategory.trim()) return;
+
+                    const slug = newCategory.toLowerCase().replace(/\s+/g, '-');
+
+                    const existingCategory = DEFAULT_CATEGORIES.find(
+                      cat => cat.slug === slug
+                    );
+
+                    if (existingCategory) {
+                      alert('A category with this name already exists');
+                      return;
+                    }
+
+                    const newCategoryConfig: CategoryConfig = {
+                      slug,
+                      name: newCategory,
+                      description: `${newCategory} category`,
+                      attributes: { fields: [] },
+                      createdAt: new Date().toISOString(),
+                      updatedAt: new Date().toISOString()
+                    };
+
+                    DEFAULT_CATEGORIES.push(newCategoryConfig);
+
+                    updateFormData({ category: slug });
+                    setIsCreatingCategory(false);
+                    setNewCategory('');
+                  }}
+                  disabled={!newCategory.trim()}
+                  className="px-4 py-2 bg-teal-600 text-white rounded 
+                    disabled:opacity-50 disabled:cursor-not-allowed
+                    hover:bg-teal-500 transition-colors"
+                >
+                  Create
+                </button>
+                <button
+                  onClick={() => {
+                    setIsCreatingCategory(false);
+                    setNewCategory('');
+                  }}
+                  className="px-4 py-2 bg-teal-800 text-teal-300 
+                    rounded hover:bg-teal-700 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderDetailsStep = () => {
+    const selectedCategory = DEFAULT_CATEGORIES.find(cat => cat.slug === formData.category);
+    const categoryAttributes = selectedCategory?.attributes?.fields || [];
+
+    return (
+      <div className="space-y-6">
+        <h3 className="text-xl font-semibold text-teal-100 mb-4">
+          Product Details for {selectedCategory?.name}
+        </h3>
+        
+        <div className="bg-teal-900/80 border border-teal-700/50 rounded-xl p-6 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label 
+                htmlFor="productName" 
+                className="block text-sm font-medium text-teal-300"
+              >
+                Product Name <span className="text-red-500">*</span>
+              </label>
+              <input 
+                id="productName"
+                type="text"
+                value={formData.name}
+                onChange={(e) => updateFormData({ name: e.target.value })}
+                placeholder="Enter product name"
+                className="w-full px-3 py-2 bg-teal-800 border border-teal-700 rounded text-teal-100 
+                  focus:outline-none focus:ring-2 focus:ring-teal-500 
+                  placeholder-teal-500 transition-all duration-300"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label 
+                htmlFor="productPrice" 
+                className="block text-sm font-medium text-teal-300"
+              >
+                Price <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-teal-400">$</span>
+                <input 
+                  id="productPrice"
+                  type="number"
+                  value={formData.price || ''}
+                  onChange={(e) => updateFormData({ 
+                    price: e.target.value ? parseFloat(e.target.value) : 0 
+                  })}
+                  placeholder="0.00"
+                  min="0"
+                  step="0.01"
+                  className="w-full pl-6 pr-3 py-2 bg-teal-800 border border-teal-700 rounded text-teal-100 
+                    focus:outline-none focus:ring-2 focus:ring-teal-500 
+                    placeholder-teal-500 transition-all duration-300"
+                  required
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label 
+              htmlFor="productDescription" 
+              className="block text-sm font-medium text-teal-300"
+            >
+              Description
+            </label>
+            <textarea 
+              id="productDescription"
+              value={formData.description || ''}
+              onChange={(e) => updateFormData({ description: e.target.value })}
+              placeholder="Enter product description"
+              rows={4}
+              className="w-full px-3 py-2 bg-teal-800 border border-teal-700 rounded text-teal-100 
+                focus:outline-none focus:ring-2 focus:ring-teal-500 
+                placeholder-teal-500 transition-all duration-300 resize-none"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center space-x-3">
+              <input 
+                id="productVisibility"
+                type="checkbox"
+                checked={formData.isVisible}
+                onChange={(e) => updateFormData({ isVisible: e.target.checked })}
+                className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-teal-300 rounded"
+              />
+              <label 
+                htmlFor="productVisibility" 
+                className="text-sm text-teal-300"
+              >
+                Make this product visible to customers
+              </label>
+            </div>
+          </div>
+
+          {categoryAttributes.length > 0 && (
+            <div className="mt-6 space-y-6 border-t border-teal-700/50 pt-6">
+              <h3 className="text-lg font-semibold text-teal-100">
+                {selectedCategory?.name} Specific Attributes
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {categoryAttributes.map((attr) => {
+                  const renderAttributeInput = (attr: any) => {
+                    const currentValue = formData.attributes?.[attr.name] || '';
+
+                    const commonInputProps = {
+                      id: attr.name,
+                      name: attr.name,
+                      className: "w-full px-3 py-2 bg-teal-800 border border-teal-700 rounded text-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-500",
+                      value: currentValue,
+                      onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+                        updateFormData({
+                          attributes: { 
+                            ...formData.attributes, 
+                            [attr.name]: e.target.value 
+                          }
+                        });
+                      },
+                      required: attr.required
+                    };
+
+                    switch (attr.type) {
+                      case 'text':
+                        return (
+                          <input 
+                            type="text" 
+                            {...commonInputProps}
+                            placeholder={`Enter ${attr.label}`}
+                          />
+                        );
+                      
+                      case 'number':
+                        return (
+                          <input 
+                            type="number" 
+                            {...commonInputProps}
+                            placeholder={`Enter ${attr.label}`}
+                            min={attr.min}
+                            max={attr.max}
+                          />
+                        );
+                      
+                      case 'select':
+                        return (
+                          <select {...commonInputProps}>
+                            <option value="">Select {attr.label}</option>
+                            {attr.options?.map((option: string) => (
+                              <option key={option} value={option}>
+                                {option}
+                              </option>
+                            ))}
+                          </select>
+                        );
+                      
+                      case 'boolean':
+                        return (
+                          <div className="flex items-center space-x-3">
+                            <label className="flex items-center space-x-2">
+                              <input 
+                                type="radio"
+                                name={attr.name}
+                                value="1"
+                                checked={currentValue === '1'}
+                                onChange={() => updateFormData({
+                                  attributes: { 
+                                    ...formData.attributes, 
+                                    [attr.name]: '1' 
+                                  }
+                                })}
+                                className="text-teal-500 focus:ring-teal-500"
+                              />
+                              <span>Yes</span>
+                            </label>
+                            <label className="flex items-center space-x-2">
+                              <input 
+                                type="radio"
+                                name={attr.name}
+                                value="0"
+                                checked={currentValue === '0'}
+                                onChange={() => updateFormData({
+                                  attributes: { 
+                                    ...formData.attributes, 
+                                    [attr.name]: '0' 
+                                  }
+                                })}
+                                className="text-teal-500 focus:ring-teal-500"
+                              />
+                              <span>No</span>
+                            </label>
+                          </div>
+                        );
+                      
+                      default:
+                        return (
+                          <input 
+                            type="text" 
+                            {...commonInputProps}
+                            placeholder={`Enter ${attr.label}`}
+                          />
+                        );
+                    }
+                  };
+
+                  return (
+                    <div key={attr.name} className="space-y-2">
+                      <label className="block text-sm font-semibold text-teal-300">
+                        {attr.label} {attr.required && <span className="text-red-600">*</span>}
+                      </label>
+                      {renderAttributeInput(attr)}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-slate-800 rounded-lg max-w-xl w-full">
-        <div className="flex justify-between items-center p-4 border-b border-slate-700 sticky top-0 bg-slate-800 z-10">
-          <h2 className="text-xl font-semibold">
-            {product ? 'Edit Product' : 'Add Product'}
-          </h2>
-          <button 
-            onClick={onClose}
-            className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
+  const renderImagesStep = () => (
+    <div>
+      <div className="space-y-4">
+        <div className="flex space-x-4">
+          <input 
+            type="file" 
+            multiple 
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            onChange={handleImageUpload} 
+            className="hidden" 
+            id="imageUpload" 
+          />
+          <label 
+            htmlFor="imageUpload" 
+            className="flex items-center px-4 py-2 bg-teal-600 text-white rounded-lg cursor-pointer hover:bg-teal-700 transition-colors"
           >
-            <X className="h-5 w-5" />
+            <FaImage className="mr-2" /> Upload Images
+          </label>
+          
+          <button 
+            type="button"
+            onClick={() => setIsPhotobankOpen(true)}
+            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <PlusCircle className="mr-2" /> Select from Photobank
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto">
-          {errors.length > 0 && (
-            <div className="bg-red-100 border border-red-400 text-red-700 p-4 rounded-lg mb-4">
-              <ul>
-                {errors.map((error, index) => (
-                  <li key={index}>{error}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-          <div>
-            <Label className="mb-1">Name</Label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full rounded-lg bg-slate-700 border border-slate-600 px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-            />
-          </div>
-
-          <div>
-            <Label className="mb-1">Description</Label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full rounded-lg bg-slate-700 border border-slate-600 px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-              rows={3}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label className="mb-1">Price</Label>
-              <input
-                type="number"
-                value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
-                min="0"
-                step="0.01"
-                className="w-full rounded-lg bg-slate-700 border border-slate-600 px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-              />
-            </div>
-
-            <div>
-              <Label className="mb-1">Category</Label>
-              <select
-                value={formData.category}
-                onChange={(e) => setFormData({ 
-                  ...formData, 
-                  category: e.target.value as ProductCategory,
-                  attributes: {} // Reset attributes when category changes
-                })}
-                className="w-full rounded-lg bg-slate-700 border border-slate-600 px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+        {imageFiles.length > 0 && (
+          <div className="grid grid-cols-4 gap-4 mt-4">
+            {imageFiles.map((file, index) => (
+              <div 
+                key={index} 
+                className="relative rounded-lg overflow-hidden shadow-md"
               >
-                <option value="">Select Category</option>
-                {DEFAULT_CATEGORIES.map((category) => (
-                  <option key={category.slug} value={category.slug}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          
-          {/* Category-specific attributes */}
-          {formData.category && (
-            <div className="space-y-4">
-              <Label className="mb-1">Category Attributes</Label>
-              <div className="grid grid-cols-2 gap-4">
-                {DEFAULT_CATEGORIES
-                  .find(cat => cat.slug === formData.category)
-                  ?.attributes?.fields.map((field) => (
-                    <div key={field.name} className="space-y-2">
-                      <Label className="mb-1">{field.label}</Label>
-                      {field.type === 'select' ? (
-                        <select
-                          value={formData.attributes?.[field.name] || ''}
-                          onChange={(e) => setFormData({
-                            ...formData,
-                            attributes: {
-                              ...formData.attributes,
-                              [field.name]: e.target.value
-                            }
-                          })}
-                          className="w-full rounded-lg bg-slate-700 border border-slate-600 px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                        >
-                          <option value="">Select {field.label}</option>
-                          {field.options?.map(option => (
-                            <option key={option} value={option}>{option}</option>
-                          ))}
-                        </select>
-                      ) : (
-                        <input
-                          type={field.type}
-                          className="w-full rounded-lg bg-slate-700 border border-slate-600 px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                          value={formData.attributes?.[field.name] || ''}
-                          onChange={(e) => setFormData({
-                            ...formData,
-                            attributes: {
-                              ...formData.attributes,
-                              [field.name]: field.type === 'number' 
-                                ? parseFloat(e.target.value) 
-                                : e.target.value
-                            }
-                          })}
-                        />
-                      )}
-                    </div>
-                  ))}
-              </div>
-            </div>
-          )}
-
-          <div className="flex items-center space-x-4 mt-4">
-            <Label>Product Visibility</Label>
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                checked={formData.isVisible}
-                onChange={(e) => setFormData({ ...formData, isVisible: e.target.checked })}
-                className="mr-2"
-              />
-              <span>{formData.isVisible ? 'Visible in Store' : 'Hidden from Store'}</span>
-            </div>
-          </div>
-
-          <div>
-            <Label>Product Image</Label>
-            <input
-              type="file"
-              onChange={handleImageChange}
-              accept="image/*"
-              className="w-full rounded-lg bg-slate-700 border border-slate-600 px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-600 file:text-white hover:file:bg-blue-700 file:flex file:items-center file:gap-2"
-            />
-            {formData.imageUrl && (
-              <div className="mt-2">
-                <img
-                  src={formData.imageUrl}
-                  alt="Product preview"
-                  className="w-32 h-32 object-cover rounded-lg"
+                <img 
+                  src={typeof file === 'string' ? file : URL.createObjectURL(file)} 
+                  alt={`Product Image ${index + 1}`} 
+                  className="w-full h-48 object-cover"
                 />
+                <button 
+                  type="button"
+                  onClick={() => {
+                    const newImageFiles = imageFiles.filter((_, i) => i !== index);
+                    setImageFiles(newImageFiles);
+                    updateFormData({
+                      images: newImageFiles.map(f => 
+                        typeof f === 'string' ? f : f.name
+                      )
+                    });
+                  }}
+                  className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-            )}
+            ))}
           </div>
-
-          <div className="flex justify-end gap-2 pt-4 sticky bottom-0 bg-slate-800 border-t border-slate-700 mt-8">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-lg hover:bg-slate-700 transition-colors text-gray-400 hover:text-white"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-            >
-              {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                  Saving...
-                </>
-              ) : (
-                <span className="flex items-center gap-2">
-                  <Save className="h-4 w-4" /> Save Product</span>
-              )}
-            </button>
-          </div>
-        </form>
+        )}
       </div>
+
+      {isPhotobankOpen && (
+        <PhotobankPopup 
+          onClose={() => setIsPhotobankOpen(false)}
+          onSelectImages={(selectedImages) => {
+            handleImageUpload(selectedImages);
+            setIsPhotobankOpen(false);
+          }}
+        />
+      )}
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.9 }}
+        transition={{ duration: 0.3 }}
+        className="relative w-full max-w-2xl max-h-[90vh] bg-teal-950 rounded-2xl shadow-2xl overflow-hidden"
+      >
+        <div className="sticky top-0 z-10 bg-teal-900/80 backdrop-blur-sm border-b border-teal-700/50 px-6 py-4 flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-teal-100">
+            {initialProduct ? 'Edit Product' : 'Create New Product'}
+          </h2>
+          <button 
+            onClick={onClose} 
+            className="text-teal-300 hover:text-teal-100 transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        <div className="p-6 overflow-y-auto max-h-[calc(90vh-100px)]">
+          <AnimatePresence mode="wait">
+            {currentStep === 'category' && renderCategoryStep()}
+            {currentStep === 'details' && renderDetailsStep()}
+            {currentStep === 'images' && renderImagesStep()}
+          </AnimatePresence>
+        </div>
+
+        <div className="sticky bottom-0 bg-teal-900/80 backdrop-blur-sm border-t border-teal-700/50 px-6 py-4 flex justify-between items-center">
+          {currentStep !== 'category' && (
+            <Button 
+              variant="secondary" 
+              onClick={handlePreviousStep}
+              className="flex items-center space-x-2"
+            >
+              <ChevronLeft className="w-5 h-5" />
+              <span>Previous</span>
+            </Button>
+          )}
+          
+          {currentStep !== 'images' ? (
+            <Button 
+              variant="default" 
+              onClick={handleNextStep}
+              className="ml-auto flex items-center space-x-2"
+            >
+              <span>Next</span>
+              <ChevronRight className="w-5 h-5" />
+            </Button>
+          ) : (
+            <Button 
+              variant="default" 
+              onClick={handleSubmit}
+              className="ml-auto"
+            >
+              Submit Product
+            </Button>
+          )}
+        </div>
+      </motion.div>
     </div>
   );
 }

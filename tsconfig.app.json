@@ -6,5 +6,13 @@
     "noEmit": false,
     "declarationMap": true
   },
-  "include": ["src/**/*"]
+  "include": [
+    "src/**/*",
+    "src/constants/chatKnowledge.ts",
+    "src/pages/admin/Products.tsx",
+    "src/components/admin/ProductForm.tsx"
+  ],
+  "files": [
+    "src/constants/chatKnowledge.ts"
+  ]
 }

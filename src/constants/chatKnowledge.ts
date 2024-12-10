@@ -60,45 +60,93 @@ export const PRO_FEATURES = {
   'ai_product_management': {
     name: 'AI Product Management',
     description: 'Autonomous product optimization, inventory forecasting, and pricing strategies.',
-    features: [
-      'Smart inventory management',
-      'Dynamic pricing optimization',
-      'Automated product descriptions',
-      'Sales trend analysis',
-      'Product performance predictions'
-    ]
+    currentFeatures: {
+      basic: ['Basic product management'],
+      pro: [
+        'Smart inventory management',
+        'Dynamic pricing optimization',
+        'Automated product descriptions',
+        'Sales trend analysis',
+        'Product performance predictions'
+      ]
+    },
+    benefits: [
+      'Optimize product strategy',
+      'Reduce manual work',
+      'Increase sales potential'
+    ],
+    upgrade: {
+      cta: 'Unlock AI Product Management',
+      contact: '+1 (330) 327-3343'
+    }
   },
-  'photo_optimization': {
+  'photo_enhancement': {
     name: 'AI Photo Enhancement',
     description: 'Advanced image processing and optimization tools.',
-    features: [
-      'Automatic background removal',
-      'Product photo enhancement',
-      'Batch processing capabilities',
-      'Custom watermark positioning',
-      'Image quality optimization'
-    ]
+    currentFeatures: {
+      basic: ['Basic image upload'],
+      pro: [
+        'Automatic background removal',
+        'Product photo enhancement',
+        'Batch processing capabilities',
+        'Custom watermark positioning',
+        'Image quality optimization'
+      ]
+    },
+    benefits: [
+      'Professional-quality images',
+      'Consistent product presentation',
+      'Increased visual appeal'
+    ],
+    upgrade: {
+      cta: 'Enhance Your Photos',
+      contact: '+1 (330) 327-3343'
+    }
   },
   'store_ai': {
     name: 'Store AI Assistant',
     description: 'AI-powered customer service and store management.',
-    features: [
-      '24/7 customer support',
-      'Product recommendations',
-      'Inventory alerts',
-      'Customer behavior analysis',
-      'Automated email responses'
-    ]
+    currentFeatures: {
+      basic: ['Basic AI support'],
+      pro: [
+        '24/7 customer support',
+        'Product recommendations',
+        'Inventory alerts',
+        'Customer behavior analysis',
+        'Automated email responses'
+      ]
+    },
+    benefits: [
+      'Improve customer experience',
+      'Automate support tasks',
+      'Gain customer insights'
+    ],
+    upgrade: {
+      cta: 'Upgrade Store AI',
+      contact: '+1 (330) 327-3343'
+    }
   },
   'analytics_ai': {
     name: 'Advanced Analytics AI',
     description: 'Deep insights and predictive analytics.',
-    features: [
-      'Sales forecasting',
-      'Customer segmentation',
-      'Trend prediction',
-      'ROI analysis',
-      'Custom reporting'
-    ]
+    currentFeatures: {
+      basic: ['Basic reporting'],
+      pro: [
+        'Sales forecasting',
+        'Customer segmentation',
+        'Trend prediction',
+        'ROI analysis',
+        'Custom reporting'
+      ]
+    },
+    benefits: [
+      'Data-driven decisions',
+      'Understand business performance',
+      'Identify growth opportunities'
+    ],
+    upgrade: {
+      cta: 'Unlock Advanced Analytics',
+      contact: '+1 (330) 327-3343'
+    }
   }
 };

@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, Package, Edit2, ShoppingCart, 
-  Users, Tag, Gift, Lock, MessageSquare 
+  Users, Tag, Gift, Lock, MessageSquare, Image 
 } from 'lucide-react';
 import  AdminChatbox  from './chat/AdminChatbox';
 import { FeatureLockModal } from './chat/FeatureLockModal';
@@ -19,6 +19,7 @@ const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/admin/dashboard' },
   { icon: Package, label: 'Products', path: '/admin/products' },
   { icon: Edit2, label: 'Store Content', path: '/admin/store-content' },
+  { icon: Image, label: 'Photo Bank', path: '/admin/photo-bank' },
   { icon: ShoppingCart, label: 'Shopping Cart and Orders', locked: true },
   { icon: Users, label: 'UIX Editor', locked: true },
   { icon: Tag, label: 'Admin Management', locked: true },
@@ -82,7 +83,18 @@ export default function AdminSidebar() {
 
           <div className="p-4 border-t border-dark-400/30">
             <motion.button
-              onClick={() => setShowChat(!showChat)}
+              onClick={() => {
+                setShowChat(!showChat);
+                // Scroll to bottom of the page
+                if (!showChat) {
+                  setTimeout(() => {
+                    window.scrollTo({
+                      top: document.documentElement.scrollHeight,
+                      behavior: 'smooth'
+                    });
+                  }, 100);
+                }
+              }}
               onMouseEnter={() => setIsHovered(true)}
               onMouseLeave={() => setIsHovered(false)}
               className={`w-full flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${

@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, Crown, X } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useChatStore } from '../../../store/chatStore';
+import { useChatState } from '../../../contexts/ChatContext';
+import { formatTimestamp } from '../../../utils/dateUtils';
 
 interface AdminChatboxProps {
   onClose: () => void;
@@ -9,7 +10,12 @@ interface AdminChatboxProps {
 
 export default function AdminChatbox({ onClose }: AdminChatboxProps) {
   const [input, setInput] = useState('');
-  const { messages, isTyping, addMessage, setIsTyping } = useChatStore();
+  const { 
+    messages, 
+    addMessage, 
+    generateAIResponse 
+  } = useChatState();
+  const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -23,24 +29,18 @@ export default function AdminChatbox({ onClose }: AdminChatboxProps) {
   const handleSend = async () => {
     if (!input.trim()) return;
 
-    addMessage({
-      content: input,
-      sender: 'user',
-      timestamp: new Date()
-    });
-
+    addMessage(input, 'user');
     setInput('');
     setIsTyping(true);
 
-    // Simulate AI response
-    setTimeout(() => {
+    try {
+      await generateAIResponse(input);
       setIsTyping(false);
-      addMessage({
-        content: "I'm a basic AI assistant. For advanced features like autonomous product management, photo optimization, and more, upgrade to Bullocks AI Pro!",
-        sender: 'ai',
-        timestamp: new Date()
-      });
-    }, 1000);
+    } catch (error) {
+      console.error('AI Response Generation Error:', error);
+      setIsTyping(false);
+      addMessage('I apologize, but I encountered an error processing your request.', 'ai');
+    }
   };
 
   return (
@@ -89,7 +89,7 @@ export default function AdminChatbox({ onClose }: AdminChatboxProps) {
               {message.content}
             </div>
             <div className="text-xs text-secondary-400 mt-1">
-              {message.timestamp.toLocaleTimeString()}
+              {formatTimestamp(message.timestamp)}
             </div>
           </div>
         ))}

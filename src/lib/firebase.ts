@@ -1,9 +1,10 @@
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApp, getApps } from 'firebase/app';
 import { 
   getAuth, 
   signInWithEmailAndPassword as firebaseSignIn, 
   signOut as firebaseSignOut, 
-  createUserWithEmailAndPassword as firebaseCreateUser 
+  createUserWithEmailAndPassword as firebaseCreateUser, 
+  GoogleAuthProvider 
 } from 'firebase/auth';
 import { 
   getFirestore, 
@@ -12,7 +13,13 @@ import {
   getDoc, 
   setDoc 
 } from 'firebase/firestore';
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { 
+  getStorage, 
+  ref as storageRef, 
+  uploadBytes, 
+  getDownloadURL,
+  deleteObject  
+} from 'firebase/storage';
 import { getAnalytics, logEvent } from 'firebase/analytics';
 
 // Validate environment variables
@@ -22,7 +29,7 @@ const validateEnvVar = (varName: string): string => {
     console.error(`❌ Missing environment variable: ${varName}`);
     throw new Error(`Missing required environment variable: ${varName}`);
   }
-  return value as string;
+  return value;
 };
 
 // Secure Firebase configuration
@@ -36,11 +43,13 @@ const firebaseConfig = {
   measurementId: validateEnvVar('VITE_FIREBASE_MEASUREMENT_ID')
 };
 
-const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
-export const storage = getStorage(app);
-export const auth = getAuth(app);
-export const analytics = getAnalytics(app);
+// Initialize Firebase
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+const auth = getAuth(app);
+const db = getFirestore(app);
+const storage = getStorage(app);
+const analytics = getAnalytics(app);
+const googleProvider = new GoogleAuthProvider();
 
 // Secure admin configuration
 export const ADMIN_CONFIG = {
@@ -58,6 +67,7 @@ export const uploadStorageRef = storageRef;
 // Expose storage upload and download functions
 export const uploadStorageBytes = uploadBytes;
 export const getStorageDownloadURL = getDownloadURL;
+export const deleteStorageObject = deleteObject;
 
 // Analytics event tracking
 export const trackEvent = (eventName: string, params?: Record<string, any>) => {
@@ -234,3 +244,5 @@ export async function initializeAdmin() {
     return false;
   }
 }
+
+export { app, auth, db, storage, googleProvider, analytics };

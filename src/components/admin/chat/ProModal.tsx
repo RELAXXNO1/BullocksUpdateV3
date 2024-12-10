@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { Lock, Sparkles } from 'lucide-react';
 import { useChatStore } from '../../../store/useChatStore';
-import { PRO_FEATURES } from '../../../constants/aiKnowledge';
+import { PRO_FEATURES } from '../../../constants/chatKnowledge';
 
 export function ProModal() {
   const { showProModal, selectedFeature, setShowProModal } = useChatStore();

@@ -1,59 +1,21 @@
-export interface Product {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  category: ProductCategory;
-  imageUrl: string;
-  isVisible: boolean;
-  createdAt: string;
-  updatedAt: string;
-  attributes?: ProductAttributes;
-}
+import { z } from 'zod';
 
-export interface Category {
-  id: string;
-  name: string;
-  slug: string;
-  description?: string;
-  attributes?: CategoryAttributes;
-  createdAt: string;
-  updatedAt: string;
-}
+export const ProductSchema = z.object({
+  id: z.string().optional(),
+  category: z.string().min(1, "Category is required"),
+  name: z.string().min(2, "Product name must be at least 2 characters"),
+  description: z.string().optional(),
+  price: z.number().positive("Price must be positive"),
+  imageUrl: z.string().optional(),
+  images: z.array(z.string()).optional(),
+  attributes: z.record(z.union([z.string(), z.number()])).optional(),
+  isVisible: z.boolean().optional(),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+  isActive: z.boolean().optional()
+});
 
-export interface CategoryAttributes {
-  fields: CategoryField[];
-}
-
-export interface CategoryField {
-  name: string;
-  label: string;
-  type: 'text' | 'number' | 'select';
-  options?: string[];
-}
-
-export interface CategoryConfig extends Omit<Category, 'id' | 'createdAt' | 'updatedAt'> {
-  attributes?: CategoryAttributes;
-}
-
-export type ProductCategory = 
-  '' | 
-  'thca-flower' | 
-  'vapes' | 
-  'tobacco' | 
-  'edibles' | 
-  'glass-pipes';
-
-export interface ProductAttributes {
-  [key: string]: any;
-  brand?: string;
-  material?: string;
-  color?: string;
-  size?: string;
-  features?: string[];
-  specifications?: Record<string, string>;
-}
-
-export interface ProductFormData extends Omit<Product, 'id' | 'createdAt' | 'updatedAt'> {
+export type Product = z.infer<typeof ProductSchema>;
+export type ProductFormData = Product & {
   imageFile?: File;
-}
+};

@@ -2,6 +2,12 @@
   "compileOnSave": false,
   "compilerOptions": {
     "baseUrl": "./",
+    "paths": {
+      "@/*": ["src/*"],
+      "@/components/*": ["src/components/*"],
+      "@/components/ui/*": ["src/components/ui/*"],
+      "@/pages/*": ["src/pages/*"]
+    },
     "outDir": "./dist/out-tsc",
     "sourceMap": true,
     "declaration": true,
@@ -35,11 +41,17 @@
     "moduleResolution": "node",
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "typeRoots": [
+      "./node_modules/@types",
+      "./src/types"
+    ]
   },
   "include": [
     "src",
-    "src/env.d.ts"
+    "src/constants/chatKnowledge.ts",
+    "src/types/**/*.ts",
+    "src/types/**/*.d.ts"
   ],
   "references": [
     { "path": "./tsconfig.app.json" },

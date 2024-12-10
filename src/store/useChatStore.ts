@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { Message, ProFeature } from '../types/chat';
-import { PRO_FEATURES } from '../constants/aiKnowledge';
+import { PRO_FEATURES } from '../constants/chatKnowledge';
 
 interface ChatState {
   messages: Message[];

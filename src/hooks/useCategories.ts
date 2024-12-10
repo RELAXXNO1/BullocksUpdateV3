@@ -1,86 +1,167 @@
 import { useState, useEffect } from 'react';
-import { collection, query, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { DEFAULT_CATEGORIES } from '../config/categories';
-import type { Category } from '../types/product';
+import { DEFAULT_CATEGORIES, CategoryConfig, CategoryAttribute } from '../constants/categories';
 
 export function useCategories() {
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<CategoryConfig[]>(DEFAULT_CATEGORIES);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    const q = query(collection(db, 'categories'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      if (snapshot.empty) {
-        // Initialize default categories if none exist
-        DEFAULT_CATEGORIES.forEach(category => {
-          addCategory(
-            category.name,
-            category.description,
-            category.attributes
-          );
-        });
+    const fetchCategories = async () => {
+      try {
+        const categoriesCollection = collection(db, 'categories');
+        const categoriesSnapshot = await getDocs(categoriesCollection);
+        
+        const fetchedCategories = categoriesSnapshot.docs.map(docSnap => ({
+          id: docSnap.id,
+          ...docSnap.data()
+        } as CategoryConfig));
+
+        // Merge fetched categories with default categories
+        const mergedCategories = [...DEFAULT_CATEGORIES, ...fetchedCategories.filter(
+          fc => !DEFAULT_CATEGORIES.some(dc => dc.slug === fc.slug)
+        )];
+
+        setCategories(mergedCategories);
+        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching categories:', err);
+        setError(err instanceof Error ? err : new Error('Failed to fetch categories'));
+        setLoading(false);
       }
+    };
 
-      const categoryData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Category[];
-      setCategories(categoryData);
-      setLoading(false);
-    });
-
-    return unsubscribe;
+    fetchCategories();
   }, []);
 
-  const addCategory = async (name: string, description?: string, attributes?: CategoryAttributes) => {
+  const createCategory = async (newCategory: CategoryConfig) => {
     try {
-      const slug = name.toLowerCase().replace(/\s+/g, '-');
-      const newCategory = {
-        name,
-        slug,
-        description,
-        attributes,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+      // Validate category
+      if (!newCategory.slug || !newCategory.name) {
+        throw new Error('Category must have a slug and name');
+      }
+
+      // Check if category already exists
+      if (categories.some(cat => cat.slug === newCategory.slug)) {
+        throw new Error('Category with this slug already exists');
+      }
+
+      // Prepare category for Firestore
+      const categoryToSave = {
+        ...newCategory,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
       };
 
-      await addDoc(collection(db, 'categories'), newCategory);
-    } catch (error) {
-      console.error('Error adding category:', error);
-      throw error;
+      // Remove id if present to prevent overwriting
+      delete categoryToSave.id;
+
+      // Add to Firestore
+      const categoriesCollection = collection(db, 'categories');
+      const docRef = await addDoc(categoriesCollection, categoryToSave);
+
+      // Update local state
+      const savedCategory: CategoryConfig = {
+        ...newCategory,
+        id: docRef.id
+      };
+
+      setCategories(prev => [...prev, savedCategory]);
+
+      return docRef.id;
+    } catch (err) {
+      console.error('Error creating category:', err);
+      throw err;
     }
   };
 
-  const updateCategory = async (id: string, name: string, description?: string) => {
+  const updateCategory = async (categoryId: string, updates: Partial<CategoryConfig>) => {
     try {
-      const slug = name.toLowerCase().replace(/\s+/g, '-');
-      await updateDoc(doc(db, 'categories', id), {
-        name,
-        slug,
-        description,
-        updatedAt: new Date().toISOString()
+      if (!categoryId) {
+        throw new Error('Category ID is required');
+      }
+
+      const categoryDoc = doc(db, 'categories', categoryId);
+      await updateDoc(categoryDoc, {
+        ...updates,
+        updatedAt: serverTimestamp()
       });
-    } catch (error) {
-      console.error('Error updating category:', error);
-      throw error;
+
+      // Update local state
+      setCategories(prev => prev.map(cat => 
+        cat.id === categoryId ? { ...cat, ...updates, updatedAt: new Date().toISOString() } : cat
+      ));
+    } catch (err) {
+      console.error('Error updating category:', err);
+      throw err;
     }
   };
 
-  const deleteCategory = async (id: string) => {
+  const deleteCategory = async (categoryId: string) => {
     try {
-      await deleteDoc(doc(db, 'categories', id));
-    } catch (error) {
-      console.error('Error deleting category:', error);
-      throw error;
+      const categoryDoc = doc(db, 'categories', categoryId);
+      await deleteDoc(categoryDoc);
+
+      // Update local state
+      setCategories(prev => prev.filter(cat => cat.id !== categoryId));
+    } catch (err) {
+      console.error('Error deleting category:', err);
+      throw err;
     }
   };
 
-  return {
-    categories,
-    loading,
-    addCategory,
-    updateCategory,
-    deleteCategory
+  const addCategoryAttribute = async (
+    categoryId: string, 
+    newAttribute: CategoryAttribute
+  ) => {
+    try {
+      const categoryDoc = doc(db, 'categories', categoryId);
+      
+      // Fetch current category
+      const currentCategory = categories.find(cat => cat.id === categoryId);
+      if (!currentCategory) {
+        throw new Error('Category not found');
+      }
+
+      // Prepare updated attributes
+      const updatedAttributes = {
+        fields: [
+          ...(currentCategory.attributes?.fields || []),
+          newAttribute
+        ]
+      };
+
+      // Update Firestore
+      await updateDoc(categoryDoc, { 
+        attributes: updatedAttributes,
+        updatedAt: serverTimestamp()
+      });
+
+      // Update local state
+      setCategories(prev => prev.map(cat => 
+        cat.id === categoryId 
+          ? { 
+              ...cat, 
+              attributes: updatedAttributes,
+              updatedAt: new Date().toISOString() 
+            } 
+          : cat
+      ));
+    } catch (err) {
+      console.error('Error adding category attribute:', err);
+      throw err;
+    }
+  };
+
+  return { 
+    categories, 
+    loading, 
+    error, 
+    createCategory, 
+    updateCategory, 
+    deleteCategory,
+    addCategoryAttribute 
   };
 }
