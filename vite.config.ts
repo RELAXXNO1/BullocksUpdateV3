@@ -14,6 +14,9 @@ export default defineConfig({
   },
   // Add build configuration for Netlify
   build: {
-    outDir: 'dist'
+    outDir: 'dist',
+    rollupOptions: {
+      external: ['react-phone-number-input/input']
+    }
   }
 });
