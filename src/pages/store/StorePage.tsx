@@ -1,165 +1,190 @@
-import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingBag, Sparkles, ChevronDown } from 'lucide-react';
+import { useRef } from 'react';
+import { motion, useMotionValue, useDragControls, useScroll, useTransform } from 'framer-motion';
+import { ShoppingBag, ChevronDown } from 'lucide-react';
 import { useStoreContent } from '../../contexts/StoreContentContext';
 import { useProducts } from '../../hooks/useProducts';
 import ProductGrid from '../../components/store/ProductGrid';
 import LoadingSpinner from '../../components/LoadingSpinner';
-import { useState, useEffect } from 'react';
+import { DEFAULT_CATEGORIES } from '../../constants/categories';
+import { useNavigate } from 'react-router-dom';
+
+// Extend categories to create an infinite loop effect
+const infiniteCategories = [
+  ...DEFAULT_CATEGORIES, 
+  ...DEFAULT_CATEGORIES, 
+  ...DEFAULT_CATEGORIES
+];
 
 export default function StorePage() {
   const { products, loading } = useProducts();
   const { getContentBySection } = useStoreContent();
-  const [scrolled, setScrolled] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
+  const navigate = useNavigate();
+  
   const visibleProducts = products.filter(p => p.isVisible);
-  const uniqueCategories = [...new Set(products.map(p => p.category))];
-
-  const handleCategorySelect = (category?: string) => {
-    setSelectedCategory(category);
-  };
-
-  console.log('🛍️ Store Products Debug', {
-    totalProducts: products.length,
-    visibleProductsCount: visibleProducts.length,
-    visibleProducts: visibleProducts.map(p => ({
-      id: p.id,
-      name: p.name,
-      isVisible: p.isVisible,
-      category: p.category
-    })),
-    allProductDetails: products.map(p => ({
-      id: p.id,
-      name: p.name,
-      isVisible: p.isVisible,
-      category: p.category
-    }))
-  });
 
   const heroContent = getContentBySection('hero');
   const productsContent = getContentBySection('products');
 
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 50);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  // Ref for scroll-based parallax
+  const ref = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start start", "end start"]
+  });
+
+  // Transform scroll progress into visual effects
+  const backgroundY = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
+  const textY = useTransform(scrollYProgress, [0, 1], ["0%", "150%"]);
+
+  const dragControls = useDragControls();
+  const x = useMotionValue(0);
 
   if (loading) {
     return <LoadingSpinner />;
   }
 
   const scrollToProducts = () => {
-    document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' });
+    const productsSection = document.getElementById('products-section');
+    productsSection?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleCategoryClick = (slug: string) => {
+    // Prioritize internal routing
+    navigate(`/${slug}`);
+    
+    // Fallback to external subdomain if internal routing fails
+    // window.open(`https://${slug}.bullocksmokeshop.com`, '_blank');
   };
 
   return (
-    <div className="relative">
-      <div className="absolute inset-0 bg-gradient-mesh opacity-20" />
+    <div 
+      ref={ref} 
+      className="relative min-h-screen overflow-hidden"
+    >
+      <motion.div 
+        style={{ y: backgroundY }}
+        className="absolute inset-0 bg-gradient-mesh opacity-20 z-0" 
+      />
       
       {/* Hero Section */}
-      {heroContent && heroContent.isVisible && (
-        <motion.section 
-          initial={{ opacity: 0, y: 20 }}
+      <section className="relative min-h-screen flex flex-col justify-center items-center text-center px-4">
+        <motion.div 
+          style={{ y: textY }}
+          initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative min-h-[90vh] flex items-center justify-center px-4 overflow-hidden"
+          transition={{ duration: 0.8 }}
+          className="max-w-4xl mx-auto relative z-10"
         >
+          <h1 className="text-4xl md:text-6xl font-bold mb-6 text-slate-800 dark:text-white">
+            {heroContent?.title || 'Discover Premium THC-A Products'}
+          </h1>
+          <p className="text-xl md:text-2xl mb-8 text-slate-600 dark:text-slate-300">
+            {heroContent?.description || 'Explore our curated selection of high-quality THC-A products.'}
+          </p>
+          
+          {/* Draggable Category Scroll Wheel */}
+          <div className="relative w-full h-32 overflow-hidden">
+            <motion.div
+              drag="x"
+              dragControls={dragControls}
+              dragConstraints={{ left: -2000, right: 0 }}
+              dragElastic={0.5}
+              style={{ x }}
+              className="flex space-x-6 relative"
+            >
+              {infiniteCategories.map((category, index) => (
+                <motion.button
+                  key={`${category.slug}-${index}`}
+                  onClick={() => handleCategoryClick(category.slug)}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="bg-teal-600/80 text-white px-6 py-3 rounded-full 
+                    hover:bg-teal-700 transition-colors shadow-md 
+                    flex-shrink-0 whitespace-nowrap flex items-center justify-center
+                    space-x-2 group"
+                >
+                  <span className="text-sm font-medium">{category.name}</span>
+                  <motion.span
+                    initial={{ opacity: 0, x: -10 }}
+                    whileHover={{ opacity: 1, x: 0 }}
+                    className="opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out"
+                  >
+                    →
+                  </motion.span>
+                </motion.button>
+              ))}
+            </motion.div>
+            
+            {/* Scroll Navigation Buttons */}
+            <motion.button
+              onClick={() => {
+                const currentX = x.get();
+                x.set(Math.min(currentX + 300, 0));
+              }}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+              className="absolute left-0 top-1/2 -translate-y-1/2 
+                bg-teal-600/50 hover:bg-teal-600/70 
+                text-white p-2 rounded-full z-10 
+                shadow-md transition-all duration-300 
+                flex items-center justify-center"
+            >
+              ←
+            </motion.button>
+            
+            <motion.button
+              onClick={() => {
+                const currentX = x.get();
+                x.set(Math.max(currentX - 300, -2000));
+              }}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+              className="absolute right-0 top-1/2 -translate-y-1/2 
+                bg-teal-600/50 hover:bg-teal-600/70 
+                text-white p-2 rounded-full z-10 
+                shadow-md transition-all duration-300 
+                flex items-center justify-center"
+            >
+              →
+            </motion.button>
+          </div>
+
+          <div className="flex justify-center space-x-4 mt-8">
+            <motion.button 
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={scrollToProducts}
+              className="flex items-center bg-teal-600 text-white px-6 py-3 rounded-full hover:bg-teal-700 transition-colors"
+            >
+              <ShoppingBag className="mr-2" /> Shop Now
+            </motion.button>
+          </div>
+          
           <motion.div 
             initial={{ opacity: 0 }}
-            animate={{ opacity: 0.3 }}
-            className="absolute inset-0 bg-gradient-radial"
-          />
-          <div className="max-w-4xl mx-auto text-center relative z-10">
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.2 }}
-              className="inline-block mb-8"
-            >
-              <div className="bg-primary-600/20 p-4 rounded-full backdrop-blur-sm">
-                <ShoppingBag className="h-8 w-8 text-primary-400" />
-              </div>
-            </motion.div>
-            <motion.h1 
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ 
-                delay: 0.3,
-                type: "spring",
-                stiffness: 100 
-              }}
-              className="text-6xl md:text-7xl font-display font-bold mb-8 relative"
-            >
-              <span className="relative z-10 bg-gradient-to-r from-teal-300 via-teal-400 to-teal-300 bg-clip-text text-transparent">
-                {heroContent.title}
-              </span>
-              <span className="absolute inset-0 -z-10 animate-pulse blur-xl bg-gradient-to-r from-teal-950 via-teal-900 to-teal-950 bg-clip-text text-transparent opacity-90">
-                {heroContent.title}
-              </span>
-            </motion.h1>
-            <motion.p 
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ 
-                delay: 0.4,
-                type: "spring",
-                stiffness: 50
-              }}
-              className="text-xl text-gray-300 mb-12 leading-relaxed max-w-2xl mx-auto"
-            >
-              {heroContent.description}
-            </motion.p>
-            
-            <AnimatePresence>
-              {!scrolled && (
-                <motion.button
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1, y: [0, 10, 0] }}
-                  exit={{ opacity: 0 }}
-                  transition={{ 
-                    opacity: { duration: 0.2 },
-                    y: { repeat: Infinity, duration: 1.5 }
-                  }}
-                  onClick={scrollToProducts}
-                  className="absolute bottom-12 left-1/2 -translate-x-1/2 text-gray-400 hover:text-white transition-colors"
-                >
-                  <ChevronDown className="h-8 w-8" />
-                </motion.button>
-              )}
-            </AnimatePresence>
-          </div>
-        </motion.section>
-      )}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1, duration: 0.5 }}
+            className="mt-12 animate-bounce"
+          >
+            <ChevronDown className="mx-auto text-4xl text-teal-600" />
+          </motion.div>
+        </motion.div>
+      </section>
 
       {/* Products Section */}
-      <section id="products" className="relative px-4 py-24">
-        {productsContent && productsContent.isVisible && (
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center mb-20 relative z-10"
-          >
-            <div className="inline-block mb-4">
-              <div className="bg-primary-600/20 p-3 rounded-full backdrop-blur-sm">
-                <Sparkles className="h-6 w-6 text-primary-400" />
-              </div>
-            </div>
-            <h2 className="text-4xl md:text-5xl font-display font-bold mb-6 relative">
-              <span className="relative z-10 bg-gradient-to-r from-teal-300 via-teal-400 to-teal-300 bg-clip-text text-transparent">
-                {productsContent.title}
-              </span>
-              <span className="absolute inset-0 -z-10 animate-pulse blur-xl bg-gradient-to-r from-teal-950 via-teal-900 to-teal-950 bg-clip-text text-transparent opacity-90">
-                {productsContent.title}
-              </span>
-            </h2>
-            <p className="text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed">
-              {productsContent.description}
-            </p>
-          </motion.div>
-        )}
-        <ProductGrid 
-          products={visibleProducts} 
-          selectedCategory={selectedCategory} 
-        />
+      <section 
+        id="products-section" 
+        className="relative py-16 px-4 bg-white dark:bg-slate-900"
+      >
+        <div className="container mx-auto">
+          <h2 className="text-3xl font-bold mb-8 text-center text-slate-800 dark:text-white">
+            {productsContent?.title || 'Our Products'}
+          </h2>
+          
+          <ProductGrid 
+            products={visibleProducts}
+          />
+        </div>
       </section>
     </div>
   );

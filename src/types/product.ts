@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const ProductSchema = z.object({
   id: z.string().optional(),
-  category: z.string().min(1, "Category is required"),
+  category: z.string().min(1, "Category name is required"),
   name: z.string().min(2, "Product name must be at least 2 characters"),
   description: z.string().optional(),
   price: z.number().positive("Price must be positive"),
@@ -16,7 +16,7 @@ export const ProductSchema = z.object({
 });
 
 export type Product = z.infer<typeof ProductSchema> & {
-  category: string;
+  category: string; // This will now be the category SLUG
 };
 
 export type ProductFormData = Product & {

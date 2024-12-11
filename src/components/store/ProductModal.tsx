@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { X, MapPin } from 'lucide-react';
 import { Product } from '../../types/product';
@@ -13,6 +13,17 @@ export const ProductModal: React.FC<ProductModalProps> = ({
   onClose 
 }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const detailsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Ensure details section is scrollable when modal opens
+    if (detailsRef.current) {
+      const hasOverflow = detailsRef.current.scrollHeight > detailsRef.current.clientHeight;
+      if (hasOverflow) {
+        detailsRef.current.classList.add('overflow-y-scroll');
+      }
+    }
+  }, []);
 
   const handleNextImage = () => {
     setCurrentImageIndex((prev) => 
@@ -35,7 +46,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto"
       onClick={onClose}
     >
       <motion.div
@@ -43,7 +54,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
         transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-        className="bg-slate-800 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl border border-slate-700"
+        className="bg-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl border border-slate-700 relative"
         onClick={handleStopPropagation}
       >
         <div className="grid md:grid-cols-2 h-full">
@@ -64,15 +75,18 @@ export const ProductModal: React.FC<ProductModalProps> = ({
             <img 
               src={product.images?.[currentImageIndex] || '/placeholder.png'} 
               alt={product.name} 
-              className="max-h-[600px] object-contain w-full p-8"
+              className="max-h-[400px] object-contain w-full p-8"
             />
           </div>
 
           {/* Details Section */}
-          <div className="p-8 overflow-y-auto max-h-[90vh]">
+          <div 
+            ref={detailsRef}
+            className="p-6 overflow-y-auto max-h-[500px] scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800"
+          >
             <div className="flex justify-between items-start mb-6">
               <div>
-                <h2 className="text-3xl font-bold text-white mb-2">{product.name}</h2>
+                <h2 className="text-2xl font-bold text-white mb-2">{product.name}</h2>
                 <p className="text-emerald-500 text-xl font-semibold">${product.price.toFixed(2)}</p>
               </div>
               <button 
@@ -129,7 +143,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
             <div className="space-y-4">
               <a 
                 href="https://www.google.com/maps/dir//400+Vernonview+Dr,+Mt+Vernon,+OH+43050/@40.4004795,-82.5389536,12z/data=!4m8!4m7!1m0!1m5!1m1!1s0x8839ccb9b3f11bed:0x4ca1ad52339bb0f0!2m2!1d-82.4566284!2d40.4004932?entry=ttu&g_ep=EgoyMDI0MTIwOC4wIKXMDSoASAFQAw%3D%3D" 
-                target="_blank" 
+                target="_blank"
                 rel="noopener noreferrer"
                 className="w-full bg-emerald-600/10 text-emerald-400 py-3 rounded-lg 
                   flex items-center justify-center gap-2 

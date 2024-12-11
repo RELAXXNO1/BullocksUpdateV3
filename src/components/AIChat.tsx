@@ -33,7 +33,6 @@ export const AIChat: React.FC = () => {
 
   // Enhanced fallback models with more diverse capabilities
   const fallbackModels = [
-    "mistralai/Mistral-7B-Instruct-v0.2",
     "meta-llama/Llama-3-8b-chat-hf",
     "google/gemma-7b-it"
   ];

@@ -1,0 +1,431 @@
+import { useRef, useMemo } from 'react';
+import { motion, useScroll, useTransform, useMotionValueEvent } from 'framer-motion';
+import { useProducts } from '../../hooks/useProducts';
+import { useNavigate } from 'react-router-dom';
+import ProductGrid from '../../components/store/ProductGrid';
+import LoadingSpinner from '../../components/LoadingSpinner';
+import { DEFAULT_CATEGORIES } from '../../constants/categories';
+
+interface CategoryAttributeField {
+  name: string;
+  label: string;
+  type: string;
+  options?: string[];
+}
+
+interface CategoryConfig {
+  name: string;
+  slug: string;
+  description?: string;
+  attributes?: {
+    fields: CategoryAttributeField[];
+  };
+}
+
+interface CategoryTemplateProps {
+  categorySlug: string;
+}
+
+export default function CategoryTemplate({ categorySlug }: CategoryTemplateProps) {
+  const { products, loading } = useProducts();
+  const navigate = useNavigate(); 
+  const scrollRef = useRef(null);
+  const containerRef = useRef(null);
+
+  // Enhanced scroll configuration for touch and mobile
+  const { scrollYProgress } = useScroll({
+    target: scrollRef,
+    container: containerRef,
+    offset: ["start start", "end start"],
+    smooth: 15, // Increased smoothness
+  });
+
+  // More sophisticated parallax and scroll transformations
+  const backgroundY = useTransform(scrollYProgress, [0, 1], ["0%", "50%"], {
+    ease: (progress: number) => Math.pow(progress, 2) // Quadratic easing for smoother parallax
+  });
+
+  const textY = useTransform(scrollYProgress, [0, 1], ["0%", "100%"], {
+    ease: (progress: number) => 1 - Math.pow(1 - progress, 3) // Cubic ease-out for text movement
+  });
+
+  const opacity = useTransform(
+    scrollYProgress, 
+    [0, 0.2, 0.8, 1], 
+    [1, 0.8, 0.6, 0.4], 
+    {
+      ease: (progress: number) => progress // Linear interpolation for opacity
+    }
+  );
+
+  const scale = useTransform(scrollYProgress, [0, 1], [1, 0.95], {
+    ease: (progress: number) => 1 - Math.pow(progress, 2) // Subtle scaling effect
+  });
+
+  // Scroll-triggered animations for sections
+  const sectionVariants = {
+    initial: { opacity: 0, y: 50 },
+    animate: { 
+      opacity: 1, 
+      y: 0,
+      transition: { 
+        duration: 0.6, 
+        ease: "easeOut" 
+      }
+    }
+  };
+
+  // Add scroll event logging for debugging
+  useMotionValueEvent(scrollYProgress, "change", (latest: number) => {
+    console.log("Scroll progress:", latest);
+  });
+
+  // Find the category details with more flexible matching
+  const categoryDetails: CategoryConfig | undefined = DEFAULT_CATEGORIES.find(
+    (cat: CategoryConfig) => {
+      // Remove all hyphens, spaces, and convert to lowercase for comparison
+      const normalizedInputSlug = categorySlug.replace(/[-\s]/g, '').toLowerCase();
+      const normalizedCategorySlug = cat.slug.replace(/[-\s]/g, '').toLowerCase();
+      const normalizedCategoryName = cat.name.replace(/[-\s]/g, '').toLowerCase();
+
+      return (
+        normalizedInputSlug === normalizedCategorySlug ||
+        normalizedInputSlug === normalizedCategoryName
+      );
+    }
+  );
+
+  // Detailed logging for debugging
+  console.log('FULL CATEGORY DEBUG', {
+    inputSlug: categorySlug,
+    allCategories: DEFAULT_CATEGORIES.map(c => c.slug),
+    matchedCategory: categoryDetails
+  });
+
+  // Log ALL category details for debugging
+  console.log(' FULL CATEGORY DEBUG:', {
+    inputSlug: categorySlug,
+    allCategories: DEFAULT_CATEGORIES.map(cat => ({
+      slug: cat.slug,
+      name: cat.name
+    })),
+    matchedCategory: categoryDetails
+  });
+
+  // Throw an error if category is not found
+  if (!categoryDetails) {
+    console.error(' Category Not Found Error:', {
+      inputSlug: categorySlug,
+      availableSlugs: DEFAULT_CATEGORIES.map(cat => cat.slug)
+    });
+    throw new Error(`Category with slug "${categorySlug}" does not exist`);
+  }
+
+  // Validate category name for product filtering
+  if (!categoryDetails.name) {
+    console.error(' Invalid Category Configuration:', categoryDetails);
+    throw new Error(`Category "${categorySlug}" is missing a name`);
+  }
+
+  // Add a method to use handleGoBack
+  const handleGoBack = () => {
+    navigate('/store');
+    console.log('Navigating back to store');
+  };
+
+  console.log(' Category Debug:', {
+    inputSlug: categorySlug,
+    availableSlugs: DEFAULT_CATEGORIES.map(cat => cat.slug),
+    matchedCategory: categoryDetails
+  });
+
+  // Filter products for the current category
+  const filteredProducts = useMemo(() => {
+    if (!categoryDetails) return [];
+    
+    const normalized = (str: string) => 
+      str.toLowerCase().replace(/[-\s]/g, '');
+
+    const filtered = products.filter(product => {
+      const productCategoryNormalized = normalized(product.category);
+      const categoryNameNormalized = normalized(categoryDetails.name);
+
+      const isMatch = productCategoryNormalized === categoryNameNormalized;
+
+      console.log('Product Matching Debug', {
+        productCategory: product.category,
+        categoryName: categoryDetails.name,
+        productName: product.name,
+        productCategoryNormalized,
+        categoryNameNormalized,
+        matchResult: isMatch
+      });
+      
+      return isMatch;
+    });
+
+    console.log('Filtered Products Debug', {
+      categoryName: categoryDetails.name,
+      filteredProductsCount: filtered.length,
+      allProductsCount: products.length,
+      allProductCategories: [...new Set(products.map(p => p.category))]
+    });
+
+    return filtered;
+  }, [products, categoryDetails]);
+
+  // Log total products found
+  console.log(' Category Products:', {
+    categoryName: categoryDetails.name,
+    totalProducts: filteredProducts.length,
+    allProductsCount: products.length
+  });
+
+  if (loading) {
+    return <LoadingSpinner />;
+  }
+
+  return (
+    <div 
+      ref={containerRef} 
+      className="relative min-h-screen overflow-hidden touch-pan-y"
+    >
+      {/* Gradient Background with Enhanced Parallax */}
+      <motion.div 
+        style={{ 
+          y: backgroundY,
+          opacity: opacity,
+          scale: scale
+        }}
+        className="absolute inset-0 bg-gradient-to-br from-dark-600 via-dark-500 to-dark-600 will-change-transform"
+      />
+      
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,theme(colors.teal.500/0.15),transparent)] pointer-events-none" />
+
+      {/* Category Header with Scroll-Triggered Animation */}
+      {categoryDetails && (
+        <motion.section 
+          variants={sectionVariants}
+          initial="initial"
+          animate="animate"
+          style={{ y: textY }}
+          className="relative z-10 px-4 py-8 md:px-8 will-change-transform"
+        >
+          {/* Back button and category content */}
+          <div className="container mx-auto">
+            <button 
+              onClick={handleGoBack} 
+              className="mb-4 flex items-center text-sm text-gray-500 hover:text-primary-400 transition-colors"
+            >
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                className="h-5 w-5 mr-2" 
+                viewBox="0 0 20 20" 
+                fill="currentColor"
+              >
+                <path 
+                  fillRule="evenodd" 
+                  d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" 
+                  clipRule="evenodd" 
+                />
+              </svg>
+              Back to Store
+            </button>
+
+            <h1 className="text-3xl font-bold mb-4 text-white">
+              {categoryDetails.name}
+            </h1>
+            {categoryDetails.description && (
+              <p className="text-gray-300 mb-6">
+                {categoryDetails.description}
+              </p>
+            )}
+          </div>
+        </motion.section>
+      )}
+
+      {/* Product Grid Section with Scroll Animation */}
+      <motion.div 
+        variants={sectionVariants}
+        initial="initial"
+        animate="animate"
+        className="relative z-20 px-4 py-8 md:px-8"
+      >
+        {/* Existing product grid content */}
+        <ProductGrid 
+          products={filteredProducts} 
+          initialCategory={categoryDetails.name} 
+        />
+      </motion.div>
+
+      {/* Attribute Showcase Section */}
+      {categoryDetails.attributes?.fields && categoryDetails.attributes.fields.length > 0 && (
+        <motion.section 
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ 
+            once: true,  // Only animate once when in view
+            amount: 0.1  // Trigger when 10% of the section is visible
+          }}
+          variants={{
+            hidden: { opacity: 0, y: 50 },
+            visible: { 
+              opacity: 1, 
+              y: 0,
+              transition: {
+                duration: 0.6,
+                ease: "easeOut",
+                staggerChildren: 0.1  // Stagger the children animations
+              }
+            }
+          }}
+          className="container mx-auto px-4 py-16 bg-white dark:bg-slate-900"
+        >
+          <motion.h2 
+            variants={{
+              hidden: { opacity: 0, y: -20 },
+              visible: { 
+                opacity: 1, 
+                y: 0,
+                transition: {
+                  duration: 0.5
+                }
+              }
+            }}
+            className="text-3xl font-bold text-center text-slate-800 dark:text-white mb-12"
+          >
+            {categoryDetails.name} Attributes
+          </motion.h2>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {categoryDetails.attributes.fields.map((attr: CategoryAttributeField, index: number) => (
+              <motion.div 
+                key={attr.name}
+                variants={{
+                  hidden: { opacity: 0, scale: 0.9 },
+                  visible: { 
+                    opacity: 1, 
+                    scale: 1,
+                    transition: {
+                      duration: 0.5,
+                      ease: "easeOut"
+                    }
+                  }
+                }}
+                className="bg-slate-100 dark:bg-slate-800 p-6 rounded-xl shadow-md hover:shadow-2xl transition-all duration-300 group transform hover:-translate-y-2"
+              >
+                <div className="flex items-center mb-4">
+                  <motion.div 
+                    variants={{
+                      hidden: { scale: 0, opacity: 0 },
+                      visible: { 
+                        scale: 1, 
+                        opacity: 1,
+                        transition: { 
+                          type: "spring", 
+                          stiffness: 260, 
+                          damping: 20,
+                          delay: 0.2
+                        }
+                      }
+                    }}
+                    className="w-12 h-12 bg-teal-500/20 rounded-full flex items-center justify-center mr-4"
+                  >
+                    <span className="text-teal-600 font-bold text-lg">
+                      {attr.label.charAt(0)}
+                    </span>
+                  </motion.div>
+                  <motion.h3 
+                    variants={{
+                      hidden: { opacity: 0, x: -20 },
+                      visible: { 
+                        opacity: 1, 
+                        x: 0,
+                        transition: {
+                          duration: 0.4
+                        }
+                      }
+                    }}
+                    className="text-xl font-semibold text-slate-800 dark:text-white group-hover:text-teal-600 transition-colors"
+                  >
+                    {attr.label}
+                  </motion.h3>
+                </div>
+                
+                <motion.div 
+                  variants={{
+                    hidden: { opacity: 0, y: 20 },
+                    visible: { 
+                      opacity: 1, 
+                      y: 0,
+                      transition: {
+                        duration: 0.5,
+                        delay: 0.3
+                      }
+                    }
+                  }}
+                  className="text-slate-600 dark:text-slate-300"
+                >
+                  {attr.type === 'select' && attr.options ? (
+                    <motion.div
+                      variants={{
+                        hidden: { opacity: 0 },
+                        visible: { 
+                          opacity: 1,
+                          transition: { 
+                            delay: 0.4 
+                          }
+                        }
+                      }}
+                    >
+                      <p className="mb-2">Available Options:</p>
+                      <ul className="list-disc list-inside space-y-1">
+                        {attr.options.map((option) => (
+                          <motion.li 
+                            key={option} 
+                            variants={{
+                              hidden: { opacity: 0, x: -10 },
+                              visible: { 
+                                opacity: 1, 
+                                x: 0,
+                                transition: { 
+                                  type: "tween",
+                                  duration: 0.3
+                                }
+                              }
+                            }}
+                            className="text-sm"
+                          >
+                            {option}
+                          </motion.li>
+                        ))}
+                      </ul>
+                    </motion.div>
+                  ) : (
+                    <motion.p 
+                      variants={{
+                        hidden: { opacity: 0 },
+                        visible: { 
+                          opacity: 1,
+                          transition: { 
+                            delay: 0.4 
+                          }
+                        }
+                      }}
+                      className="italic"
+                    >
+                      Type: {attr.type === 'number' ? 'Numeric Value' : 
+                             attr.type === 'text' ? 'Text Description' : 
+                             attr.type === 'boolean' ? 'Yes/No Option' : attr.type}
+                    </motion.p>
+                  )}
+                </motion.div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.section>
+      )}
+      <div ref={scrollRef} className="absolute inset-0" />
+    </div>
+  );
+}

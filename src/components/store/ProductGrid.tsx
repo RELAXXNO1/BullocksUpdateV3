@@ -1,122 +1,115 @@
-import React, { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ProductModal } from './ProductModal';
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import { Product } from '../../types/product';
-import { WATERMARK_LOGO_PATH } from '../../config/constants';
+import { MapPin } from 'lucide-react';
+import { ProductModal } from '../store/ProductModal';
 
 interface ProductGridProps {
   products: Product[];
   initialCategory?: string;
 }
 
-export const ProductGrid: React.FC<ProductGridProps> = ({ 
-  products, 
-  initialCategory = 'All Products' 
-}) => {
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory);
-
-  // Get unique categories from products
-  const categories = useMemo(() => {
-    const allCategories = ['All Products', ...new Set(products.map(p => p.category))];
-    return allCategories;
-  }, [products]);
-
-  // Filter products based on selected category
-  const filteredProducts = useMemo(() => {
-    return selectedCategory === 'All Products' 
-      ? products 
-      : products.filter(product => product.category === selectedCategory);
-  }, [products, selectedCategory]);
-
-  const handleProductClick = (product: Product) => {
-    setSelectedProduct(product);
-  };
-
-  const handleCloseModal = () => {
-    setSelectedProduct(null);
-  };
+const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
-    <div className="container mx-auto px-4">
-      {/* Category Filter */}
-      <div className="flex justify-center space-x-4 mb-6 overflow-x-auto scrollbar-hide">
-        {categories.map((category) => (
-          <motion.button
-            key={category}
-            onClick={() => setSelectedCategory(category)}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
-              selectedCategory === category 
-                ? 'bg-teal-600 text-white' 
-                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-            }`}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            {category}
-          </motion.button>
-        ))}
-      </div>
+    <>
+      <motion.div 
+        onClick={() => setIsModalOpen(true)}
+        className="group relative overflow-hidden rounded-2xl shadow-lg bg-white dark:bg-slate-800 transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl cursor-pointer"
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        {/* Image Container with Overlay */}
+        <div className="relative aspect-square overflow-hidden">
+          <img 
+            src={product.images?.[0] || '/placeholder-product.png'} 
+            alt={product.name} 
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        </div>
 
-      {/* Product Grid */}
-      <div className="overflow-x-auto scrollbar-hide">
-        <div className="inline-flex space-x-6 pb-4 min-w-full">
-          {filteredProducts.map((product) => (
+        {/* Product Details */}
+        <div className="p-4 space-y-2">
+          <h3 className="text-lg font-bold text-slate-800 dark:text-white truncate">
+            {product.name}
+          </h3>
+          <div className="flex justify-between items-center">
+            <span className="text-teal-600 font-semibold text-xl">
+              ${product.price.toFixed(2)}
+            </span>
+            <a 
+              href="https://www.google.com/maps/dir//400+Vernonview+Dr,+Mt+Vernon,+OH+43050/@40.4004795,-82.5389536,12z/data=!4m8!4m7!1m0!1m5!1m1!1s0x8839ccb9b3f11bed:0x4ca1ad52339bb0f0!2m2!1d-82.4566284!2d40.4004932?entry=ttu&g_ep=EgoyMDI0MTIwOC4wIKXMDSoASAFQAw%3D%3D" 
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="text-teal-400 hover:text-teal-300 text-sm italic flex items-center justify-center"
+            >
+              <MapPin className="h-4 w-4 mr-1" />
+              Come Pick It Up
+            </a>
+          </div>
+        </div>
+      </motion.div>
+
+      {isModalOpen && (
+        <ProductModal 
+          product={product} 
+          onClose={() => setIsModalOpen(false)} 
+        />
+      )}
+    </>
+  );
+};
+
+const ProductGrid: React.FC<ProductGridProps> = ({ products, initialCategory }) => {
+  return (
+    <div className="container mx-auto px-4 py-8">
+      {products.length === 0 ? (
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center py-16 bg-slate-100 dark:bg-slate-900 rounded-xl"
+        >
+          <h2 className="text-2xl font-bold text-slate-700 dark:text-white mb-4">
+            No Products Available
+          </h2>
+          <p className="text-slate-500 dark:text-slate-400">
+            Check back soon for new {initialCategory} products!
+          </p>
+        </motion.div>
+      ) : (
+        <motion.div 
+          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
+          initial="hidden"
+          animate="visible"
+          variants={{
+            hidden: { opacity: 0 },
+            visible: {
+              opacity: 1,
+              transition: {
+                delayChildren: 0.2,
+                staggerChildren: 0.1
+              }
+            }
+          }}
+        >
+          {products.map((product) => (
             <motion.div 
               key={product.id}
-              onClick={() => handleProductClick(product)}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="flex-shrink-0 w-64 bg-slate-800 rounded-xl p-4 cursor-pointer group transition-all duration-300 hover:shadow-2xl hover:border-teal-500 border border-transparent"
+              variants={{
+                hidden: { opacity: 0, scale: 0.9 },
+                visible: { opacity: 1, scale: 1 }
+              }}
+              transition={{ duration: 0.5 }}
             >
-              <div className="absolute top-2 right-2 opacity-50 z-10">
-                <img 
-                  src={WATERMARK_LOGO_PATH} 
-                  alt="Watermark" 
-                  className="h-8 w-8 object-contain"
-                />
-              </div>
-
-              <div className="relative mb-4">
-                <img 
-                  src={product.images?.[0] || '/placeholder.png'} 
-                  alt={product.name} 
-                  className="w-full h-48 object-cover rounded-xl 
-                    transition-transform duration-300 
-                    group-hover:scale-105"
-                />
-              </div>
-
-              <div className="text-center">
-                <h3 className="text-lg font-semibold text-white mb-2">
-                  {product.name}
-                </h3>
-                <div className="flex justify-center items-center">
-                  <span className="text-emerald-500 font-bold">
-                    ${product.price.toFixed(2)}
-                  </span>
-                </div>
-              </div>
+              <ProductCard product={product} />
             </motion.div>
           ))}
-        </div>
-      </div>
-
-      {/* No Products Message */}
-      {filteredProducts.length === 0 && (
-        <div className="text-center text-slate-400 py-8">
-          No products found in this category.
-        </div>
+        </motion.div>
       )}
-
-      <AnimatePresence>
-        {selectedProduct && (
-          <ProductModal 
-            product={selectedProduct} 
-            onClose={handleCloseModal}
-          />
-        )}
-      </AnimatePresence>
     </div>
   );
 };

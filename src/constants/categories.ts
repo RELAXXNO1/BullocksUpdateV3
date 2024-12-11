@@ -55,7 +55,7 @@ export const DEFAULT_CATEGORIES: CategoryConfig[] = [
   },
   {
     slug: 'pre-rolls',
-    name: 'Pre-Rolls',
+    name: 'Pre Rolls',
     description: 'Ready-to-smoke pre-rolled joints',
     attributes: {
       fields: [
@@ -113,7 +113,7 @@ export const DEFAULT_CATEGORIES: CategoryConfig[] = [
           name: 'mushroomType', 
           label: 'Mushroom Type', 
           type: 'select', 
-          options: ['Psychedelicllic', 'Lion\'s Mane', 'Reishi', 'Cordyceps'],
+          options: ['Psychedelic', 'Lion\'s Mane', 'Reishi', 'Cordyceps'],
           displayOnCard: true 
         },
         { 
@@ -188,7 +188,7 @@ export const DEFAULT_CATEGORIES: CategoryConfig[] = [
   },
   {
     slug: 'lighters-torches',
-    name: 'Lighters + Torches',
+    name: 'Lighters And Torches',
     description: 'Lighting accessories',
     attributes: {
       fields: [

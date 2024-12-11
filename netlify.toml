@@ -8,5 +8,65 @@
   to = "/index.html"
   status = 200
 
+[[redirects]]
+  from = "https://thc-a-flower.bullocksmokeshop.com/*"
+  to = "/thc-a-flower"
+  status = 200
+
+[[redirects]]
+  from = "https://pre-rolls.bullocksmokeshop.com/*"
+  to = "/pre-rolls"
+  status = 200
+
+[[redirects]]
+  from = "https://edibles.bullocksmokeshop.com/*"
+  to = "/edibles"
+  status = 200
+
+[[redirects]]
+  from = "https://mushrooms.bullocksmokeshop.com/*"
+  to = "/mushrooms"
+  status = 200
+
+[[redirects]]
+  from = "https://vapes-disposables.bullocksmokeshop.com/*"
+  to = "/vapes-disposables"
+  status = 200
+
+[[redirects]]
+  from = "https://glass-pipes.bullocksmokeshop.com/*"
+  to = "/glass-pipes"
+  status = 200
+
+[[redirects]]
+  from = "https://tobacco-products.bullocksmokeshop.com/*"
+  to = "/tobacco-products"
+  status = 200
+
+[[redirects]]
+  from = "https://lighters-torches.bullocksmokeshop.com/*"
+  to = "/lighters-torches"
+  status = 200
+
+[[redirects]]
+  from = "https://admin.bullocksmokeshop.com/*"
+  to = "/admin/dashboard"
+  status = 200
+
+[[redirects]]
+  from = "https://compliance.bullocksmokeshop.com/*"
+  to = "/thca-compliance"
+  status = 200
+
+[[redirects]]
+  from = "https://privacy.bullocksmokeshop.com/*"
+  to = "/privacy-policy"
+  status = 200
+
+[[redirects]]
+  from = "https://terms.bullocksmokeshop.com/*"
+  to = "/terms-of-service"
+  status = 200
+
 [build.environment]
   NODE_VERSION = "18"
