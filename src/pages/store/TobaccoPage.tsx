@@ -1,5 +1,5 @@
 import CategoryTemplate from './CategoryTemplate';
 
 export default function TobaccoPage() {
-  return <CategoryTemplate categorySlug="tobacco" />;
+  return <CategoryTemplate categorySlug="tobacco-products" />;
 }

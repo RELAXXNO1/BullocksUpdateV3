@@ -26,7 +26,7 @@ interface CategoryTemplateProps {
   categorySlug: string;
 }
 
-export default function CategoryTemplate({ categorySlug }: CategoryTemplateProps) {
+export default function CategoryTemplate({ categorySlug }: CategoryTemplateProps): React.ReactElement {
   const { products, loading } = useProducts();
   const navigate = useNavigate(); 
   const scrollRef = useRef(null);
@@ -80,66 +80,24 @@ export default function CategoryTemplate({ categorySlug }: CategoryTemplateProps
     console.log("Scroll progress:", latest);
   });
 
-  // Find the category details with more flexible matching
-  const categoryDetails: CategoryConfig | undefined = DEFAULT_CATEGORIES.find(
-    (cat: CategoryConfig) => {
-      // Remove all hyphens, spaces, and convert to lowercase for comparison
-      const normalizedInputSlug = categorySlug.replace(/[-\s]/g, '').toLowerCase();
-      const normalizedCategorySlug = cat.slug.replace(/[-\s]/g, '').toLowerCase();
-      const normalizedCategoryName = cat.name.replace(/[-\s]/g, '').toLowerCase();
+  // Determine category details
+  const categoryDetails: CategoryConfig = useMemo(() => {
+    const foundCategory = DEFAULT_CATEGORIES.find(cat => 
+      cat.slug === categorySlug || 
+      cat.name.toLowerCase().includes(categorySlug.toLowerCase())
+    );
 
-      return (
-        normalizedInputSlug === normalizedCategorySlug ||
-        normalizedInputSlug === normalizedCategoryName
-      );
+    if (!foundCategory) {
+      console.warn(' Category Not Found, Attempting Fallback:', {
+        inputSlug: categorySlug,
+        availableSlugs: DEFAULT_CATEGORIES.map(cat => cat.slug)
+      });
     }
-  );
 
-  // Detailed logging for debugging
-  console.log('FULL CATEGORY DEBUG', {
-    inputSlug: categorySlug,
-    allCategories: DEFAULT_CATEGORIES.map(c => c.slug),
-    matchedCategory: categoryDetails
-  });
+    return foundCategory || DEFAULT_CATEGORIES[0];
+  }, [categorySlug]);
 
-  // Log ALL category details for debugging
-  console.log(' FULL CATEGORY DEBUG:', {
-    inputSlug: categorySlug,
-    allCategories: DEFAULT_CATEGORIES.map(cat => ({
-      slug: cat.slug,
-      name: cat.name
-    })),
-    matchedCategory: categoryDetails
-  });
-
-  // Throw an error if category is not found
-  if (!categoryDetails) {
-    console.error(' Category Not Found Error:', {
-      inputSlug: categorySlug,
-      availableSlugs: DEFAULT_CATEGORIES.map(cat => cat.slug)
-    });
-    throw new Error(`Category with slug "${categorySlug}" does not exist`);
-  }
-
-  // Validate category name for product filtering
-  if (!categoryDetails.name) {
-    console.error(' Invalid Category Configuration:', categoryDetails);
-    throw new Error(`Category "${categorySlug}" is missing a name`);
-  }
-
-  // Add a method to use handleGoBack
-  const handleGoBack = () => {
-    navigate('/store');
-    console.log('Navigating back to store');
-  };
-
-  console.log(' Category Debug:', {
-    inputSlug: categorySlug,
-    availableSlugs: DEFAULT_CATEGORIES.map(cat => cat.slug),
-    matchedCategory: categoryDetails
-  });
-
-  // Filter products for the current category
+  // Filter products for the category
   const filteredProducts = useMemo(() => {
     if (!categoryDetails) return [];
     
@@ -173,6 +131,37 @@ export default function CategoryTemplate({ categorySlug }: CategoryTemplateProps
 
     return filtered;
   }, [products, categoryDetails]);
+
+  // If no matching category found, return fallback
+  if (!categoryDetails) {
+    const fallbackCategory: CategoryConfig = DEFAULT_CATEGORIES[0];
+    
+    return (
+      <div className="text-red-500 p-4">
+        <h2>Category "{categorySlug}" not found.</h2>
+        <p>Showing default category: {fallbackCategory.name}</p>
+        <ProductGrid products={filteredProducts} />
+      </div>
+    );
+  }
+
+  // Validate category name for product filtering
+  if (!categoryDetails.name) {
+    console.error(' Invalid Category Configuration:', categoryDetails);
+    throw new Error(`Category "${categorySlug}" is missing a name`);
+  }
+
+  // Add a method to use handleGoBack
+  const handleGoBack = () => {
+    navigate('/store');
+    console.log('Navigating back to store');
+  };
+
+  console.log(' Category Debug:', {
+    inputSlug: categorySlug,
+    availableSlugs: DEFAULT_CATEGORIES.map(cat => cat.slug),
+    matchedCategory: categoryDetails
+  });
 
   // Log total products found
   console.log(' Category Products:', {
