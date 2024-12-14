@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { X, MapPin } from 'lucide-react';
 import { Product } from '../../types/product';
+import { useCart } from '../../contexts/CartContext';
 
 interface ProductModalProps {
   product: Product;
@@ -14,6 +15,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
 }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const detailsRef = useRef<HTMLDivElement>(null);
+  const { addToCart } = useCart();
 
   useEffect(() => {
     // Ensure details section is scrollable when modal opens
@@ -40,6 +42,10 @@ export const ProductModal: React.FC<ProductModalProps> = ({
   const handleStopPropagation = (e: React.MouseEvent) => {
     e.stopPropagation();
   };
+
+    const handleAddToCart = () => {
+        addToCart(product);
+    };
 
   return (
     <motion.div 
@@ -141,18 +147,16 @@ export const ProductModal: React.FC<ProductModalProps> = ({
             )}
 
             <div className="space-y-4">
-              <a 
-                href="https://www.google.com/maps/dir//400+Vernonview+Dr,+Mt+Vernon,+OH+43050/@40.4004795,-82.5389536,12z/data=!4m8!4m7!1m0!1m5!1m1!1s0x8839ccb9b3f11bed:0x4ca1ad52339bb0f0!2m2!1d-82.4566284!2d40.4004932?entry=ttu&g_ep=EgoyMDI0MTIwOC4wIKXMDSoASAFQAw%3D%3D" 
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                onClick={handleAddToCart}
                 className="w-full bg-emerald-600/10 text-emerald-400 py-3 rounded-lg 
                   flex items-center justify-center gap-2 
                   hover:bg-emerald-600/20 transition-colors
                   font-semibold border border-emerald-500/30"
               >
                 <MapPin className="h-5 w-5" />
-                Come Pick It Up!
-              </a>
+                Add to Cart
+              </button>
             </div>
           </div>
         </div>

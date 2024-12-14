@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Product } from '../../types/product';
 import { MapPin } from 'lucide-react';
 import { ProductModal } from '../store/ProductModal';
+import { useCart } from '../../contexts/CartContext';
 
 interface ProductGridProps {
   products: Product[];
@@ -11,6 +12,12 @@ interface ProductGridProps {
 
 const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { addToCart } = useCart();
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    addToCart(product);
+  };
 
   return (
     <>
@@ -40,16 +47,13 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
             <span className="text-teal-600 font-semibold text-xl">
               ${product.price.toFixed(2)}
             </span>
-            <a 
-              href="https://www.google.com/maps/dir//400+Vernonview+Dr,+Mt+Vernon,+OH+43050/@40.4004795,-82.5389536,12z/data=!4m8!4m7!1m0!1m5!1m1!1s0x8839ccb9b3f11bed:0x4ca1ad52339bb0f0!2m2!1d-82.4566284!2d40.4004932?entry=ttu&g_ep=EgoyMDI0MTIwOC4wIKXMDSoASAFQAw%3D%3D" 
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
+            <button
+              onClick={handleAddToCart}
               className="text-teal-400 hover:text-teal-300 text-sm italic flex items-center justify-center"
             >
               <MapPin className="h-4 w-4 mr-1" />
-              Come Pick It Up
-            </a>
+              Add to Cart
+            </button>
           </div>
         </div>
       </motion.div>
