@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { X, MapPin } from 'lucide-react';
 import { Product } from '../../types/product';
 import { useCart } from '../../contexts/CartContext';
+import { useCartToggle } from '../../contexts/CartToggleContext';
 
 interface ProductModalProps {
   product: Product;
@@ -16,6 +17,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const detailsRef = useRef<HTMLDivElement>(null);
   const { addToCart } = useCart();
+  const { isCartEnabled } = useCartToggle();
 
   useEffect(() => {
     // Ensure details section is scrollable when modal opens
@@ -147,16 +149,31 @@ export const ProductModal: React.FC<ProductModalProps> = ({
             )}
 
             <div className="space-y-4">
-              <button
-                onClick={handleAddToCart}
-                className="w-full bg-emerald-600/10 text-emerald-400 py-3 rounded-lg 
-                  flex items-center justify-center gap-2 
-                  hover:bg-emerald-600/20 transition-colors
-                  font-semibold border border-emerald-500/30"
-              >
-                <MapPin className="h-5 w-5" />
-                Add to Cart
-              </button>
+              {isCartEnabled ? (
+                <button
+                  onClick={handleAddToCart}
+                  className="w-full bg-emerald-600/10 text-emerald-400 py-3 rounded-lg 
+                    flex items-center justify-center gap-2 
+                    hover:bg-emerald-600/20 transition-colors
+                    font-semibold border border-emerald-500/30"
+                >
+                  <MapPin className="h-5 w-5" />
+                  Add to Cart
+                </button>
+              ) : (
+                <a
+                  href="https://www.google.com/maps/search/bullocks+smoke+shop"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full bg-emerald-600/10 text-emerald-400 py-3 rounded-lg 
+                    flex items-center justify-center gap-2 
+                    hover:bg-emerald-600/20 transition-colors
+                    font-semibold border border-emerald-500/30"
+                >
+                  <MapPin className="h-5 w-5" />
+                  Come Pick it Up
+                </a>
+              )}
             </div>
           </div>
         </div>

@@ -11,6 +11,7 @@ import PreRollsPage from './pages/store/PreRollsPage';
 import MushroomsPage from './pages/store/MushroomsPage';
 import LightersPage from './pages/store/LightersPage';
 import { CartProvider } from './contexts/CartContext';
+import { CartToggleProvider } from './contexts/CartToggleContext';
 
 // Lazy load components with descriptive chunk names
 const AdminLayout = lazy(() => import(/* webpackChunkName: "admin-layout" */ './components/layouts/AdminLayout'));
@@ -57,59 +58,61 @@ export default function App() {
       <ChatProvider>
         <StoreContentProvider>
           <CartProvider>
-            <Suspense fallback={<LoadingSpinner />}>
-              <div className="dark">
-                <Routes>
-                  {/* Store Routes */}
-                  <Route path="/" element={<StoreLayout />}>
-                    <Route index element={<StorePage />} />
+            <CartToggleProvider>
+              <Suspense fallback={<LoadingSpinner />}>
+                <div className="dark">
+                  <Routes>
+                    {/* Store Routes */}
+                    <Route path="/" element={<StoreLayout />}>
+                      <Route index element={<StorePage />} />
+                      
+                      {/* Dynamically generate category routes */}
+                      {DEFAULT_CATEGORIES.map((category) => (
+                        <Route 
+                          key={category.slug} 
+                          path={category.slug} 
+                          element={React.createElement(categoryPages[category.slug] || StorePage)}
+                        />
+                      ))}
+                      
+                      {/* New category routes */}
+                      <Route path="pre-rolls" element={<PreRollsPage />} />
+                      <Route path="mushrooms" element={<MushroomsPage />} />
+                      <Route path="lighters-torches" element={<LightersPage />} />
+                      
+                      {/* Legal Pages */}
+                      <Route path="privacy" element={<PrivacyPolicy />} />
+                      <Route path="thca-compliance" element={<THCACompliance />} />
+                      <Route path="terms" element={<TermsOfService />} />
+                    </Route>
                     
-                    {/* Dynamically generate category routes */}
-                    {DEFAULT_CATEGORIES.map((category) => (
-                      <Route 
-                        key={category.slug} 
-                        path={category.slug} 
-                        element={React.createElement(categoryPages[category.slug] || StorePage)}
-                      />
-                    ))}
-                    
-                    {/* New category routes */}
-                    <Route path="pre-rolls" element={<PreRollsPage />} />
-                    <Route path="mushrooms" element={<MushroomsPage />} />
-                    <Route path="lighters-torches" element={<LightersPage />} />
-                    
-                    {/* Legal Pages */}
-                    <Route path="privacy" element={<PrivacyPolicy />} />
-                    <Route path="thca-compliance" element={<THCACompliance />} />
-                    <Route path="terms" element={<TermsOfService />} />
-                  </Route>
-                  
-                  {/* Auth Routes */}
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/signup" element={<Signup />} />
-                  <Route path="/account" element={<AccountManagement />} />
+                    {/* Auth Routes */}
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/signup" element={<Signup />} />
+                    <Route path="/account" element={<AccountManagement />} />
 
-                  {/* Admin Routes */}
-                  <Route 
-                    path="admin" 
-                    element={
-                      <ProtectedRoute requiredRole="admin">
-                        <AdminLayout />
-                      </ProtectedRoute>
-                    }
-                  >
-                    <Route path="dashboard" element={<AdminDashboard />} />
-                    <Route path="products" element={<AdminProducts />} />
-                    <Route path="store-content" element={<StoreContentEditor />} />
-                    <Route path="photo-bank" element={<PhotoBank />} />
-                    <Route path="orders" element={<Orders />} />
-                  </Route>
+                    {/* Admin Routes */}
+                    <Route 
+                      path="admin" 
+                      element={
+                        <ProtectedRoute requiredRole="admin">
+                          <AdminLayout />
+                        </ProtectedRoute>
+                      }
+                    >
+                      <Route path="dashboard" element={<AdminDashboard />} />
+                      <Route path="products" element={<AdminProducts />} />
+                      <Route path="store-content" element={<StoreContentEditor />} />
+                      <Route path="photo-bank" element={<PhotoBank />} />
+                      <Route path="orders" element={<Orders />} />
+                    </Route>
 
-                  {/* Catch all route */}
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-              </div>
-            </Suspense>
+                    {/* Catch all route */}
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Routes>
+                </div>
+              </Suspense>
+            </CartToggleProvider>
           </CartProvider>
         </StoreContentProvider>
       </ChatProvider>

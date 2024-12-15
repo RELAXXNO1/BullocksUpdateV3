@@ -4,6 +4,7 @@ import { Product } from '../../types/product';
 import { MapPin } from 'lucide-react';
 import { ProductModal } from '../store/ProductModal';
 import { useCart } from '../../contexts/CartContext';
+import { useCartToggle } from '../../contexts/CartToggleContext';
 
 interface ProductGridProps {
   products: Product[];
@@ -13,6 +14,7 @@ interface ProductGridProps {
 const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { addToCart } = useCart();
+  const { isCartEnabled } = useCartToggle();
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -47,13 +49,25 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
             <span className="text-teal-600 font-semibold text-xl">
               ${product.price.toFixed(2)}
             </span>
-            <button
-              onClick={handleAddToCart}
-              className="text-teal-400 hover:text-teal-300 text-sm italic flex items-center justify-center"
-            >
-              <MapPin className="h-4 w-4 mr-1" />
-              Add to Cart
-            </button>
+            {isCartEnabled ? (
+              <button
+                onClick={handleAddToCart}
+                className="text-teal-400 hover:text-teal-300 text-sm italic flex items-center justify-center"
+              >
+                <MapPin className="h-4 w-4 mr-1" />
+                Add to Cart
+              </button>
+            ) : (
+              <a
+                href="https://www.google.com/maps/search/bullocks+smoke+shop"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-teal-400 hover:text-teal-300 text-sm italic flex items-center justify-center"
+              >
+                <MapPin className="h-4 w-4 mr-1" />
+                Come Pick it Up
+              </a>
+            )}
           </div>
         </div>
       </motion.div>

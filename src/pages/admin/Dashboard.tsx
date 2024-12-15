@@ -3,14 +3,24 @@ import { useAnalytics } from '../../hooks/useAnalytics';
 import { Package, Eye, ShoppingBag, Users } from 'lucide-react';
 import { BackButton } from '../../components/ui/BackButton';
 import LoadingSpinner from '../../components/LoadingSpinner';
+import { useCartToggle } from '../../contexts/CartToggleContext';
+import { useState } from 'react';
+import { Checkbox } from '../../components/ui/Checkbox';
 
 export default function Dashboard() {
   const { products, loading } = useProducts();
   const { data: analyticsData, loading: analyticsLoading } = useAnalytics();
+  const { isCartEnabled, setCartEnabled } = useCartToggle();
+  const [cartToggle, setCartToggle] = useState(isCartEnabled);
 
   if (loading || analyticsLoading) {
     return <LoadingSpinner />;
   }
+
+  const handleCartToggleChange = (checked: boolean) => {
+    setCartToggle(checked);
+    setCartEnabled(checked);
+  };
 
   const stats = [
     {
@@ -55,6 +65,13 @@ export default function Dashboard() {
           <h1 className="text-3xl font-display font-bold mt-4 bg-gradient-to-r from-primary-400 to-primary-600 bg-clip-text text-transparent">
             Dashboard Overview
           </h1>
+        </div>
+        <div className="flex items-center">
+          <label className="text-white mr-2">Enable Cart:</label>
+          <Checkbox
+            checked={cartToggle}
+            onChange={handleCartToggleChange}
+          />
         </div>
       </div>
 

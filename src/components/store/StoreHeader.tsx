@@ -1,14 +1,16 @@
 import { Link } from 'react-router-dom';
-import { Phone, Clock, User, ShoppingCart } from 'lucide-react';
+import { Phone, Clock, User, ShoppingCart, MapPin } from 'lucide-react';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LOGO_PATH, STORE_INFO } from '../../config/constants';
 import ReactDOM from 'react-dom';
 import ShoppingCartComponent from './ShoppingCart';
+import { useCartToggle } from '../../contexts/CartToggleContext';
 
 export default function StoreHeader() {
   const [showHours, setShowHours] = useState(false);
   const [showCart, setShowCart] = useState(false);
+  const { isCartEnabled } = useCartToggle();
 
   const handleCall = () => {
     window.location.href = `tel:${STORE_INFO.phone.replace(/\D/g, '')}`;
@@ -104,11 +106,16 @@ export default function StoreHeader() {
                 action: () => setShowHours(true),
                 title: 'Store Hours'
               },
-              {
+              isCartEnabled ? {
                 icon: ShoppingCart,
                 label: 'Cart',
                 action: toggleCart,
                 title: 'Shopping Cart'
+              } : {
+                icon: MapPin,
+                label: 'Location',
+                action: () => window.open("https://www.google.com/maps/search/bullocks+smoke+shop", "_blank"),
+                title: 'Come Pick it Up'
               }
             ].map(({ icon: Icon, label, action, title }) => (
               <button
