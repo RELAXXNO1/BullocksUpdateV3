@@ -7,7 +7,7 @@ interface ProtectedRouteProps {
   requiredRole?: 'admin' | 'user';
 }
 
-export default function ProtectedRoute({ children, requiredRole = 'admin' }: ProtectedRouteProps) {
+export default function ProtectedRoute({ children, requiredRole = 'user' }: ProtectedRouteProps) {
   const { user, loading } = useAuth();
 
   console.log('🔒 Protected Route Check', { 
@@ -25,7 +25,7 @@ export default function ProtectedRoute({ children, requiredRole = 'admin' }: Pro
   }
 
   if (requiredRole === 'admin' && !user.isAdmin) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;

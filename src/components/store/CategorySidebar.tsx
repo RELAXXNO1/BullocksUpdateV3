@@ -43,7 +43,6 @@ const CategorySidebar: React.FC<CategorySidebarProps> = ({ isOpen, onClose }) =>
           <motion.div
             drag="y"
             dragControls={dragControls}
-            dragConstraints={{ top: 0, bottom: -(DEFAULT_CATEGORIES.length * 48) }}
             dragElastic={0.5}
             style={{ y }}
             className="flex flex-col space-y-2 relative"

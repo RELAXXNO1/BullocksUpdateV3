@@ -9,8 +9,7 @@ import { useCartToggle } from '../../contexts/CartToggleContext';
 
 export default function StoreHeader() {
   const [showHours, setShowHours] = useState(false);
-  const [showCart, setShowCart] = useState(false);
-  const { isCartEnabled } = useCartToggle();
+  const { isCartEnabled, setCartEnabled } = useCartToggle();
 
   const handleCall = () => {
     window.location.href = `tel:${STORE_INFO.phone.replace(/\D/g, '')}`;
@@ -18,7 +17,7 @@ export default function StoreHeader() {
 
 
   const toggleCart = () => {
-    setShowCart(!showCart);
+    setCartEnabled(!isCartEnabled);
   };
 
   const HoursModal = () => {
@@ -153,7 +152,7 @@ export default function StoreHeader() {
         </div>
       </div>
       <HoursModal />
-      {showCart && <ShoppingCartComponent />}
+      {isCartEnabled && <ShoppingCartComponent />}
     </header>
   );
 }

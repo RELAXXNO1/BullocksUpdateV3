@@ -1,4 +1,7 @@
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
+import { db } from '../lib/firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { useAuth } from '../hooks/useAuth';
 
 interface CartToggleContextProps {
   isCartEnabled: boolean;
@@ -12,9 +15,29 @@ const CartToggleContext = createContext<CartToggleContextProps>({
 
 export const CartToggleProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isCartEnabled, setIsCartEnabled] = useState(true);
+  const { user } = useAuth();
 
-  const setCartEnabled = (enabled: boolean) => {
+  useEffect(() => {
+    const fetchCartSetting = async () => {
+      if (user?.isAdmin) {
+        const docRef = doc(db, 'settings', 'cartVisibility');
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setIsCartEnabled(docSnap.data().enabled);
+        }
+      }
+    };
+
+    fetchCartSetting();
+  }, [user?.isAdmin]);
+
+
+  const setCartEnabled = async (enabled: boolean) => {
     setIsCartEnabled(enabled);
+    if (user?.isAdmin) {
+      const docRef = doc(db, 'settings', 'cartVisibility');
+      await setDoc(docRef, { enabled });
+    }
   };
 
   return (

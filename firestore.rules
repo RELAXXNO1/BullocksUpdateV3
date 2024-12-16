@@ -4,19 +4,22 @@ service cloud.firestore {
     // Enhanced admin validation function
     function isAdmin() {
       return request.auth != null && 
-             (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
-              request.auth.token.email == 'harbosamah@gmail.com') &&
+             exists(/databases/$(database)/documents/admins/$(request.auth.uid)) &&
              request.time > timestamp.date(2023, 1, 1);  // Prevent very old admin tokens
     }
 
     // Enhanced user validation function
     function isValidUser() {
-      return request.auth != null && 
-             request.auth.token.email_verified == true;
+      return request.auth != null;
     }
 
     // Allow admins full access to all collections
     match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+
+    // Settings collection rules
+    match /settings/{settingId} {
       allow read, write: if isAdmin();
     }
 
@@ -98,7 +101,7 @@ service cloud.firestore {
 
     // Admins collection rules
     match /admins/{userId} {
-      allow read, write: if request.auth.token.email == 'harbosamah@gmail.com';
+      allow read: if false;
     }
 
     // Users collection rules

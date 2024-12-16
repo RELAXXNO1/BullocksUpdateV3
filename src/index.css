@@ -98,3 +98,9 @@ body::before {
 .flex.relative > aside.w-12 + main {
   margin-left: 3rem;
 }
+
+@media (max-width: 640px) {
+  .flex.relative > aside {
+    width: 80%;
+  }
+}

@@ -5,6 +5,8 @@ import {
   signOut, 
   User as FirebaseUser,
   createUserWithEmailAndPassword,
+  setPersistence,
+  browserLocalPersistence
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { auth, db, ADMIN_CONFIG, checkAdminStatus, initializeAdmin } from '../lib/firebase';
@@ -64,6 +66,7 @@ export function useAuth() {
 
   const login = async (email: string, password: string) => {
     try {
+      await setPersistence(auth, browserLocalPersistence);
       const { user: firebaseUser } = await signInWithEmailAndPassword(auth, email, password);
       
       // Fetch admin document to validate admin status
