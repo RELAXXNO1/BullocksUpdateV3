@@ -80,3 +80,21 @@ body::before {
   pointer-events: none;
   mix-blend-mode: overlay;
 }
+
+/* Category Sidebar Styles */
+.flex.relative > aside {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  z-index: 20;
+  transition: all 0.3s ease;
+}
+
+.flex.relative > main {
+  transition: margin-left 0.3s ease;
+}
+
+.flex.relative > aside.w-12 + main {
+  margin-left: 3rem;
+}
