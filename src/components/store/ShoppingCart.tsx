@@ -42,7 +42,7 @@ const ShoppingCart: React.FC = () => {
         <div className="fixed top-0 right-0 h-full w-80 bg-slate-800 shadow-xl z-[100] p-4 overflow-y-auto">
             <h2 className="text-2xl font-bold text-white mb-4">Shopping Cart</h2>
             {cart.length === 0 ? (
-                <p className="text-slate-400">Your cart is empty.</p>
+                null
             ) : (
                 <ul className="space-y-4">
                     {cart.map(item => {
