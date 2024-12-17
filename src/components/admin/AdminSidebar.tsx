@@ -36,7 +36,7 @@ export default function AdminSidebar() {
   return (
     <>
       <aside className={`bg-dark-600 min-h-screen border-r border-dark-400/30 transition-all duration-300 ease-in-out ${
-        showChat ? 'w-96' : 'w-64'
+        showChat ? 'md:w-96 w-full' : 'md:w-64 w-full'
       }`}>
         <div className="flex flex-col h-full">
           <nav className="p-4 space-y-1.5 flex-1">

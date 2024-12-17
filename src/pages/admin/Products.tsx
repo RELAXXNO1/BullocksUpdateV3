@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
+import { collection, getDocs, doc, deleteDoc, query, where } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { ProductForm } from '../../components/admin/ProductForm';
 import { Product } from '../../types/product';
-import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Trash2, Edit, Package } from 'lucide-react';
 
@@ -16,7 +15,8 @@ export default function Products() {
     const fetchProducts = async () => {
       try {
         const productsCollection = collection(db, 'products');
-        const productsSnapshot = await getDocs(productsCollection);
+        const q = query(productsCollection, where('deleted', '!=', true));
+        const productsSnapshot = await getDocs(q);
         const productsList = productsSnapshot.docs.map(docSnap => ({
           id: docSnap.id,
           ...docSnap.data()
@@ -32,8 +32,9 @@ export default function Products() {
 
   const handleDeleteProduct = async (productId: string) => {
     try {
-      await deleteDoc(doc(db, 'products', productId));
-      setProducts(products.filter(p => p.id !== productId));
+      const productRef = doc(db, 'products', productId);
+      await deleteDoc(productRef);
+      setProducts(prevProducts => prevProducts.filter(p => p.id !== productId));
     } catch (error) {
       console.error('Error deleting product:', error);
     }
@@ -138,7 +139,11 @@ export default function Products() {
                     <Edit className="h-5 w-5" />
                   </button>
                   <button 
-                    onClick={() => handleDeleteProduct(product.id)}
+                    onClick={() => {
+                      if (product.id) {
+                        handleDeleteProduct(product.id);
+                      }
+                    }}
                     className="bg-red-600/10 text-red-400 
                       hover:bg-red-600/20 p-2 rounded-full 
                       transition-colors"

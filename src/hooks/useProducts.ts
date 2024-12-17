@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Product } from '../types/product';
 
@@ -12,7 +12,8 @@ export function useProducts() {
     const fetchProducts = async () => {
       try {
         const productsCollection = collection(db, 'products');
-        const productsSnapshot = await getDocs(productsCollection);
+        const q = query(productsCollection, where('deleted', '!=', true));
+        const productsSnapshot = await getDocs(q);
         const productsList = productsSnapshot.docs.map(docSnap => ({
           id: docSnap.id,
           ...docSnap.data()

@@ -26,8 +26,8 @@ export interface CategoryConfig {
 
 export const DEFAULT_CATEGORIES: CategoryConfig[] = [
   {
-    slug: 'thc-a-flower',
-    name: 'THC-A Flower',
+    slug: 'thca-flower',
+    name: 'thca-flower',
     description: 'Premium THC-A flower strains',
     attributes: {
       fields: [
@@ -55,7 +55,7 @@ export const DEFAULT_CATEGORIES: CategoryConfig[] = [
   },
   {
     slug: 'pre-rolls',
-    name: 'Pre Rolls',
+    name: 'pre-rolls',
     description: 'Ready-to-smoke pre-rolled joints',
     attributes: {
       fields: [
@@ -128,7 +128,7 @@ export const DEFAULT_CATEGORIES: CategoryConfig[] = [
   },
   {
     slug: 'vapes-disposables',
-    name: 'Vapes + Disposables',
+    name: 'vapes-disposables',
     description: 'Vaporizer and disposable cannabis products',
     attributes: {
       fields: [
@@ -149,7 +149,7 @@ export const DEFAULT_CATEGORIES: CategoryConfig[] = [
   },
   {
     slug: 'glass-pipes',
-    name: 'Glass + Pipes',
+    name: 'glass-pipes',
     description: 'Smoking accessories and glassware',
     attributes: {
       fields: [
@@ -172,7 +172,7 @@ export const DEFAULT_CATEGORIES: CategoryConfig[] = [
   },
   {
     slug: 'tobacco-products',
-    name: 'Tobacco Products',
+    name: 'tobacco-products',
     description: 'Tobacco and smoking accessories',
     attributes: {
       fields: [
@@ -188,7 +188,7 @@ export const DEFAULT_CATEGORIES: CategoryConfig[] = [
   },
   {
     slug: 'lighters-torches',
-    name: 'Lighters And Torches',
+    name: 'lighters-torches',
     description: 'Lighting accessories',
     attributes: {
       fields: [

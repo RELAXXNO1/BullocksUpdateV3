@@ -34,8 +34,7 @@ service cloud.firestore {
 
       // Validation function for product data
       function validateProductData(product) {
-        let isValidCategory = product.category in 
-          ['thca-flower', 'vapes', 'tobacco', 'edibles', 'glass-pipes'];
+        let isValidCategory = exists(/databases/$(database)/documents/categories/$(product.category));
         
         let hasValidAttributes = 
           (product.attributes == null) || 
@@ -92,8 +91,8 @@ service cloud.firestore {
         // Validate based on category
         return 
           (category == 'thca-flower' && validateThcaFlowerAttributes) ||
-          (category == 'vapes' && validateVapesAttributes) ||
-          (category == 'tobacco' && validateTobaccoAttributes) ||
+          (category == 'vapes-disposables' && validateVapesAttributes) ||
+          (category == 'tobacco-products' && validateTobaccoAttributes) ||
           (category == 'edibles' && validateEdiblesAttributes) ||
           (category == 'glass-pipes' && validateGlassPipesAttributes);
       }

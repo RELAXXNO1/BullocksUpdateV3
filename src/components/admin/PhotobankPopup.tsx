@@ -7,10 +7,12 @@ import { db } from '../../lib/firebase';
 interface PhotobankPopupProps {
   onClose: () => void;
   onSelectImages: (images: string[]) => void;
+  initialImages?: string[];
+  category: string;
 }
 
-export const PhotobankPopup: React.FC<PhotobankPopupProps> = ({ onClose, onSelectImages }) => {
-  const [selectedImages, setSelectedImages] = useState<string[]>([]);
+export const PhotobankPopup: React.FC<PhotobankPopupProps> = ({ onClose, onSelectImages, category, initialImages = [] }) => {
+  const [selectedImages, setSelectedImages] = useState<string[]>(initialImages);
   const [photoLibrary, setPhotoLibrary] = useState<{
     id: string;
     fileName: string, 
@@ -26,7 +28,8 @@ export const PhotobankPopup: React.FC<PhotobankPopupProps> = ({ onClose, onSelec
         const photosRef = collection(db, 'photos');
         const photosQuery = query(
           photosRef, 
-          where('isVisible', '==', true)
+          where('isVisible', '==', true),
+          where('category', '==', category)
         );
         const snapshot = await getDocs(photosQuery);
         
@@ -64,7 +67,7 @@ export const PhotobankPopup: React.FC<PhotobankPopupProps> = ({ onClose, onSelec
     };
 
     fetchPhotos();
-  }, []);
+  }, [category]);
 
   const toggleImageSelection = (image: string) => {
     setSelectedImages(prev => 
