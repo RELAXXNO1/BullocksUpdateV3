@@ -22,3 +22,9 @@ export type Product = z.infer<typeof ProductSchema> & {
 export type ProductFormData = Product & {
   imageFile?: File;
 };
+
+export type CategoryConfig = {
+  id: string;
+  name: string;
+  slug: string;
+};

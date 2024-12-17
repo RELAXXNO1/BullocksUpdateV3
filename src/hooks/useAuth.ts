@@ -20,6 +20,27 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const checkCurrentUser = async () => {
+      const firebaseUser = auth.currentUser;
+      if (firebaseUser) {
+        const isAdmin = await checkAdminStatus(firebaseUser.uid);
+        setUser({
+          ...firebaseUser,
+          isAdmin: isAdmin as boolean
+        });
+        
+        // Initialize admin if the user is an admin
+        if (isAdmin) {
+          await initializeAdmin();
+        }
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    };
+
+    checkCurrentUser();
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         const isAdmin = await checkAdminStatus(firebaseUser.uid);

@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 
 export default function LoadingSpinner() {
   return (
-    <div className="flex items-center justify-center min-h-[400px] flex-col relative">
+    <div className="flex items-center justify-center min-h-screen flex-col relative">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,theme(colors.teal.500/0.15),transparent_70%)]" />
       <div className="text-center">
         <motion.div 

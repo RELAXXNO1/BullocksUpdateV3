@@ -9,33 +9,35 @@ interface CartToggleContextProps {
 }
 
 const CartToggleContext = createContext<CartToggleContextProps>({
-  isCartEnabled: true,
+  isCartEnabled: false,
   setCartEnabled: () => {},
 });
 
 export const CartToggleProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isCartEnabled, setIsCartEnabled] = useState(true);
+  const [isCartEnabled, setIsCartEnabled] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
     const fetchCartSetting = async () => {
-      if (user?.isAdmin) {
-        const docRef = doc(db, 'settings', 'cartVisibility');
+      if (user) {
+        const docRef = doc(db, 'cartSettings', user.uid);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           setIsCartEnabled(docSnap.data().enabled);
+        } else {
+          setIsCartEnabled(false);
         }
       }
     };
 
     fetchCartSetting();
-  }, [user?.isAdmin]);
+  }, [user]);
 
 
   const setCartEnabled = async (enabled: boolean) => {
     setIsCartEnabled(enabled);
-    if (user?.isAdmin) {
-      const docRef = doc(db, 'settings', 'cartVisibility');
+    if (user) {
+      const docRef = doc(db, 'cartSettings', user.uid);
       await setDoc(docRef, { enabled });
     }
   };

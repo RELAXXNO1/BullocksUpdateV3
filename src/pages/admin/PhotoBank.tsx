@@ -1,30 +1,35 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, Trash2, ImageIcon, Link2 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { BackButton } from '@/components/ui/BackButton';
-import { auth, storage, db, checkAdminStatus } from '@/lib/firebase';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
+import { Button } from '../../components/ui/Button';
+import { BackButton } from '../../components/ui/BackButton';
+import { auth, storage, db, checkAdminStatus } from '../../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { collection, addDoc, serverTimestamp, query as firestoreQuery, where, getDocs, doc, setDoc } from 'firebase/firestore';
-import { DEFAULT_CATEGORIES } from '@/config/categories';
+import { DEFAULT_CATEGORIES } from '../../config/categories';
 import { useNavigate } from 'react-router-dom';
 
 const WATERMARK_LOGO_PATH = '/logos/black_logo_transparent_background_page-0001-removebg-preview.png';
 
+interface Photo {
+  fileName: string;
+  storagePath: string;
+  downloadURL: string;
+  category: string;
+  id: string;
+}
+
 export default function PhotoBank() {
-  const [photos, setPhotos] = useState<{
-    fileName: string, 
-    storagePath: string, 
-    downloadURL: string,
-    category: string
-  }[]>([]);
+  const [photos, setPhotos] = useState<Photo[]>([]);
   const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+  const [showCategoryTooltip, setShowCategoryTooltip] = useState(false);
+
 
   useEffect(() => {
     const fetchPhotos = async () => {
@@ -51,6 +56,7 @@ export default function PhotoBank() {
             isVisible: data.isVisible
           });
           return {
+            id: doc.id,
             fileName: data.fileName, 
             storagePath: data.storagePath, 
             downloadURL: data.downloadURL,
@@ -174,7 +180,6 @@ export default function PhotoBank() {
     }
 
     if (!selectedCategory) {
-      alert('Please select a category before uploading');
       return;
     }
 
@@ -187,12 +192,7 @@ export default function PhotoBank() {
     const uploadErrors: string[] = [];
 
     try {
-      const uploadedPhotos: {
-        fileName: string, 
-        storagePath: string, 
-        downloadURL: string,
-        category: string
-      }[] = [];
+      const uploadedPhotos: Photo[] = [];
 
       for (let file of event.target.files) {
         try {
@@ -232,6 +232,7 @@ export default function PhotoBank() {
 
           // Track successful uploads
           uploadedPhotos.push({
+            id: photoDocRef.id,
             fileName: watermarkedFile.name,
             storagePath: storagePath,
             downloadURL: downloadURL,
@@ -273,16 +274,31 @@ export default function PhotoBank() {
   const triggerFileInput = useCallback(() => {
     if (isAdmin && !isLoading && fileInputRef.current && selectedCategory) {
       fileInputRef.current.click();
-    } else if (!selectedCategory) {
-      alert('Please select a category first');
+      setShowCategoryTooltip(false);
     }
   }, [isAdmin, isLoading, selectedCategory]);
 
-  const handleDeletePhoto = useCallback((photoToDelete: string) => {
+
+  const handleDeletePhoto = useCallback(async (photoToDelete: string) => {
     if (!isAdmin) return;
-    setPhotos(prev => prev.filter(photo => photo.downloadURL !== photoToDelete));
-    setSelectedPhotos(prev => prev.filter(photo => photo !== photoToDelete));
-  }, [isAdmin]);
+    
+    try {
+      const photoToDeleteDoc = photos.find(photo => photo.downloadURL === photoToDelete);
+      if (!photoToDeleteDoc) {
+        console.error('Photo not found in local state:', photoToDelete);
+        return;
+      }
+
+      const photoDocRef = doc(db, 'photos', photoToDeleteDoc.id);
+      await setDoc(photoDocRef, { isVisible: false }, { merge: true });
+
+      setPhotos(prev => prev.filter(photo => photo.downloadURL !== photoToDelete));
+      console.log(`✅ Successfully deleted photo: ${photoToDelete}`);
+    } catch (error) {
+      console.error('❌ Error deleting photo:', error);
+      alert('Failed to delete photo. Please try again.');
+    }
+  }, [isAdmin, photos, db]);
 
   const togglePhotoSelection = useCallback((photo: string) => {
     setSelectedPhotos(prev => 
@@ -294,6 +310,14 @@ export default function PhotoBank() {
 
   const navigateToProducts = () => {
     navigate('/admin/products');
+  };
+
+  const handleUploadButtonClick = () => {
+    if (!selectedCategory) {
+      setShowCategoryTooltip(true);
+    } else {
+      triggerFileInput();
+    }
   };
 
   return (
@@ -317,7 +341,7 @@ export default function PhotoBank() {
       <Card className="bg-dark-600/50 backdrop-blur-sm rounded-xl border border-dark-400/30">
         <CardHeader className="flex justify-between items-center border-b border-dark-400/30 p-6">
           <CardTitle className="text-xl font-semibold">Manage Photos</CardTitle>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-4 relative">
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
@@ -340,14 +364,21 @@ export default function PhotoBank() {
               onChange={handleUploadPhoto}
               className="hidden"
             />
-            <Button 
-              type="button"
-              onClick={triggerFileInput}
-              disabled={!isAdmin || isLoading || !selectedCategory}
-              className="flex items-center space-x-2 bg-blue-600 text-white hover:bg-blue-700"
-            >
-              <Upload className="mr-2 h-4 w-4" /> Upload Photos
-            </Button>
+            <div className="relative">
+              <Button 
+                type="button"
+                onClick={handleUploadButtonClick}
+                disabled={!isAdmin || isLoading}
+                className="flex items-center space-x-2 bg-blue-600 text-white hover:bg-blue-700"
+              >
+                <Upload className="mr-2 h-4 w-4" /> Upload Photos
+              </Button>
+              {showCategoryTooltip && !selectedCategory && (
+                <div className="absolute top-full left-0 mt-1 bg-dark-700 text-white p-2 rounded-md shadow-md z-10 text-sm">
+                  You must select a category
+                </div>
+              )}
+            </div>
             {selectedPhotos.length > 0 && (
               <Button 
                 variant="destructive" 

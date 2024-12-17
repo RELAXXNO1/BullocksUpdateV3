@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Phone, Clock, MapPin } from 'lucide-react';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -6,12 +6,19 @@ import { LOGO_PATH, STORE_INFO } from '../../config/constants';
 import ReactDOM from 'react-dom';
 import { useCartToggle } from '../../contexts/CartToggleContext';
 import ShoppingCart from './ShoppingCart';
+import { ShoppingCart as ShoppingCartIcon } from 'lucide-react';
 import UserMenu from '../ui/UserMenu';
+import { useAuth } from '../../hooks/useAuth';
 
 export default function StoreHeader() {
   const [showHours, setShowHours] = useState(false);
   const { isCartEnabled, setCartEnabled } = useCartToggle();
   const [showCart, setShowCart] = useState(false);
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  const { user } = useAuth();
+  const location = useLocation();
+  const isAdminOnStorePage = user?.isAdmin && location.pathname === '/store';
+
 
   const handleCall = () => {
     window.location.href = `tel:${STORE_INFO.phone.replace(/\D/g, '')}`;
@@ -21,6 +28,14 @@ export default function StoreHeader() {
     setCartEnabled(!isCartEnabled);
     setShowCart(!showCart);
   };
+
+    const toggleUserModal = () => {
+        setIsUserModalOpen(prev => !prev);
+    };
+
+    const closeUserModal = () => {
+        setIsUserModalOpen(false);
+    };
 
   const HoursModal = () => {
     return ReactDOM.createPortal(
@@ -65,8 +80,9 @@ export default function StoreHeader() {
     );
   };
 
+
   return (
-    <header className="bg-dark-600/80 shadow-[0_4px_30px_rgba(0,0,0,0.3)] sticky top-0 z-40 backdrop-blur-md border-b border-dark-400/30 relative overflow-hidden">
+    <header className="bg-dark-600/80 shadow-[0_4px_30px_rgba(0,0,0,0.3)] sticky top-0 z-40 backdrop-blur-md border-b border-dark-400/30 relative">
       <div className="absolute inset-0 bg-gradient-to-r from-teal-500/5 via-transparent to-teal-500/5" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,theme(colors.teal.500/0.1),transparent_50%)]" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -89,7 +105,7 @@ export default function StoreHeader() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
-            className="flex items-center gap-6"
+            className="flex items-center gap-6 relative"
           >
             {[
               {
@@ -103,12 +119,6 @@ export default function StoreHeader() {
                 label: 'Hours',
                 action: () => setShowHours(true),
                 title: 'Store Hours'
-              },
-              {
-                icon: ShoppingCart,
-                label: 'Cart',
-                action: toggleCart,
-                title: 'Shopping Cart'
               },
               {
                 icon: MapPin,
@@ -138,7 +148,28 @@ export default function StoreHeader() {
                 </span>
               </button>
             ))}
-            <UserMenu />
+            {isCartEnabled && (
+              <button
+                onClick={toggleCart}
+                title="Shopping Cart"
+                className="group relative flex flex-col items-center text-secondary-400 hover:text-primary-400 transition-all duration-200 px-3 py-2 -m-2 hover:bg-dark-600/20 rounded-lg cursor-pointer 
+                  before:absolute before:inset-0 before:bg-primary-500/10 before:opacity-0 before:transition-opacity before:rounded-lg
+                  hover:before:opacity-100 
+                  active:before:opacity-20"
+              >
+                <ShoppingCartIcon className="h-6 w-6 group-hover:scale-110 transition-transform duration-200" />
+                <span className="text-xs mt-1 opacity-70 group-hover:opacity-100 transition-opacity duration-200">
+                  Cart
+                </span>
+              </button>
+            )}
+            {user ? (
+              <UserMenu isOpen={isUserModalOpen} onClose={toggleUserModal} closeMenu={closeUserModal} showAdminLink={isAdminOnStorePage} />
+            ) : (
+              <Link to="/login" className="bg-teal-500 hover:bg-teal-600 text-white font-medium py-2 px-4 rounded-elegant transition-elegant">
+                Sign In
+              </Link>
+            )}
           </motion.div>
         </div>
       </div>

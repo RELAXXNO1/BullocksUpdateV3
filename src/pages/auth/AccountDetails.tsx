@@ -1,5 +1,5 @@
 import { useAuth } from '../../hooks/useAuth';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { User } from 'lucide-react';
 
@@ -27,9 +27,12 @@ export default function AccountDetails() {
             </h3>
             <p className="text-gray-300">{user.email}</p>
           </div>
+          <Link to="/" className="inline-block w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg mb-4 text-center">
+            Back to Store
+          </Link>
           <button
             onClick={logout}
-            className="mt-6 w-full py-3 px-4 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg"
+            className="mt-2 w-full py-3 px-4 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg"
           >
             Log Out
           </button>

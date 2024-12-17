@@ -162,7 +162,8 @@ export async function initializeAdmin() {
     }
 
     // Strict email validation
-    if (auth.currentUser.email !== ADMIN_CONFIG.email) {
+    const adminEmails = ADMIN_CONFIG.email.split(',');
+    if (auth.currentUser.email && !adminEmails.includes(auth.currentUser.email)) {
       console.error('❌ EMAIL MISMATCH', {
         currentEmail: auth.currentUser.email,
         expectedEmail: ADMIN_CONFIG.email
@@ -188,7 +189,7 @@ export async function initializeAdmin() {
 
       // Validate existing admin document
       if (
-        existingAdminData.email === auth.currentUser.email &&
+        adminEmails.includes(existingAdminData.email) &&
         existingAdminData.role === 'admin'
       ) {
         return true;

@@ -1,18 +1,15 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, ChevronLeft, X, PlusCircle, CheckCircle2 } from 'lucide-react';
-import { FaImage } from 'react-icons/fa';
 import { collection, addDoc, updateDoc, doc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '../../lib/firebase';
+import { db } from '../../lib/firebase';
 import type { Product, ProductFormData } from '../../types/product';
 import { DEFAULT_CATEGORIES } from '../../constants/categories';
 import type { CategoryConfig } from '../../constants/categories';
 import type { FormStep } from '../../types/form';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/Button';
-import { PhotobankPopup } from './PhotobankPopup';
-import { uploadToPhotobank } from '../../lib/photobank';
+import { getPhotobankImages } from '../../lib/photobank';
 
 type ProductFormProps = {
   onClose?: () => void;
@@ -35,10 +32,9 @@ export function ProductForm({ onClose, initialProduct }: ProductFormProps) {
     updatedAt: new Date().toISOString()
   }));
 
-  const [isPhotobankOpen, setIsPhotobankOpen] = useState(false);
-
-  const [imageFiles, setImageFiles] = useState<(File | string)[]>(
-    initialProduct?.images?.map(img => img) || []
+  const [photobankImages, setPhotobankImages] = useState<any[]>([]);
+  const [selectedImages, setSelectedImages] = useState<string[]>(
+    initialProduct?.images || []
   );
 
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
@@ -109,12 +105,12 @@ export function ProductForm({ onClose, initialProduct }: ProductFormProps) {
         return basicDetailsValid && attributesValid;
       
       case 'images':
-        return imageFiles.length > 0;
+        return selectedImages.length > 0;
       
       default:
         return false;
     }
-  }, [currentStep, formData, selectedCategory, imageFiles]);
+  }, [currentStep, formData, selectedCategory, selectedImages]);
 
   const handleNextStep = useCallback(() => {
     if (!validateStep()) {
@@ -137,93 +133,6 @@ export function ProductForm({ onClose, initialProduct }: ProductFormProps) {
     }
   }, [currentStep]);
 
-  const handleImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement> | string[]) => {
-    let newFiles: (File | string)[] = [];
-
-    if (Array.isArray(e)) {
-      // Direct image URLs from photobank
-      newFiles = e;
-    } else {
-      // File upload from local device
-      newFiles = Array.from(e.target.files || []).filter(file => {
-        const isValidType = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type);
-        const isValidSize = file.size <= 10 * 1024 * 1024; // 10MB max
-        
-        return isValidType && isValidSize;
-      });
-    }
-
-    try {
-      // Process files for upload
-      const uploadPromises = newFiles.map(async (file) => {
-        // If it's already a URL, return it
-        if (typeof file === 'string') return file;
-
-        // Upload to photobank
-        const uploadResult = await uploadToPhotobank({
-          file, 
-          category: 'Product Images', 
-          tags: [formData.name]
-        });
-
-        return uploadResult.downloadURL;
-      });
-
-      const processedImageUrls = await Promise.all(uploadPromises);
-      
-      // Update image files and form data
-      setImageFiles(prev => [...prev, ...processedImageUrls]);
-      updateFormData({
-        images: [...(formData.images || []), ...processedImageUrls]
-      });
-    } catch (error) {
-      console.error('Image upload failed:', error);
-      updateFormData({});
-    }
-
-    // Prevent default for file input events
-    if (!(e instanceof Array) && e.preventDefault) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-  }, [formData.name, formData.images, updateFormData]);
-
-  const uploadImages = useCallback(async (): Promise<string[]> => {
-    const uploadPromises = imageFiles.map(async (file) => {
-      // If it's already a URL, return it
-      if (typeof file === 'string') return file;
-      
-      try {
-        // First, try uploading to photobank
-        const photobankUpload = await uploadToPhotobank({
-          file, 
-          category: 'Product Images', 
-          tags: [formData.name]
-        });
-
-        return photobankUpload.downloadURL;
-      } catch (photobankError) {
-        console.warn('Photobank upload failed, falling back to Firebase:', photobankError);
-        
-        // Fallback to Firebase upload
-        try {
-          const filename = `products/${Date.now()}_${file.name}`;
-          const storageRef = ref(storage, filename);
-          
-          const uploadResult = await uploadBytes(storageRef, file);
-          const downloadURL = await getDownloadURL(uploadResult.ref);
-          
-          return downloadURL;
-        } catch (firebaseError) {
-          console.error('Firebase upload error:', firebaseError);
-          throw firebaseError;
-        }
-      }
-    });
-
-    return Promise.all(uploadPromises);
-  }, [imageFiles, formData.name]);
-
   const handleSubmit = useCallback(async () => {
     const steps: FormStep[] = ['category', 'details', 'images'];
     const invalidStep = steps.find(step => !validateStep());
@@ -232,13 +141,11 @@ export function ProductForm({ onClose, initialProduct }: ProductFormProps) {
       console.warn(`Submission failed: Invalid step ${invalidStep}`);
       return;
     }
-
-    const imageUrls = await uploadImages();
       
     const productData: ProductFormData = {
       ...formData,
       description: formData.description || '',
-      images: imageUrls,
+      images: selectedImages,
       attributes: Object.fromEntries(
         Object.entries(formData.attributes || {}).map(([key, value]) => [
           key, 
@@ -259,7 +166,7 @@ export function ProductForm({ onClose, initialProduct }: ProductFormProps) {
 
     onClose?.();
     navigate('/admin/products');
-  }, [formData, imageFiles, initialProduct, navigate, onClose, uploadImages, validateStep]);
+  }, [formData, selectedImages, initialProduct, navigate, onClose, validateStep]);
 
   const renderCategoryStep = () => (
     <div className="space-y-6">
@@ -596,75 +503,50 @@ export function ProductForm({ onClose, initialProduct }: ProductFormProps) {
   const renderImagesStep = () => (
     <div>
       <div className="space-y-4">
-        <div className="flex space-x-4">
-          <input 
-            type="file" 
-            multiple 
-            accept="image/jpeg,image/png,image/webp,image/gif"
-            onChange={handleImageUpload} 
-            className="hidden" 
-            id="imageUpload" 
-          />
-          <label 
-            htmlFor="imageUpload" 
-            className="flex items-center px-4 py-2 bg-teal-600 text-white rounded-lg cursor-pointer hover:bg-teal-700 transition-colors"
-          >
-            <FaImage className="mr-2" /> Upload Images
-          </label>
-          
-          <button 
-            type="button"
-            onClick={() => setIsPhotobankOpen(true)}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <PlusCircle className="mr-2" /> Select from Photobank
-          </button>
-        </div>
-
-        {imageFiles.length > 0 && (
+        {photobankImages.length > 0 && (
           <div className="grid grid-cols-4 gap-4 mt-4">
-            {imageFiles.map((file, index) => (
+            {photobankImages.map((image, index) => (
               <div 
-                key={index} 
-                className="relative rounded-lg overflow-hidden shadow-md"
+                key={image.id} 
+                className={`relative rounded-lg overflow-hidden shadow-md ${selectedImages.includes(image.downloadURL) ? 'ring-2 ring-teal-500' : ''}`}
               >
                 <img 
-                  src={typeof file === 'string' ? file : URL.createObjectURL(file)} 
+                  src={image.downloadURL}
                   alt={`Product Image ${index + 1}`} 
-                  className="w-full h-48 object-cover"
-                />
-                <button 
-                  type="button"
+                  className="w-full h-48 object-cover cursor-pointer"
                   onClick={() => {
-                    const newImageFiles = imageFiles.filter((_, i) => i !== index);
-                    setImageFiles(newImageFiles);
-                    updateFormData({
-                      images: newImageFiles.map(f => 
-                        typeof f === 'string' ? f : f.name
-                      )
-                    });
+                    if (selectedImages.includes(image.downloadURL)) {
+                      setSelectedImages(prev => prev.filter(url => url !== image.downloadURL));
+                    } else {
+                      setSelectedImages(prev => [...prev, image.downloadURL]);
+                    }
                   }}
-                  className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+                />
+                {selectedImages.includes(image.downloadURL) && (
+                  <div className="absolute top-2 right-2 bg-teal-600 text-white rounded-full p-1">
+                    <CheckCircle2 className="w-4 h-4" />
+                  </div>
+                )}
               </div>
             ))}
           </div>
         )}
       </div>
-
-      {isPhotobankOpen && (
-        <PhotobankPopup 
-          onClose={() => setIsPhotobankOpen(false)}
-          onSelectImages={(selectedImages) => {
-            handleImageUpload(selectedImages);
-            setIsPhotobankOpen(false);
-          }}
-        />
-      )}
     </div>
   );
+
+  useEffect(() => {
+    if (formData.category) {
+      getPhotobankImages(formData.category)
+        .then(images => {
+          console.log('Fetched images:', images);
+          setPhotobankImages(images);
+        })
+        .catch(error => console.error("Error fetching photobank images:", error));
+    } else {
+        setPhotobankImages([]);
+    }
+  }, [formData.category]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">

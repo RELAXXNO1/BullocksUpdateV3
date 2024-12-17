@@ -65,9 +65,9 @@ export const getPhotobankImages = async (category?: string) => {
     const photosRef = collection(db, 'photos');
     let q;
     if (category) {
-      q = query(photosRef, where('category', '==', category));
+      q = query(photosRef, where('category', '==', category), where('isVisible', '==', true));
     } else {
-      q = query(photosRef);
+      q = query(photosRef, where('isVisible', '==', true));
     }
     const querySnapshot = await getDocs(q);
     const images = querySnapshot.docs.map(doc => ({

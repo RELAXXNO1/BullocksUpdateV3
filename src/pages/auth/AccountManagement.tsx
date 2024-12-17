@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, UserX } from 'lucide-react';
@@ -40,6 +41,10 @@ export default function AccountManagement() {
               <p className="text-red-500 text-sm">{error}</p>
             </div>
           )}
+
+          <Link to="/" className="inline-block w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg mb-4 text-center">
+            Back to Store
+          </Link>
 
           <div className="mb-6">
             <h3 className="text-lg font-semibold mb-2">Email</h3>
