@@ -25,7 +25,7 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
     <>
       <motion.div 
         onClick={() => setIsModalOpen(true)}
-        className="product-card group relative overflow-hidden rounded-2xl shadow-lg bg-white dark:bg-slate-800 transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl cursor-pointer"
+        className="product-card group relative rounded-2xl shadow-lg bg-white dark:bg-slate-800 transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl cursor-pointer"
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5 }}
