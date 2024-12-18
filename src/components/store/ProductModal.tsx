@@ -62,7 +62,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
         transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-        className="bg-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl border border-slate-700 relative"
+        className="bg-slate-800 rounded-2xl w-full max-w-2xl shadow-2xl border border-slate-700 relative"
         onClick={handleStopPropagation}
       >
         <div className="grid md:grid-cols-2 h-full">
@@ -90,7 +90,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
           {/* Details Section */}
           <div 
             ref={detailsRef}
-            className="p-6 overflow-y-auto max-h-[500px] scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800"
+            className="p-6 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800"
           >
             <div className="flex justify-between items-start mb-6">
               <div>
