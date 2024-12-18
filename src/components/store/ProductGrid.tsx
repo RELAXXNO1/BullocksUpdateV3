@@ -25,7 +25,7 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
     <>
       <motion.div 
         onClick={() => setIsModalOpen(true)}
-        className="group relative overflow-hidden rounded-2xl shadow-lg bg-white dark:bg-slate-800 transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl cursor-pointer"
+        className="product-card group relative overflow-hidden rounded-2xl shadow-lg bg-white dark:bg-slate-800 transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl cursor-pointer"
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5 }}
@@ -41,20 +41,20 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
         </div>
 
         {/* Product Details */}
-        <div className="p-4 space-y-2">
-          <h3 className="text-lg font-bold text-slate-800 dark:text-white truncate">
+        <div className="p-1 space-y-0.5 sm:p-2 sm:space-y-1">
+          <h3 className="text-sm font-bold text-slate-800 dark:text-white truncate sm:text-base">
             {product.name}
           </h3>
           <div className="flex justify-between items-center">
-            <span className="text-teal-600 font-semibold text-xl">
+            <span className="text-teal-600 font-semibold text-base sm:text-lg">
               ${product.price.toFixed(2)}
             </span>
             {isCartEnabled ? (
               <button
                 onClick={handleAddToCart}
-                className="text-teal-400 hover:text-teal-300 text-sm italic flex items-center justify-center"
+                className="text-teal-400 hover:text-teal-300 text-xs italic flex items-center justify-center"
               >
-                <MapPin className="h-4 w-4 mr-1" />
+                <MapPin className="h-3 w-3 mr-0.5" />
                 Add to Cart
               </button>
             ) : (
@@ -62,9 +62,9 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
                 href="https://www.google.com/maps/search/bullocks+smoke+shop"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-teal-400 hover:text-teal-300 text-sm italic flex items-center justify-center"
+                className="text-teal-400 hover:text-teal-300 text-xs italic flex items-center justify-center"
               >
-                <MapPin className="h-4 w-4 mr-1" />
+                <MapPin className="h-3 w-3 mr-0.5" />
                 Come Pick it Up
               </a>
             )}
@@ -100,7 +100,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products, initialCategory }) 
         </motion.div>
       ) : (
         <motion.div 
-          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
+          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
           initial="hidden"
           animate="visible"
           variants={{

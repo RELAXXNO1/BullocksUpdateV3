@@ -6,7 +6,7 @@ import { Button } from '../../components/ui/Button';
 import { BackButton } from '../../components/ui/BackButton';
 import { auth, storage, db, checkAdminStatus } from '../../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { collection, addDoc, serverTimestamp, query as firestoreQuery, getDocs, doc, setDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query as firestoreQuery, getDocs, doc, setDoc, where } from 'firebase/firestore';
 import { DEFAULT_CATEGORIES } from '../../config/categories';
 import { useNavigate } from 'react-router-dom';
 import type { CategoryConfig } from '../../constants/categories';
@@ -26,11 +26,11 @@ export default function PhotoBank() {
   const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const [showCategoryTooltip, setShowCategoryTooltip] = useState(false);
   const [fetchError, setFetchError] = useState<Error | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
 
 
   useEffect(() => {
@@ -39,7 +39,7 @@ export default function PhotoBank() {
 
       try {
         const photosRef = collection(db, 'photos');
-        const photosQuery = firestoreQuery(photosRef);
+        const photosQuery = firestoreQuery(photosRef, where('isVisible', '==', true));
         const snapshot = await getDocs(photosQuery);
         
         console.group('🖼️ Photobank Image Fetch');
@@ -229,8 +229,6 @@ export default function PhotoBank() {
             isVisible: true
           });
 
-          console.log('Photo document created:', photoDocRef.id);
-
           // Track successful uploads
           uploadedPhotos.push({
             id: photoDocRef.id,
@@ -361,7 +359,7 @@ export default function PhotoBank() {
           <div className="flex items-center space-x-4 relative">
             <select
               value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
+              onChange={(e) => setSelectedCategory(e.target.value === "" ? undefined : e.target.value)}
               className="w-full bg-dark-600 p-2 rounded-lg"
               disabled={!isAdmin || isLoading}
             >
