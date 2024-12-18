@@ -22,13 +22,7 @@ export const AIChat: React.FC = () => {
     addMessage 
   } = useChatContext();
 
-  const [messages, setMessages] = useState<AIMessage[]>([
-    {
-      role: 'ai',
-      content: 'Welcome to Bullocks! How can I assist you today? I\'m here to help with product information, recommendations, and any questions you might have.',
-      timestamp: Date.now()
-    }
-  ]);
+  const [messages, setMessages] = useState<AIMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   // Enhanced fallback models with more diverse capabilities
@@ -182,13 +176,7 @@ export const AIChat: React.FC = () => {
   };
 
   const handleClearChat = () => {
-    setMessages([
-      {
-        role: 'ai',
-        content: 'Welcome to Bullocks! How can I assist you today? I\'m here to help with product information, recommendations, and any questions you might have.',
-        timestamp: Date.now()
-      }
-    ]);
+    setMessages([]);
   };
 
   const handleResetChat = () => {

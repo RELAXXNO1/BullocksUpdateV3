@@ -42,7 +42,7 @@ export interface ConversationContext {
   messages: Message[];
   lastInteractionTimestamp: number;
   currentTopic?: string;
-  systemPrompt: string;
+  systemPrompt?: string;
   responseFormat?: ResponseFormat;
 }
 

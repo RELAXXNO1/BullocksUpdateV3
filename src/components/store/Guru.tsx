@@ -1,9 +1,10 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { HfInference } from '@huggingface/inference';
 import { Bot, Send, X } from 'lucide-react';
+import { ChatService } from '../../services/chatService';
 
-// Ensure the API key is imported securely
+// Ensure the API key and model are imported securely
 const HUGGINGFACE_API_KEY = import.meta.env.VITE_HUGGINGFACE_API_KEY;
+const HUGGINGFACE_MODEL = 'meta-llama/Llama-3.2-3B-Instruct'; // Updated model
 
 export const Guru: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -17,8 +18,13 @@ export const Guru: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Initialize Hugging Face Inference client
-  const hf = new HfInference(HUGGINGFACE_API_KEY);
+  // Initialize ChatService
+  const chatService = useRef(new ChatService({
+    apiKey: HUGGINGFACE_API_KEY,
+    model: HUGGINGFACE_MODEL,
+    maxTokens: 250,
+    temperature: 0.6
+  }));
 
   // Scroll to bottom when messages change
   const scrollToBottom = () => {
@@ -39,55 +45,15 @@ export const Guru: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // Construct a specialized THCA-focused prompt
-      const systemPrompt = `
-You are an AI assistant specializing in THCA (Tetrahydrocannabinolic Acid) products for a cannabis dispensary. 
-Your primary goals are to:
-1. Provide accurate, helpful information about THCA
-2. Explain product benefits and usage
-3. Offer personalized recommendations
-4. Maintain a professional, knowledgeable tone
-5. Prioritize customer education and safety
+      // Use ChatService to generate response
+      const response = await chatService.current.generateResponse(input);
 
-Key THCA Knowledge Areas:
-- Non-psychoactive cannabinoid
-- Potential therapeutic benefits
-- Differences from THC
-- Consumption methods
-- Legal considerations
-- Product types (flower, concentrates, tinctures)
-
-Respond concisely, professionally, and focus on helping the customer.
-`;
-
-      const conversationHistory = messages
-        .map(msg => msg.isUser ? `Customer: ${msg.text}` : `THCA Guru: ${msg.text}`)
-        .join('\n');
-      
-      const fullPrompt = `${systemPrompt}\n\nConversation History:\n${conversationHistory}\n\nCustomer: ${input}\n\nTHCA Guru:`;
-
-      // Use text generation API
-      const response = await hf.textGeneration({
-        model: 'facebook/blenderbot-400M-distill',
-        inputs: fullPrompt,
-        parameters: {
-          max_new_tokens: 250,
-          temperature: 0.6,
-          top_p: 0.9
-        }
-      });
-
-      // Clean and add AI response
-      const cleanedResponse = response.generated_text
-        ?.replace(fullPrompt, '')
-        .trim()
-        .replace(/^(THCA Guru:)?\s*/, '') || 'I apologize, but I couldn\'t generate a helpful response.';
-
+      // Add AI response
       setMessages(prevMessages => [
         ...prevMessages, 
-        { text: cleanedResponse, isUser: false }
+        { text: response.text, isUser: false }
       ]);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating response:', error);
       setMessages(prevMessages => [
         ...prevMessages, 

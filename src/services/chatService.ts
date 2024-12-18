@@ -2,9 +2,7 @@ import type {
   AIResponse, 
   ChatConfig, 
   ConversationContext,
-  KnowledgeBaseEntry
 } from '../types/chat';
-import { KNOWLEDGE_BASE } from '../types/chat';
 import { HfInference } from '@huggingface/inference';
 import { FallbackChatService } from './fallbackChatService';
 
@@ -48,31 +46,6 @@ export class ChatService {
     return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  private calculateRelevance(input: string, entry: KnowledgeBaseEntry): number {
-    const normalizedInput = this.normalizeInput(input);
-    const matchedKeywords = entry.keywords.filter(keyword => 
-      normalizedInput.includes(keyword.toLowerCase())
-    );
-
-    const relevanceScore = matchedKeywords.length / entry.keywords.length;
-    return relevanceScore;
-  }
-
-  private findRelevantKnowledgeBase(input: string): string[] {
-    const relevantContexts = KNOWLEDGE_BASE
-      .filter(entry => {
-        const relevance = this.calculateRelevance(input, entry);
-        return relevance >= (entry.relevanceThreshold || 0.5);
-      })
-      .map(entry => entry.context);
-
-    return relevantContexts;
-  }
-
-  private normalizeInput(input: string): string {
-    return input.toLowerCase().trim();
-  }
-
   async generateResponse(
     input: string, 
     context?: Partial<ConversationContext>
@@ -82,27 +55,22 @@ export class ChatService {
       if (!this.hfClient) {
         return FallbackChatService.generateResponse(input, context);
       }
-
-      // Find relevant context from knowledge base
-      const relevantContexts = this.findRelevantKnowledgeBase(input);
       
-      // Prepare prompt with context and system instructions
-      const contextPrompt = relevantContexts.length > 0 
-        ? `Relevant Context: ${relevantContexts.join(' ')}\n\n` 
-        : '';
+      // Prepare prompt with system instructions
+      const systemInstructions = `You are an AI. 
+Respond directly to the user's input. 
+Provide a single, concise output.
+Do not include any previous conversation history in your response.
+If the input is not clear, ask for clarification.`;
       
-      const systemInstructions = `You are an AI assistant for the Bullocks Store. 
-Always provide helpful, concise, and contextually relevant responses. 
-If the input is not clear, ask for clarification or provide general guidance.`;
-      
-      const fullPrompt = `${systemInstructions}\n\n${contextPrompt}User Input: ${input}`;
+      const fullPrompt = `${systemInstructions}\n\n${input}`;
 
       // Attempt Hugging Face query
       try {
-        const aiResponse = await this.queryHuggingFace(fullPrompt);
+        const aiResponse = await this.queryHuggingFace(fullPrompt, systemInstructions);
 
         // Generate dynamic suggestions based on input and context
-        const suggestions = this.generateContextualSuggestions(input, relevantContexts);
+        const suggestions = this.generateContextualSuggestions(input, []);
 
         return {
           text: aiResponse,
@@ -111,7 +79,7 @@ If the input is not clear, ask for clarification or provide general guidance.`;
           context: { 
             originalInput: input,
             processedAt: Date.now(),
-            category: relevantContexts.length > 0 ? 'contextual_response' : 'general_response'
+            category: 'general_response'
           }
         };
       } catch (aiError) {
@@ -132,28 +100,10 @@ If the input is not clear, ask for clarification or provide general guidance.`;
       'Want to explore another topic?'
     ];
 
-    // If contexts are available, add more specific suggestions
-    if (contexts.length > 0) {
-      const contextSpecificSuggestions = contexts.flatMap(context => {
-        if (context.includes('products')) {
-          return ['Browse product categories', 'Check product details'];
-        }
-        if (context.includes('categories')) {
-          return ['Explore category management', 'View category attributes'];
-        }
-        if (context.includes('content')) {
-          return ['Customize store content', 'Edit page layouts'];
-        }
-        return [];
-      });
-
-      return [...baseSuggestions, ...contextSpecificSuggestions];
-    }
-
     return baseSuggestions;
   }
 
-  async queryHuggingFace(prompt: string): Promise<string> {
+  async queryHuggingFace(prompt: string, systemInstructions: string): Promise<string> {
     try {
       console.log('Querying Hugging Face with prompt:', prompt);
       console.log('Using model:', this.config.model);
@@ -174,13 +124,18 @@ If the input is not clear, ask for clarification or provide general guidance.`;
       console.log('Hugging Face Response:', response);
       
       // Extract generated text, handling different response formats
-      const generatedText = Array.isArray(response) 
+      let generatedText = Array.isArray(response) 
         ? response[0]?.generated_text 
         : (response as any).generated_text || response;
 
-      return typeof generatedText === 'string' 
-        ? generatedText.trim() 
-        : 'No response generated';
+      if (typeof generatedText === 'string') {
+        const regex = new RegExp(`^\\s*${systemInstructions.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*`, 'gm');
+        generatedText = generatedText.trim().replace(regex, '').trim();
+      } else {
+        generatedText = 'No response generated';
+      }
+
+      return generatedText;
     } catch (error) {
       console.error('Hugging Face Query Error:', error);
       
