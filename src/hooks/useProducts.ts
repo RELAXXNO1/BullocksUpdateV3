@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, query, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Product } from '../types/product';
 
@@ -9,12 +9,12 @@ export function useProducts() {
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    const productsCollection = collection(db, 'products');
+    const q = query(productsCollection);
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
       try {
-        const productsCollection = collection(db, 'products');
-        const q = query(productsCollection, where('deleted', '!=', true));
-        const productsSnapshot = await getDocs(q);
-        const productsList = productsSnapshot.docs.map(docSnap => ({
+        const productsList = snapshot.docs.map(docSnap => ({
           id: docSnap.id,
           ...docSnap.data()
         } as Product));
@@ -26,9 +26,13 @@ export function useProducts() {
         setError(err instanceof Error ? err : new Error('Failed to fetch products'));
         setLoading(false);
       }
-    };
+    }, (err) => {
+        console.error('Error listening to products:', err);
+        setError(err instanceof Error ? err : new Error('Failed to fetch products'));
+        setLoading(false);
+    });
 
-    fetchProducts();
+    return () => unsubscribe();
   }, []);
 
   return { products, loading, error };

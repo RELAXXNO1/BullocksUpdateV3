@@ -23,8 +23,26 @@ export type ProductFormData = Product & {
   imageFile?: File;
 };
 
-export type CategoryConfig = {
-  id: string;
+export interface CategoryAttribute {
   name: string;
+  label: string;
+  type: AttributeType;
+  options?: string[];
+  required?: boolean;
+  displayOnCard?: boolean;
+}
+
+export type CategoryConfig = {
+  id?: string;
   slug: string;
+  name: string;
+  description?: string;
+  attributes?: {
+    fields: CategoryAttribute[];
+  };
+  createdAt?: string;
+  updatedAt?: string;
 };
+
+export const AttributeTypeSchema = z.enum(['text', 'number', 'select', 'boolean']);
+export type AttributeType = z.infer<typeof AttributeTypeSchema>;

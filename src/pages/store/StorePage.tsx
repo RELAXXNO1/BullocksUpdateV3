@@ -8,7 +8,7 @@ import LoadingSpinner from '../../components/LoadingSpinner';
 import { Guru } from '../../components/store/Guru';
 
 export default function StorePage() {
-  const { products, loading } = useProducts();
+  const { products, loading, error } = useProducts();
   const { getContentBySection } = useStoreContent();
   
   const visibleProducts = products.filter(p => p.isVisible);
@@ -30,6 +30,19 @@ export default function StorePage() {
 
   if (loading) {
     return <LoadingSpinner />;
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-16 bg-slate-100 dark:bg-slate-900 rounded-xl">
+        <h2 className="text-2xl font-bold text-red-500 mb-4">
+          Error Loading Products
+        </h2>
+        <p className="text-slate-500 dark:text-slate-400">
+          {error.message}
+        </p>
+      </div>
+    );
   }
 
   const scrollToProducts = () => {

@@ -11,6 +11,7 @@ interface CategoryAttributeField {
   label: string;
   type: string;
   options?: string[];
+  description?: string;
 }
 
 interface CategoryConfig {
@@ -52,7 +53,7 @@ export default function CategoryTemplate({ categorySlug }: CategoryTemplateProps
   const opacity = useTransform(
     scrollYProgress, 
     [0, 0.2, 0.8, 1], 
-    [1, 0.8, 0.6, 0.4], 
+    [1, 1, 1, 1], 
     {
       ease: (progress: number) => progress // Linear interpolation for opacity
     }
@@ -101,32 +102,8 @@ export default function CategoryTemplate({ categorySlug }: CategoryTemplateProps
   const filteredProducts = useMemo(() => {
     if (!categoryDetails) return [];
     
-    const normalized = (str: string) => 
-      str.toLowerCase().replace(/[-\s]/g, '');
-
     const filtered = products.filter(product => {
-      const productCategoryNormalized = normalized(product.category);
-      const categoryNameNormalized = normalized(categoryDetails.name);
-
-      const isMatch = productCategoryNormalized === categoryNameNormalized;
-
-      console.log('Product Matching Debug', {
-        productCategory: product.category,
-        categoryName: categoryDetails.name,
-        productName: product.name,
-        productCategoryNormalized,
-        categoryNameNormalized,
-        matchResult: isMatch
-      });
-      
-      return isMatch;
-    });
-
-    console.log('Filtered Products Debug', {
-      categoryName: categoryDetails.name,
-      filteredProductsCount: filtered.length,
-      allProductsCount: products.length,
-      allProductCategories: [...new Set(products.map(p => p.category))]
+      return product.category === categoryDetails.slug;
     });
 
     return filtered;
@@ -156,19 +133,6 @@ export default function CategoryTemplate({ categorySlug }: CategoryTemplateProps
     navigate('/store');
     console.log('Navigating back to store');
   };
-
-  console.log(' Category Debug:', {
-    inputSlug: categorySlug,
-    availableSlugs: DEFAULT_CATEGORIES.map(cat => cat.slug),
-    matchedCategory: categoryDetails
-  });
-
-  // Log total products found
-  console.log(' Category Products:', {
-    categoryName: categoryDetails.name,
-    totalProducts: filteredProducts.length,
-    allProductsCount: products.length
-  });
 
   if (loading) {
     return <LoadingSpinner />;
@@ -268,7 +232,7 @@ export default function CategoryTemplate({ categorySlug }: CategoryTemplateProps
               }
             }
           }}
-          className="container mx-auto px-4 py-16 bg-white dark:bg-slate-900"
+          className="container mx-auto px-4 py-16 bg-white dark:bg-slate-900 sticky top-0 z-30"
         >
           <motion.h2 
             variants={{
@@ -291,9 +255,8 @@ export default function CategoryTemplate({ categorySlug }: CategoryTemplateProps
               <motion.div 
                 key={attr.name}
                 variants={{
-                  hidden: { opacity: 0, scale: 0.9 },
+                  hidden: { scale: 0.9 },
                   visible: { 
-                    opacity: 1, 
                     scale: 1,
                     transition: {
                       duration: 0.5,
@@ -406,6 +369,22 @@ export default function CategoryTemplate({ categorySlug }: CategoryTemplateProps
                       Type: {attr.type === 'number' ? 'Numeric Value' : 
                              attr.type === 'text' ? 'Text Description' : 
                              attr.type === 'boolean' ? 'Yes/No Option' : attr.type}
+                    </motion.p>
+                  )}
+                  {attr.description && (
+                    <motion.p
+                      variants={{
+                        hidden: { opacity: 0 },
+                        visible: {
+                          opacity: 1,
+                          transition: {
+                            delay: 0.5
+                          }
+                        }
+                      }}
+                      className="text-sm text-slate-500 dark:text-slate-400 mt-2"
+                    >
+                      {attr.description}
                     </motion.p>
                   )}
                 </motion.div>

@@ -20,7 +20,7 @@ const StorePage = lazy(() => import(/* webpackChunkName: "store-page" */ './page
 
 // Dynamically import category pages based on DEFAULT_CATEGORIES
 const categoryPages: Record<string, React.LazyExoticComponent<React.ComponentType>> = {
-  'thc-a-flower': lazy(() => import(/* webpackChunkName: "thca-flower-page" */ './pages/store/THCAFlowerPage')),
+  'thca-flower': lazy(() => import(/* webpackChunkName: "thca-flower-page" */ './pages/store/THCAFlowerPage')),
   'pre-rolls': lazy(() => import(/* webpackChunkName: "pre-rolls-page" */ './pages/store/PreRollsPage')),
   'edibles': lazy(() => import(/* webpackChunkName: "edibles-page" */ './pages/store/EdiblesPage')),
   'mushrooms': lazy(() => import(/* webpackChunkName: "mushrooms-page" */ './pages/store/MushroomsPage')),

@@ -6,9 +6,10 @@ import { Button } from '../../components/ui/Button';
 import { BackButton } from '../../components/ui/BackButton';
 import { auth, storage, db, checkAdminStatus } from '../../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { collection, addDoc, serverTimestamp, query as firestoreQuery, where, getDocs, doc, setDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query as firestoreQuery, getDocs, doc, setDoc } from 'firebase/firestore';
 import { DEFAULT_CATEGORIES } from '../../config/categories';
 import { useNavigate } from 'react-router-dom';
+import type { CategoryConfig } from '../../constants/categories';
 
 const WATERMARK_LOGO_PATH = '/logos/black_logo_transparent_background_page-0001-removebg-preview.png';
 
@@ -29,6 +30,7 @@ export default function PhotoBank() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const [showCategoryTooltip, setShowCategoryTooltip] = useState(false);
+  const [fetchError, setFetchError] = useState<Error | null>(null);
 
 
   useEffect(() => {
@@ -37,10 +39,7 @@ export default function PhotoBank() {
 
       try {
         const photosRef = collection(db, 'photos');
-        const photosQuery = firestoreQuery(
-          photosRef, 
-          where('isVisible', '==', true)
-        );
+        const photosQuery = firestoreQuery(photosRef);
         const snapshot = await getDocs(photosQuery);
         
         console.group('🖼️ Photobank Image Fetch');
@@ -68,9 +67,11 @@ export default function PhotoBank() {
         console.groupEnd();
 
         setPhotos(fetchedPhotos);
+        setFetchError(null);
       } catch (error) {
         console.error('❌ Error fetching photos:', error);
         setPhotos([]);
+        setFetchError(error instanceof Error ? error : new Error('Failed to fetch photos'));
       }
     };
 
@@ -320,6 +321,22 @@ export default function PhotoBank() {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 bg-dark-900/50 backdrop-blur-sm flex items-center justify-center z-50">
+        <motion.div 
+          className="w-24 h-24 border-4 border-t-primary-500 border-r-primary-500 border-b-primary-500/30 border-l-primary-500/30 rounded-full"
+          animate={{ rotate: 360 }}
+          transition={{ 
+            duration: 1.2, 
+            repeat: Infinity, 
+            ease: "linear" 
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
@@ -349,7 +366,7 @@ export default function PhotoBank() {
               disabled={!isAdmin || isLoading}
             >
               <option value="">Select Category</option>
-              {DEFAULT_CATEGORIES.map((category) => (
+              {DEFAULT_CATEGORIES.map((category: CategoryConfig) => (
                 <option key={category.slug} value={category.slug}>
                   {category.name}
                 </option>
@@ -398,7 +415,16 @@ export default function PhotoBank() {
           </div>
         </CardHeader>
         <CardContent className="p-6">
-          {photos.length === 0 ? (
+          {fetchError ? (
+            <div className="text-center py-16 bg-slate-100 dark:bg-slate-900 rounded-xl">
+              <h2 className="text-2xl font-bold text-red-500 mb-4">
+                Error Loading Photos
+              </h2>
+              <p className="text-slate-500 dark:text-slate-400">
+                {fetchError.message}
+              </p>
+            </div>
+          ) : photos.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 bg-dark-500/50 rounded-ultra-elegant border-2 border-dashed border-dark-400/30 hover:border-primary-500 transition-elegant">
               <ImageIcon className="w-16 h-16 text-primary-500/50 mb-4 animate-subtle-pulse" />
               <p className="text-secondary-400 text-center">
@@ -428,7 +454,7 @@ export default function PhotoBank() {
               ).map(([category, categoryPhotos]) => (
                 <div key={category}>
                   <h3 className="text-xl font-semibold mb-4 text-primary-400 capitalize">
-                    {DEFAULT_CATEGORIES.find(cat => cat.slug === category)?.name || category}
+                    {DEFAULT_CATEGORIES.find((cat: CategoryConfig) => cat.slug === category)?.name || category}
                   </h3>
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     <AnimatePresence>
@@ -471,20 +497,6 @@ export default function PhotoBank() {
           )}
         </CardContent>
       </Card>
-
-      {isLoading && (
-        <div className="fixed inset-0 bg-dark-900/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <motion.div 
-            className="w-24 h-24 border-4 border-t-primary-500 border-r-primary-500 border-b-primary-500/30 border-l-primary-500/30 rounded-full"
-            animate={{ rotate: 360 }}
-            transition={{ 
-              duration: 1.2, 
-              repeat: Infinity, 
-              ease: "linear" 
-            }}
-          />
-        </div>
-      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, ChevronLeft, X, PlusCircle, CheckCircle2 } from 'lucide-react';
-import { collection, addDoc, updateDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import type { Product, ProductFormData } from '../../types/product';
 import { DEFAULT_CATEGORIES } from '../../constants/categories';
@@ -39,6 +39,7 @@ export function ProductForm({ onClose, initialProduct }: ProductFormProps) {
 
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   const [newCategory, setNewCategory] = useState('');
+
 
   const selectedCategory = useMemo(() => 
     DEFAULT_CATEGORIES.find(cat => cat.slug === formData.category), 
@@ -102,10 +103,7 @@ export function ProductForm({ onClose, initialProduct }: ProductFormProps) {
           }
         });
 
-        return basicDetailsValid && attributesValid;
-      
-      case 'images':
-        return selectedImages.length > 0;
+        return basicDetailsValid && attributesValid && selectedImages.length > 0;
       
       default:
         return false;
@@ -118,7 +116,7 @@ export function ProductForm({ onClose, initialProduct }: ProductFormProps) {
       return;
     }
 
-    const stepOrder: FormStep[] = ['category', 'details', 'images'];
+    const stepOrder: FormStep[] = ['category', 'details'];
     const currentIndex = stepOrder.indexOf(currentStep);
     if (currentIndex < stepOrder.length - 1) {
       setCurrentStep(stepOrder[currentIndex + 1]);
@@ -126,7 +124,7 @@ export function ProductForm({ onClose, initialProduct }: ProductFormProps) {
   }, [currentStep, validateStep]);
 
   const handlePreviousStep = useCallback(() => {
-    const stepOrder: FormStep[] = ['category', 'details', 'images'];
+    const stepOrder: FormStep[] = ['category', 'details'];
     const currentIndex = stepOrder.indexOf(currentStep);
     if (currentIndex > 0) {
       setCurrentStep(stepOrder[currentIndex - 1]);
@@ -134,7 +132,7 @@ export function ProductForm({ onClose, initialProduct }: ProductFormProps) {
   }, [currentStep]);
 
   const handleSubmit = useCallback(async () => {
-    const steps: FormStep[] = ['category', 'details', 'images'];
+    const steps: FormStep[] = ['category', 'details'];
     const invalidStep = steps.find(step => !validateStep());
 
     if (invalidStep) {
@@ -142,8 +140,29 @@ export function ProductForm({ onClose, initialProduct }: ProductFormProps) {
       return;
     }
       
+    let categoryId = formData.category;
+
+    try {
+      const categoriesCollection = collection(db, 'categories');
+      const q = query(categoriesCollection, where('slug', '==', formData.category));
+      const categorySnapshot = await getDocs(q);
+
+      if (!categorySnapshot.empty) {
+        categoryId = categorySnapshot.docs[0].id;
+      } else {
+        console.error('Category not found for slug:', formData.category);
+        alert('Category not found. Please select a valid category.');
+        return;
+      }
+    } catch (error) {
+      console.error('Error fetching category:', error);
+      alert('Error fetching category. Please try again.');
+      return;
+    }
+
     const productData: ProductFormData = {
       ...formData,
+      category: categoryId,
       description: formData.description || '',
       images: selectedImages,
       attributes: Object.fromEntries(
@@ -156,16 +175,21 @@ export function ProductForm({ onClose, initialProduct }: ProductFormProps) {
       updatedAt: new Date().toISOString()
     };
 
-    if (initialProduct) {
-      const productRef = doc(db, 'products', initialProduct.id!);
-      await updateDoc(productRef, productData);
-    } else {
-      const productsCollection = collection(db, 'products');
-      await addDoc(productsCollection, productData);
-    }
+    try {
+      if (initialProduct) {
+        const productRef = doc(db, 'products', initialProduct.id!);
+        await updateDoc(productRef, productData);
+      } else {
+        const productsCollection = collection(db, 'products');
+        await addDoc(productsCollection, productData);
+      }
 
-    onClose?.();
-    navigate('/admin/products');
+      onClose?.();
+      navigate('/admin/products');
+    } catch (error: any) {
+      console.error("Error saving product:", error);
+      alert(`Failed to save product: ${error.message}`);
+    }
   }, [formData, selectedImages, initialProduct, navigate, onClose, validateStep]);
 
   const renderCategoryStep = () => (
@@ -495,45 +519,44 @@ export function ProductForm({ onClose, initialProduct }: ProductFormProps) {
               </div>
             </div>
           )}
+          <div className="mt-6 space-y-4 border-t border-teal-700/50 pt-6">
+            <h3 className="text-lg font-semibold text-teal-100">
+              Select Product Images
+            </h3>
+            {photobankImages.length > 0 && (
+              <div className="grid grid-cols-4 gap-4 mt-4">
+                {photobankImages.map((image) => (
+                  <div 
+                    key={image.id} 
+                    className={`relative rounded-lg overflow-hidden shadow-md ${selectedImages.includes(image.downloadURL) ? 'ring-2 ring-teal-500' : ''}`}
+                  >
+                    <img 
+                      src={image.downloadURL}
+                      alt={`Product Image`} 
+                      className="w-full h-48 object-cover cursor-pointer"
+                      onClick={() => {
+                        if (selectedImages.includes(image.downloadURL)) {
+                          setSelectedImages(prev => prev.filter(url => url !== image.downloadURL));
+                        } else {
+                          setSelectedImages(prev => [...prev, image.downloadURL]);
+                        }
+                      }}
+                    />
+                    {selectedImages.includes(image.downloadURL) && (
+                      <div className="absolute top-2 right-2 bg-teal-600 text-white rounded-full p-1">
+                        <CheckCircle2 className="w-4 h-4" />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
   };
 
-  const renderImagesStep = () => (
-    <div>
-      <div className="space-y-4">
-        {photobankImages.length > 0 && (
-          <div className="grid grid-cols-4 gap-4 mt-4">
-            {photobankImages.map((image, index) => (
-              <div 
-                key={image.id} 
-                className={`relative rounded-lg overflow-hidden shadow-md ${selectedImages.includes(image.downloadURL) ? 'ring-2 ring-teal-500' : ''}`}
-              >
-                <img 
-                  src={image.downloadURL}
-                  alt={`Product Image ${index + 1}`} 
-                  className="w-full h-48 object-cover cursor-pointer"
-                  onClick={() => {
-                    if (selectedImages.includes(image.downloadURL)) {
-                      setSelectedImages(prev => prev.filter(url => url !== image.downloadURL));
-                    } else {
-                      setSelectedImages(prev => [...prev, image.downloadURL]);
-                    }
-                  }}
-                />
-                {selectedImages.includes(image.downloadURL) && (
-                  <div className="absolute top-2 right-2 bg-teal-600 text-white rounded-full p-1">
-                    <CheckCircle2 className="w-4 h-4" />
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
 
   useEffect(() => {
     if (formData.category) {
@@ -573,7 +596,6 @@ export function ProductForm({ onClose, initialProduct }: ProductFormProps) {
           <AnimatePresence mode="wait">
             {currentStep === 'category' && renderCategoryStep()}
             {currentStep === 'details' && renderDetailsStep()}
-            {currentStep === 'images' && renderImagesStep()}
           </AnimatePresence>
         </div>
 
@@ -589,7 +611,7 @@ export function ProductForm({ onClose, initialProduct }: ProductFormProps) {
             </Button>
           )}
           
-          {currentStep !== 'images' ? (
+          {currentStep !== 'details' ? (
             <Button 
               variant="default" 
               onClick={handleNextStep}

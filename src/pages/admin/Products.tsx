@@ -1,29 +1,35 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs, doc, deleteDoc, query, where } from 'firebase/firestore';
+import { collection, getDocs, doc, deleteDoc, query } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { ProductForm } from '../../components/admin/ProductForm';
 import { Product } from '../../types/product';
 import { Button } from '../../components/ui/Button';
 import { Trash2, Edit, Package } from 'lucide-react';
+import LoadingSpinner from '../../components/LoadingSpinner';
 
 export default function Products() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | undefined>(undefined);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         const productsCollection = collection(db, 'products');
-        const q = query(productsCollection, where('deleted', '!=', true));
+        const q = query(productsCollection);
         const productsSnapshot = await getDocs(q);
         const productsList = productsSnapshot.docs.map(docSnap => ({
           id: docSnap.id,
           ...docSnap.data()
         } as Product));
         setProducts(productsList);
-      } catch (error) {
-        console.error('Error fetching products:', error);
+        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching products:', err);
+        setError(err instanceof Error ? err : new Error('Failed to fetch products'));
+        setLoading(false);
       }
     };
 
@@ -49,6 +55,23 @@ export default function Products() {
     setIsAddingProduct(false);
     setSelectedProduct(undefined);
   };
+
+  if (loading) {
+    return <LoadingSpinner />;
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-16 bg-slate-100 dark:bg-slate-900 rounded-xl">
+        <h2 className="text-2xl font-bold text-red-500 mb-4">
+          Error Loading Products
+        </h2>
+        <p className="text-slate-500 dark:text-slate-400">
+          {error.message}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-6">
@@ -113,7 +136,7 @@ export default function Products() {
           >
             <div className="relative mb-4">
               <img 
-                src={product.images?.[0] || '/placeholder.png'} 
+                src={product.images && product.images.length > 0 ? product.images[0] : '/placeholder.png'}
                 alt={product.name} 
                 className="w-full h-48 object-cover rounded-xl 
                   transition-transform duration-300 

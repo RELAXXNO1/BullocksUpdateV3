@@ -10,6 +10,7 @@ export interface CategoryAttribute {
   options?: string[];
   required?: boolean;
   displayOnCard?: boolean;
+  description?: string;
 }
 
 export interface CategoryConfig {
