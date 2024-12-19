@@ -61,10 +61,19 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
           <h3 className="text-sm font-bold text-slate-800 dark:text-white truncate sm:text-base">
             {product.name}
           </h3>
-           {promo && (
-            <div className="bg-primary-700 text-white text-xs font-bold py-0.5 px-1 rounded-sm inline-block mb-1">
-              {promo.discount}% Off
-            </div>
+          {promo && (
+            <>
+              {promo.product && (
+                <div className="absolute top-2 right-0 bg-primary-700 text-white text-xs font-bold py-0.5 px-2 rounded-sm transform rotate-45 origin-top-right whitespace-nowrap z-10">
+                  {promo.product}
+                </div>
+              )}
+              {promo.discount && (
+                <div className="text-primary-500 text-xs font-bold mb-1">
+                  {promo.discount}% Off
+                </div>
+              )}
+            </>
           )}
           <div className="flex justify-between items-center">
             <span className="text-teal-600 font-semibold text-base sm:text-lg">

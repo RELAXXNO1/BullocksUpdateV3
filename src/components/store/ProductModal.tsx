@@ -4,6 +4,8 @@ import { X, MapPin } from 'lucide-react';
 import { Product } from '../../types/product';
 import { useCart } from '../../contexts/CartContext';
 import { useCartToggle } from '../../contexts/CartToggleContext';
+import { db } from '../../lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 interface ProductModalProps {
   product: Product;
@@ -18,6 +20,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
   const detailsRef = useRef<HTMLDivElement>(null);
   const { addToCart } = useCart();
   const { isCartEnabled } = useCartToggle();
+  const [promo, setPromo] = useState<any>(null);
 
   useEffect(() => {
     // Ensure details section is scrollable when modal opens
@@ -27,7 +30,18 @@ export const ProductModal: React.FC<ProductModalProps> = ({
         detailsRef.current.classList.add('overflow-y-scroll');
       }
     }
-  }, []);
+
+    const fetchPromo = async () => {
+      if (product.promoId) {
+        const promoRef = doc(db, 'promos', product.promoId);
+        const promoSnap = await getDoc(promoRef);
+        if (promoSnap.exists()) {
+          setPromo(promoSnap.data());
+        }
+      }
+    };
+    fetchPromo();
+  }, [product.promoId]);
 
   const handleNextImage = () => {
     setCurrentImageIndex((prev) => 
@@ -95,6 +109,20 @@ export const ProductModal: React.FC<ProductModalProps> = ({
             <div className="flex justify-between items-start mb-6">
               <div>
                 <h2 className="text-2xl font-bold text-white mb-2">{product.name}</h2>
+                {promo && (
+                  <>
+                    {promo.product && (
+                      <div className="text-primary-500 text-sm font-bold mb-1">
+                        {promo.product}
+                      </div>
+                    )}
+                    {promo.discount && (
+                      <div className="text-primary-500 text-sm font-bold mb-1">
+                        {promo.discount}% Off
+                      </div>
+                    )}
+                  </>
+                )}
                 <p className="text-emerald-500 text-xl font-semibold">${product.price.toFixed(2)}</p>
               </div>
               <button 
