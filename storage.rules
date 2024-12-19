@@ -4,7 +4,7 @@ service firebase.storage {
     // Enhanced admin validation function
     function isAdmin() {
       return request.auth != null && 
-             firestore.exists(/databases/$(database)/documents/admins/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/admins/$(request.auth.uid)).data().role == 'admin' &&
              request.time > timestamp.date(2023, 1, 1);  // Prevent very old admin tokens
     }
 
@@ -48,6 +48,21 @@ service firebase.storage {
       // Comprehensive user image validation
       function validateUserImage(image) {
         return image.size < 5 * 1024 * 1024 &&  // 5MB max
+               image.contentType.matches('image/(jpeg|png|webp)') &&
+               image.name.matches('^[a-zA-Z0-9_-]+\\.(jpg|jpeg|png|webp)$');
+      }
+    }
+
+    // Photobank images with strict validation
+    match /photos/{category}/{imageId} {
+      allow read: if isAdmin();  // Only admins can read photobank images
+      allow create: if isAdmin() &&
+                    validatePhotobankImage(request.resource);
+      allow update, delete: if isAdmin();
+
+      // Comprehensive image validation function
+      function validatePhotobankImage(image) {
+        return image.size < 10 * 1024 * 1024 &&  // 10MB max
                image.contentType.matches('image/(jpeg|png|webp)') &&
                image.name.matches('^[a-zA-Z0-9_-]+\\.(jpg|jpeg|png|webp)$');
       }

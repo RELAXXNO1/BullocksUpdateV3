@@ -80,7 +80,7 @@ export default function Products() {
         <Button 
           onClick={() => setIsAddingProduct(true)}
           variant="default"
-          className="font-semibold tracking-wide shadow-sm hover:shadow-md transition-all duration-200 ease-in-out"
+          className="font-semibold tracking-wide shadow-sm hover:shadow-md transition-all duration-200 ease-in-out text-lg border border-teal-500"
         >
           Add New Product
         </Button>

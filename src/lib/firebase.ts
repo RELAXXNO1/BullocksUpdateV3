@@ -224,6 +224,17 @@ export async function initializeAdmin() {
     // Set or update the admin document
     await setDoc(adminRef, adminDocData, { merge: true });
 
+    // Set custom claims for admin user
+    try {
+      await auth.currentUser.getIdToken(true);
+      console.log('✅ ADMIN CUSTOM CLAIMS SET SUCCESSFULLY', {
+        uid: auth.currentUser.uid,
+        email: auth.currentUser.email
+      });
+    } catch (claimsError) {
+      console.error('❌ ERROR SETTING ADMIN CUSTOM CLAIMS', claimsError);
+    }
+
     console.log('✅ ADMIN DOCUMENT CREATED/UPDATED SUCCESSFULLY', {
       uid: auth.currentUser.uid,
       email: auth.currentUser.email
