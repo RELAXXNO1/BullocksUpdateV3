@@ -24,7 +24,7 @@ const navItems: NavItem[] = [
   { icon: Users, label: 'UIX Editor', locked: true },
   { icon: Tag, label: 'Admin Management', locked: true },
   { icon: Gift, label: 'Loyalty Rewards', locked: true },
-  { icon: Tag, label: 'Promo Manager', locked: true },
+  { icon: Tag, label: 'Promo Manager', path: '/admin/promo-manager' },
   { icon: Users, label: 'Connect to Clover', locked: true }
 ];
 

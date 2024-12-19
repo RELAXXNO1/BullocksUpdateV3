@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Product } from '../../types/product';
 import { MapPin } from 'lucide-react';
 import { ProductModal } from '../store/ProductModal';
 import { useCart } from '../../contexts/CartContext';
 import { useCartToggle } from '../../contexts/CartToggleContext';
+import { db } from '../../lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 interface ProductGridProps {
   products: Product[];
@@ -15,6 +17,20 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { addToCart } = useCart();
   const { isCartEnabled } = useCartToggle();
+  const [promo, setPromo] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchPromo = async () => {
+      if (product.promoId) {
+        const promoRef = doc(db, 'promos', product.promoId);
+        const promoSnap = await getDoc(promoRef);
+        if (promoSnap.exists()) {
+          setPromo(promoSnap.data());
+        }
+      }
+    };
+    fetchPromo();
+  }, [product.promoId]);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -45,6 +61,11 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
           <h3 className="text-sm font-bold text-slate-800 dark:text-white truncate sm:text-base">
             {product.name}
           </h3>
+           {promo && (
+            <div className="bg-primary-700 text-white text-xs font-bold py-0.5 px-1 rounded-sm inline-block mb-1">
+              {promo.discount}% Off
+            </div>
+          )}
           <div className="flex justify-between items-center">
             <span className="text-teal-600 font-semibold text-base sm:text-lg">
               ${product.price.toFixed(2)}

@@ -12,11 +12,12 @@ export const ProductSchema = z.object({
   isVisible: z.boolean().optional(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
-  isActive: z.boolean().optional()
+  isActive: z.boolean().optional(),
+  promoId: z.string().optional()
 });
 
 export type Product = z.infer<typeof ProductSchema> & {
-  category: string; // This will now be the category SLUG
+  category: string;
 };
 
 export type ProductFormData = Product & {

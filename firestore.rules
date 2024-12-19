@@ -128,5 +128,21 @@ service cloud.firestore {
                category.name.size() <= 50;
       }
     }
+
+    // Promos collection rules
+    match /promos/{promoId} {
+      allow read, write: if isAdmin() && validatePromoData(request.resource.data);
+    
+      function validatePromoData(promo) {
+        return promo.product is string &&
+               promo.product.size() > 0 &&
+               promo.discount is number &&
+               promo.discount >= 0 &&
+               promo.discount <= 100 &&
+               promo.startDate is timestamp &&
+               promo.endDate is timestamp &&
+               promo.endDate > promo.startDate;
+      }
+    }
   }
 }
