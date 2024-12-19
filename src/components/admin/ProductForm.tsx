@@ -9,8 +9,7 @@ import type { CategoryConfig } from '../../constants/categories';
 import type { FormStep } from '../../types/form';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/Button';
-import { getPhotobankImages, uploadToPhotobank } from '../../lib/photobank';
-import { PhotoBankPopup } from './PhotobankPopup';
+import { getPhotobankImages } from '../../lib/photobank';
 
 type ProductFormProps = {
   onClose?: () => void;
@@ -524,15 +523,34 @@ export function ProductForm({ onClose, initialProduct }: ProductFormProps) {
             <h3 className="text-lg font-semibold text-teal-100">
               Select Product Images
             </h3>
-            <div className="flex items-center space-x-4 mt-4">
-              <Button
-                variant="secondary"
-                onClick={() => setIsPhotoBankOpen(true)}
-                className="text-lg border border-teal-500"
-              >
-                Open Photo Bank
-              </Button>
-            </div>
+            {photobankImages.length > 0 && (
+              <div className="grid grid-cols-4 gap-4 mt-4">
+                {photobankImages.map((image) => (
+                  <div 
+                    key={image.id} 
+                    className={`relative rounded-lg overflow-hidden shadow-md ${selectedImages.includes(image.downloadURL) ? 'ring-2 ring-teal-500' : ''}`}
+                  >
+                    <img 
+                      src={image.downloadURL}
+                      alt={`Product Image`} 
+                      className="w-full h-48 object-cover cursor-pointer"
+                      onClick={() => {
+                        if (selectedImages.includes(image.downloadURL)) {
+                          setSelectedImages(prev => prev.filter(url => url !== image.downloadURL));
+                        } else {
+                          setSelectedImages(prev => [...prev, image.downloadURL]);
+                        }
+                      }}
+                    />
+                    {selectedImages.includes(image.downloadURL) && (
+                      <div className="absolute top-2 right-2 bg-teal-600 text-white rounded-full p-1">
+                        <CheckCircle2 className="w-4 h-4" />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
