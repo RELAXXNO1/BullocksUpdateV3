@@ -5,8 +5,7 @@ import { ChatProvider } from './contexts/ChatContext';
 import LoadingSpinner from './components/LoadingSpinner';
 import ErrorBoundary from './components/ErrorBoundary';
 import { DEFAULT_CATEGORIES } from './constants/categories';
-import React, { useEffect } from 'react';
-import initializeFirestoreCollections from './lib/firestore-setup';
+import React from 'react';
 import PreRollsPage from './pages/store/PreRollsPage';
 import MushroomsPage from './pages/store/MushroomsPage';
 import LightersPage from './pages/store/LightersPage';
@@ -50,10 +49,6 @@ const THCACompliance = lazy(() => import(/* webpackChunkName: "thca-compliance" 
 const TermsOfService = lazy(() => import(/* webpackChunkName: "terms-of-service" */ './pages/TermsOfService'));
 
 export default function App() {
-  useEffect(() => {
-    initializeFirestoreCollections();
-  }, []);
-
   return (
     <ErrorBoundary>
       <ChatProvider>
