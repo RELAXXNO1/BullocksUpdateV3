@@ -150,7 +150,7 @@ export default function Products() {
               </h3>
               <div className="flex justify-between items-center">
                 <span className="text-emerald-500 font-bold">
-                  ${product.price.toFixed(2)}
+                  ${typeof product.price === 'number' ? product.price.toFixed(2) : '0.00'}
                 </span>
                 <div className="flex space-x-2">
                   <button 
