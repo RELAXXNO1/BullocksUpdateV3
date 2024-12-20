@@ -178,11 +178,12 @@ const PromoManager = () => {
                 <span className="font-semibold text-gray-100">Discount:</span> {promo.discount}%
               </p>
               <p className="text-gray-300">
-                <span className="font-semibold text-gray-100">Start Date:</span> {promo.startDate.toDate().toLocaleDateString()}
+                <span className="font-semibold text-gray-100">Start Date:</span> {promo.startDate?.toDate().toLocaleDateString()}
               </p>
                <p className="text-gray-300">
-                <span className="font-semibold text-gray-100">End Date:</span> {promo.endDate.toDate().toLocaleDateString()}
+                <span className="font-semibold text-gray-100">End Date:</span> {promo.endDate?.toDate().toLocaleDateString()}
               </p>
+addAlignment: Auto alignment by the model.
               <button 
                 onClick={() => handleDeletePromo(promo.id)}
                 className="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-2 rounded focus:outline-none mt-2"
