@@ -141,7 +141,7 @@ export default function CategoryTemplate({ categorySlug }: CategoryTemplateProps
   return (
     <div 
       ref={containerRef} 
-      className="relative min-h-screen overflow-hidden touch-pan-y"
+      className="relative min-h-screen overflow-x-hidden touch-pan-y"
     >
       {/* Gradient Background with Enhanced Parallax */}
       <motion.div 
@@ -162,7 +162,7 @@ export default function CategoryTemplate({ categorySlug }: CategoryTemplateProps
           initial="initial"
           animate="animate"
           style={{ y: textY }}
-          className="relative z-10 px-4 py-8 md:px-8 will-change-transform"
+          className="relative z-10 px-3 py-6 sm:px-4 sm:py-8 md:px-8 will-change-transform"
         >
           {/* Back button and category content */}
           <div className="container mx-auto">
@@ -185,7 +185,7 @@ export default function CategoryTemplate({ categorySlug }: CategoryTemplateProps
               Back to Store
             </button>
 
-            <h1 className="text-3xl font-bold mb-4 text-white">
+            <h1 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4 text-white">
               {categoryDetails.name}
             </h1>
             {categoryDetails.description && (
@@ -232,7 +232,7 @@ export default function CategoryTemplate({ categorySlug }: CategoryTemplateProps
               }
             }
           }}
-          className="container mx-auto px-4 py-16 bg-white dark:bg-slate-900 sticky top-0 z-30"
+          className="container mx-auto px-4 py-16 bg-gradient-to-br from-slate-900 to-slate-800 relative z-20"
         >
           <motion.h2 
             variants={{
@@ -245,12 +245,12 @@ export default function CategoryTemplate({ categorySlug }: CategoryTemplateProps
                 }
               }
             }}
-            className="text-3xl font-bold text-center text-slate-800 dark:text-white mb-12"
+            className="text-3xl font-bold text-center text-white mb-12"
           >
             {categoryDetails.name} Attributes
           </motion.h2>
           
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8">
             {categoryDetails.attributes.fields.map((attr: CategoryAttributeField, index: number) => (
               <motion.div 
                 key={attr.name}
@@ -264,7 +264,7 @@ export default function CategoryTemplate({ categorySlug }: CategoryTemplateProps
                     }
                   }
                 }}
-                className="bg-slate-100 dark:bg-slate-800 p-6 rounded-xl shadow-md hover:shadow-2xl transition-all duration-300 group transform hover:-translate-y-2"
+                className="bg-slate-800/50 backdrop-blur-sm p-4 sm:p-6 rounded-lg sm:rounded-xl border border-slate-700/50 shadow-lg hover:shadow-2xl transition-all duration-300 group transform hover:-translate-y-2"
               >
                 <div className="flex items-center mb-4">
                   <motion.div 
@@ -298,7 +298,7 @@ export default function CategoryTemplate({ categorySlug }: CategoryTemplateProps
                         }
                       }
                     }}
-                    className="text-xl font-semibold text-slate-800 dark:text-white group-hover:text-teal-600 transition-colors"
+                    className="text-xl font-semibold text-white group-hover:text-teal-400 transition-colors"
                   >
                     {attr.label}
                   </motion.h3>
@@ -316,7 +316,7 @@ export default function CategoryTemplate({ categorySlug }: CategoryTemplateProps
                       }
                     }
                   }}
-                  className="text-slate-600 dark:text-slate-300"
+                  className="text-slate-300"
                 >
                   {attr.type === 'select' && attr.options ? (
                     <motion.div

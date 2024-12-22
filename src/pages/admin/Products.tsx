@@ -74,13 +74,13 @@ export default function Products() {
   }
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="container mx-auto p-3 sm:p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Product Management</h1>
+        <h1 className="text-xl sm:text-2xl font-bold">Product Management</h1>
         <Button 
           onClick={() => setIsAddingProduct(true)}
           variant="default"
-          className="font-semibold tracking-wide shadow-sm hover:shadow-md transition-all duration-200 ease-in-out text-lg border border-teal-500"
+          className="font-semibold tracking-wide shadow-sm hover:shadow-md transition-all duration-200 ease-in-out text-sm sm:text-lg border border-teal-500"
         >
           Add New Product
         </Button>
@@ -95,7 +95,7 @@ export default function Products() {
 
       {products.length === 0 && (
         <div className="flex flex-col items-center justify-center p-12 
-          bg-gradient-to-br from-teal-800 to-teal-900 
+          bg-gradient-to-br from-teal-800 to-teal-900
           border border-teal-700 
           rounded-xl 
           text-center 
@@ -108,16 +108,16 @@ export default function Products() {
             <Package className="h-12 w-12 text-teal-200" />
           </div>
           <div className="relative z-10">
-            <h2 className="text-2xl font-semibold text-teal-100 mb-4">
+            <h2 className="text-xl sm:text-2xl font-semibold text-teal-100 mb-4">
               Ready to Expand Your Inventory?
             </h2>
-            <p className="text-teal-300 max-w-md mx-auto mb-6">
+            <p className="text-teal-300 max-w-md mx-auto mb-6 text-sm sm:text-base">
               It looks like your product catalog is empty. Click "Add New Product" to start building your amazing collection!
             </p>
             <Button 
               onClick={() => setIsAddingProduct(true)}
               variant="default"
-              className="bg-teal-600 hover:bg-teal-700 text-white font-semibold px-6 py-3 rounded-lg shadow-md transition-all duration-300"
+              className="bg-teal-600 hover:bg-teal-700 text-white font-semibold px-4 sm:px-6 py-2 sm:py-3 rounded-lg shadow-md transition-all duration-300 text-sm sm:text-base"
             >
               Add Your First Product
             </Button>
@@ -125,7 +125,7 @@ export default function Products() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
         {products.map((product) => (
           <div 
             key={product.id} 
@@ -138,14 +138,14 @@ export default function Products() {
               <img 
                 src={product.images && product.images.length > 0 ? product.images[0] : '/placeholder.png'}
                 alt={product.name} 
-                className="w-full h-48 object-cover rounded-xl 
+                className="w-full h-36 sm:h-48 object-cover rounded-xl 
                   transition-transform duration-300 
                   group-hover:scale-105"
               />
             </div>
 
             <div className="text-center">
-              <h3 className="text-lg font-semibold text-white mb-2">
+              <h3 className="text-base sm:text-lg font-semibold text-white mb-2">
                 {product.name}
               </h3>
               <div className="flex justify-between items-center">
@@ -156,10 +156,10 @@ export default function Products() {
                   <button 
                     onClick={() => handleEditProduct(product)}
                     className="bg-blue-600/10 text-blue-400 
-                      hover:bg-blue-600/20 p-2 rounded-full 
+                      hover:bg-blue-600/20 p-1.5 sm:p-2 rounded-full 
                       transition-colors"
                   >
-                    <Edit className="h-5 w-5" />
+                    <Edit className="h-4 w-4 sm:h-5 sm:w-5" />
                   </button>
                   <button 
                     onClick={() => {
@@ -168,10 +168,10 @@ export default function Products() {
                       }
                     }}
                     className="bg-red-600/10 text-red-400 
-                      hover:bg-red-600/20 p-2 rounded-full 
+                      hover:bg-red-600/20 p-1.5 sm:p-2 rounded-full 
                       transition-colors"
                   >
-                    <Trash2 className="h-5 w-5" />
+                    <Trash2 className="h-4 w-4 sm:h-5 sm:w-5" />
                   </button>
                 </div>
               </div>

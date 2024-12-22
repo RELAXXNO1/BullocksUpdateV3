@@ -79,15 +79,15 @@ export default function Dashboard() {
         {stats.map((stat) => (
           <div
             key={stat.label}
-            className="bg-dark-600/50 backdrop-blur-sm rounded-xl border border-dark-400/30 p-6 hover:shadow-super-elegant transition-all duration-300 hover:-translate-y-1"
+            className="bg-dark-600/50 backdrop-blur-sm rounded-xl border border-dark-400/30 p-4 sm:p-6 hover:shadow-super-elegant transition-all duration-300 hover:-translate-y-1"
           >
             <div className="flex items-center gap-4">
               <div className={`p-3 rounded-xl ${stat.bgColor} ${stat.borderColor} border`}>
                 <stat.icon className={`h-6 w-6 ${stat.color}`} />
               </div>
               <div>
-                <p className="text-sm text-secondary-400">{stat.label}</p>
-                <p className="text-2xl font-semibold mt-1">{stat.value}</p>
+                <p className="text-xs sm:text-sm text-secondary-400">{stat.label}</p>
+                <p className="text-xl sm:text-2xl font-semibold mt-1">{stat.value}</p>
               </div>
             </div>
           </div>

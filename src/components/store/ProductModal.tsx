@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { X, MapPin } from 'lucide-react';
 import { Product } from '../../types/product';
@@ -12,25 +12,13 @@ interface ProductModalProps {
   onClose: () => void;
 }
 
-export const ProductModal: React.FC<ProductModalProps> = ({ 
-  product, 
-  onClose 
-}) => {
+const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const detailsRef = useRef<HTMLDivElement>(null);
   const { addToCart } = useCart();
   const { isCartEnabled } = useCartToggle();
   const [promo, setPromo] = useState<any>(null);
 
   useEffect(() => {
-    // Ensure details section is scrollable when modal opens
-    if (detailsRef.current) {
-      const hasOverflow = detailsRef.current.scrollHeight > detailsRef.current.clientHeight;
-      if (hasOverflow) {
-        detailsRef.current.classList.add('overflow-y-scroll');
-      }
-    }
-
     const fetchPromo = async () => {
       if (product.promoId) {
         const promoRef = doc(db, 'promos', product.promoId);
@@ -59,16 +47,13 @@ export const ProductModal: React.FC<ProductModalProps> = ({
     e.stopPropagation();
   };
 
-    const handleAddToCart = () => {
-        addToCart(product);
-    };
+  const handleAddToCart = () => {
+    addToCart(product);
+  };
 
   return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed top-0 bottom-0 z-[9999] flex items-start justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto"
+    <div
+      className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-2 sm:p-4"
       onClick={onClose}
     >
       <motion.div
@@ -76,36 +61,33 @@ export const ProductModal: React.FC<ProductModalProps> = ({
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
         transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-        className="bg-slate-800 rounded-2xl w-full max-w-2xl shadow-2xl border border-slate-700 relative"
+        className="bg-slate-800 rounded-lg sm:rounded-2xl w-full max-w-2xl shadow-2xl border border-slate-700 relative max-h-[90vh] overflow-hidden"
         onClick={handleStopPropagation}
       >
-        <div className="grid md:grid-cols-2 h-full">
+        <div className="grid grid-cols-1 md:grid-cols-2 h-full">
           {/* Image Section */}
           <div className="relative bg-slate-900 flex items-center justify-center">
             <button 
               onClick={handlePrevImage}
-              className="absolute left-4 top-1/2 -translate-y-1/2 bg-slate-700/50 p-2 rounded-full hover:bg-slate-600/50 z-10"
+              className="absolute left-4 top-1/2 -translate-y-1/2 bg-slate-700/50 p-2 rounded-full hover:bg-slate-600/50 z-20"
             >
               ←
             </button>
             <button 
               onClick={handleNextImage}
-              className="absolute right-4 top-1/2 -translate-y-1/2 bg-slate-700/50 p-2 rounded-full hover:bg-slate-600/50 z-10"
+              className="absolute right-4 top-1/2 -translate-y-1/2 bg-slate-700/50 p-2 rounded-full hover:bg-slate-600/50 z-20"
             >
               →
             </button>
             <img 
               src={product.images?.[currentImageIndex] || '/placeholder.png'} 
               alt={product.name} 
-              className="max-h-[400px] object-contain w-full p-8"
+              className="max-h-[250px] sm:max-h-[400px] object-contain w-full p-4 sm:p-8"
             />
           </div>
 
           {/* Details Section */}
-          <div 
-            ref={detailsRef}
-            className="p-6 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800"
-          >
+          <div className="p-6 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800">
             <div className="flex justify-between items-start mb-6">
               <div>
                 <h2 className="text-2xl font-bold text-white mb-2">{product.name}</h2>
@@ -138,27 +120,17 @@ export const ProductModal: React.FC<ProductModalProps> = ({
               <p className="text-slate-400">{product.description}</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div>
-                <h3 className="text-lg font-semibold text-slate-200 mb-2">Category</h3>
-                <p className="text-slate-400">{product.category}</p>
-              </div>
-            </div>
-
             {product.attributes && Object.keys(product.attributes).length > 0 && (
               <div className="mb-6">
                 <h3 className="text-xl font-semibold text-slate-200 mb-4">Product Details</h3>
                 <div className="grid grid-cols-2 gap-4">
                   {Object.entries(product.attributes || {}).map(([key, value]) => {
-                    // Special handling for 'infused' attribute
                     const displayValue = key.toLowerCase() === 'infused' 
-                      ? (
-                          (typeof value === 'number' && value === 1) || 
-                          (typeof value === 'boolean' && value === true) || 
-                          (typeof value === 'string' && (value === 'true' || value === '1'))
+                      ? ((typeof value === 'number' && value === 1) || 
+                         (typeof value === 'boolean' && value === true) || 
+                         (typeof value === 'string' && (value === 'true' || value === '1'))
                             ? 'Yes, Professionally Infused' 
-                            : 'Not Infused'
-                        )
+                            : 'Not Infused')
                       : String(value);
 
                     return (
@@ -206,7 +178,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
           </div>
         </div>
       </motion.div>
-    </motion.div>
+    </div>
   );
 };
 

@@ -38,10 +38,10 @@ const AccountManagement = lazy(() => import(/* webpackChunkName: "auth-account" 
 const AdminDashboard = lazy(() => import(/* webpackChunkName: "admin-dashboard" */ './pages/admin/Dashboard'));
 const AdminProducts = lazy(() => import(/* webpackChunkName: "admin-products" */ './pages/admin/Products'));
 const StoreContentEditor = lazy(() => import(/* webpackChunkName: "store-content-editor" */ './pages/admin/StoreContentEditor'));
+const PromoManager = lazy(() => import(/* webpackChunkName: "promo-manager" */ './pages/admin/PromoManager'));
 const PhotoBank = lazy(() => import(/* webpackChunkName: "admin-photo-bank" */ './pages/admin/PhotoBank'));
 const ProtectedRoute = lazy(() => import(/* webpackChunkName: "protected-route" */ './components/ProtectedRoute'));
 const Orders = lazy(() => import(/* webpackChunkName: "admin-orders" */ './pages/admin/Orders'));
-const PromoManager = lazy(() => import(/* webpackChunkName: "admin-promo-manager" */ './pages/admin/PromoManager'));
 
 // Legal Pages
 const PrivacyPolicy = lazy(() => import(/* webpackChunkName: "privacy-policy" */ './pages/PrivacyPolicy'));
@@ -101,7 +101,11 @@ export default function App() {
                       <Route path="store-content" element={<StoreContentEditor />} />
                       <Route path="photo-bank" element={<PhotoBank />} />
                       <Route path="orders" element={<Orders />} />
-                      <Route path="promo-manager" element={<PromoManager />} />
+                      <Route path="promo-manager" element={
+                        <Suspense fallback={<LoadingSpinner />}>
+                          <PromoManager />
+                        </Suspense>
+                      } />
                     </Route>
 
                     {/* Catch all route */}

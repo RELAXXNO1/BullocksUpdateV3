@@ -8,11 +8,11 @@ export default function AdminLayout() {
   const location = useLocation();
 
   return (
-    <div className="min-h-screen bg-dark-500">
+    <div className="min-h-screen bg-dark-500 flex flex-col">
       <AdminHeader />
-      <div className="flex">
+      <div className="flex-1 flex relative">
         <AdminSidebar />
-        <main className="flex-1 p-6 relative">
+        <main className="flex-1 p-3 sm:p-6 ml-0 md:ml-20 transition-all duration-300">
           <Suspense fallback={<LoadingSpinner />}>
             <Outlet key={location.pathname} />
           </Suspense>

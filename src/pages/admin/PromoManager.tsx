@@ -1,201 +1,200 @@
-import React, { useState, useEffect } from 'react';
-import { db } from '../../lib/firebase';
-import { collection, addDoc, Timestamp, onSnapshot, query, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { Product } from '../../types/product';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Plus, Calendar, Percent, Tag, Trash2, Edit2 } from 'lucide-react';
+import { usePromos } from '../../hooks/usePromos';
+import { PromoForm } from '../../components/admin/PromoForm';
+import LoadingSpinner from '../../components/LoadingSpinner';
+import type { Promo } from '../../types/promo';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
+import { Button } from '../../components/ui/Button';
 
-const PromoManager = () => {
-  const [promoData, setPromoData] = useState({
-    product: '',
-    discount: '',
-    startDate: '',
-    endDate: '',
-    textPromo: '',
-  });
-  interface Promo {
-    id: string;
-    product: string;
-    discount: number;
-    startDate: any;
-    endDate: any;
-  }
-  const [promos, setPromos] = useState<Promo[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [selectedProduct, setSelectedProduct] = useState<string>('');
+export default function PromoManager() {
+  const { promos, loading, error, createPromo, updatePromo, deletePromo } = usePromos();
+  const [showForm, setShowForm] = useState(false);
+  const [selectedPromo, setSelectedPromo] = useState<Promo | null>(null);
 
-  useEffect(() => {
-    const fetchPromos = async () => {
-      const promoCollection = collection(db, 'promos');
-      const q = query(promoCollection);
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        const promoList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Promo);
-        setPromos(promoList);
-      });
-      return () => unsubscribe();
-    };
+  const handleCreatePromo = async (data: Partial<Promo>) => {
+    await createPromo(data as Omit<Promo, 'id'>);
+    setShowForm(false);
+  };
 
-    const fetchProducts = async () => {
-      const productsCollection = collection(db, 'products');
-      const q = query(productsCollection);
-      const productsSnapshot = await getDocs(q);
-      const productsList = productsSnapshot.docs.map(docSnap => ({
-        id: docSnap.id,
-        ...docSnap.data()
-      } as Product));
-      setProducts(productsList);
-    };
-
-    fetchPromos();
-    fetchProducts();
-  }, []);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const promoCollection = collection(db, 'promos');
-      const newPromoRef = await addDoc(promoCollection, {
-        product: promoData.product,
-        discount: Number(promoData.discount),
-        startDate: Timestamp.fromDate(new Date(promoData.startDate)),
-        endDate: Timestamp.fromDate(new Date(promoData.endDate)),
-        textPromo: promoData.textPromo,
-      });
-      console.log('Promo data saved successfully!');
-
-      if (selectedProduct) {
-        const productRef = doc(db, 'products', selectedProduct);
-        await updateDoc(productRef, { promoId: newPromoRef.id });
-        console.log('Promo assigned to product successfully!');
-      }
-
-      setPromoData({ product: '', discount: '', startDate: '', endDate: '', textPromo: '' }); // Reset form
-      setSelectedProduct('');
-    } catch (error) {
-      console.error('Error saving promo data:', error);
+  const handleUpdatePromo = async (data: Partial<Promo>) => {
+    if (selectedPromo?.id) {
+      await updatePromo(selectedPromo.id, data);
+      setSelectedPromo(null);
+      setShowForm(false);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPromoData({ ...promoData, [e.target.name]: e.target.value });
-  };
-
-  const handleDeletePromo = async (promoId: string) => {
-    try {
-      const promoRef = doc(db, 'promos', promoId);
-      await deleteDoc(promoRef);
-      console.log('Promo deleted successfully!');
-    } catch (error) {
-      console.error('Error deleting promo:', error);
+  const handleDeletePromo = async (id: string) => {
+    if (confirm('Are you sure you want to delete this promotion?')) {
+      await deletePromo(id);
     }
   };
+
+  if (loading) return <LoadingSpinner />;
+  if (error) return <div>Error loading promotions: {error.message}</div>;
+
+  const activePromos = promos.filter(promo => promo.isActive);
+  const inactivePromos = promos.filter(promo => !promo.isActive);
 
   return (
-    <div className="container mx-auto p-6">
-      <h1 className="text-3xl font-bold text-gray-100 mb-6">Promo Manager</h1>
-      <p className="text-gray-300 mb-4">This is where you can manage your store promotions.</p>
-      <div className="bg-slate-800 p-6 rounded-lg shadow-md">
-        <h2 className="text-2xl font-semibold text-gray-100 mb-6">Create New Promo</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-gray-300 text-sm font-bold mb-2">Promo Message</label>
-            <input 
-              type="text" 
-              name="product"
-              value={promoData.product}
-              onChange={handleChange}
-              className="bg-dark-700 text-white border border-dark-400 rounded w-full py-2 px-3 focus:outline-none focus:border-primary-500" 
-              placeholder="Enter promo message," 
-            />
+    <div className="container mx-auto p-3 sm:p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-xl sm:text-2xl font-bold">Promotion Manager</h1>
+        <Button
+          onClick={() => setShowForm(true)}
+          className="flex items-center gap-2 text-sm sm:text-base"
+        >
+          <Plus className="h-4 w-4" /> Create Promotion
+        </Button>
+      </div>
+
+      {promos.length === 0 ? (
+        <div className="flex flex-col items-center justify-center p-12 
+          bg-gradient-to-br from-teal-800 to-teal-900 
+          border border-teal-700 
+          rounded-xl 
+          text-center 
+          space-y-6 
+          relative 
+          overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-teal-700/10 to-transparent opacity-30"></div>
+          
+          <div className="bg-teal-700/50 p-4 rounded-full border border-teal-600/50 relative z-10">
+            <Tag className="h-12 w-12 text-teal-200" />
           </div>
-          <div>
-            <label className="block text-gray-300 text-sm font-bold mb-2">Discount (%)</label>
-            <input 
-              type="number"
-              name="discount"
-              value={promoData.discount}
-              onChange={handleChange}
-              className="bg-dark-700 text-white border border-dark-400 rounded w-full py-2 px-3 focus:outline-none focus:border-primary-500" 
-              placeholder="Enter discount percentage" 
-            />
-          </div>
-          <div>
-            <label className="block text-gray-300 text-sm font-bold mb-2">Text Promo</label>
-            <input 
-              type="text"
-              name="textPromo"
-              value={promoData.textPromo}
-              onChange={handleChange}
-              className="bg-dark-700 text-white border border-dark-400 rounded w-full py-2 px-3 focus:outline-none focus:border-primary-500" 
-              placeholder="Enter text promo like Buy 1 Get 1 Free" 
-            />
-          </div>
-          <div>
-            <label className="block text-gray-300 text-sm font-bold mb-2">Start Date</label>
-            <input 
-              type="date" 
-              name="startDate"
-              value={promoData.startDate}
-              onChange={handleChange}
-              className="bg-dark-700 text-white border border-dark-400 rounded w-full py-2 px-3 focus:outline-none focus:border-primary-500" 
-            />
-          </div>
-           <div>
-            <label className="block text-gray-300 text-sm font-bold mb-2">End Date</label>
-            <input 
-              type="date" 
-              name="endDate"
-              value={promoData.endDate}
-              onChange={handleChange}
-              className="bg-dark-700 text-white border border-dark-400 rounded w-full py-2 px-3 focus:outline-none focus:border-primary-500" 
-            />
-          </div>
-          <div>
-            <label className="block text-gray-300 text-sm font-bold mb-2">Assign to Product</label>
-            <select
-              value={selectedProduct}
-              onChange={(e) => setSelectedProduct(e.target.value)}
-              className="bg-dark-700 text-white border border-dark-400 rounded w-full py-2 px-3 focus:outline-none focus:border-primary-500"
+          <div className="relative z-10">
+            <h2 className="text-xl sm:text-2xl font-semibold text-teal-100 mb-4">
+              No Active Promotions
+            </h2>
+            <p className="text-teal-300 max-w-md mx-auto mb-6">
+              Create your first promotion to start offering deals to your customers!
+            </p>
+            <Button 
+              onClick={() => setShowForm(true)}
+              variant="default"
+              className="bg-teal-600 hover:bg-teal-700 text-white font-semibold px-4 sm:px-6 py-2 sm:py-3 rounded-lg shadow-md transition-all duration-300"
             >
-              <option value="">Select a product</option>
-              {products.map((product) => (
-                <option key={product.id} value={product.id}>
-                  {product.name}
-                </option>
-              ))}
-            </select>
+              Create First Promotion
+            </Button>
           </div>
-          <button type="submit" className="bg-primary-600 hover:bg-primary-700 text-white font-bold py-2 px-4 rounded focus:outline-none">Create Promo</button>
-        </form>
-      </div>
-      <div className="mt-8">
-        <h2 className="text-2xl font-semibold text-gray-100 mb-4">Current Promos</h2>
-        <ul className="space-y-4">
-          {promos.map((promo) => (
-            <li key={promo.id} className="bg-dark-700 p-4 rounded-lg shadow-md">
-              <p className="text-gray-300">
-                <span className="font-semibold text-gray-100">Product:</span> {promo.product}
-              </p>
-              <p className="text-gray-300">
-                <span className="font-semibold text-gray-100">Discount:</span> {promo.discount}%
-              </p>
-              <p className="text-gray-300">
-                <span className="font-semibold text-gray-100">Start Date:</span> {promo.startDate?.toDate().toLocaleDateString()}
-              </p>
-               <p className="text-gray-300">
-                <span className="font-semibold text-gray-100">End Date:</span> {promo.endDate?.toDate().toLocaleDateString()}
-              </p>
-addAlignment: Auto alignment by the model.
-              <button 
-                onClick={() => handleDeletePromo(promo.id)}
-                className="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-2 rounded focus:outline-none mt-2"
-              >
-                Delete
-              </button>
-            </li>
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+          {activePromos.map((promo) => (
+            <Card key={promo.id} className="bg-dark-600/50 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-base sm:text-lg font-semibold">
+                  {promo.name}
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setSelectedPromo(promo);
+                      setShowForm(true);
+                    }}
+                    className="p-2 hover:bg-dark-500 rounded-lg transition-colors"
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => promo.id && handleDeletePromo(promo.id)}
+                    className="p-2 hover:bg-dark-500 rounded-lg transition-colors text-red-400 hover:text-red-300"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Percent className="h-4 w-4 text-teal-400" />
+                    <span>{promo.discount}% Off</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Calendar className="h-4 w-4 text-teal-400" />
+                    <span>
+                      {new Date(promo.startDate).toLocaleDateString()} - 
+                      {new Date(promo.endDate).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Tag className="h-4 w-4 text-teal-400" />
+                    <span>{promo.type}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           ))}
-        </ul>
-      </div>
+        </div>
+      )}
+
+      {inactivePromos.length > 0 && (
+        <>
+          <h2 className="text-xl font-semibold mt-8 mb-4">Inactive Promotions</h2>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 opacity-60">
+            {inactivePromos.map((promo) => (
+              <Card key={promo.id} className="bg-dark-600/50 backdrop-blur-sm">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-lg font-semibold">
+                    {promo.name}
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        setSelectedPromo(promo);
+                        setShowForm(true);
+                      }}
+                      className="p-2 hover:bg-dark-500 rounded-lg transition-colors"
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => promo.id && handleDeletePromo(promo.id)}
+                      className="p-2 hover:bg-dark-500 rounded-lg transition-colors text-red-400 hover:text-red-300"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Percent className="h-4 w-4 text-teal-400" />
+                      <span>{promo.discount}% Off</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Calendar className="h-4 w-4 text-teal-400" />
+                      <span>
+                        {new Date(promo.startDate).toLocaleDateString()} - 
+                        {new Date(promo.endDate).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Tag className="h-4 w-4 text-teal-400" />
+                      <span>{promo.type}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </>
+      )}
+
+      <AnimatePresence>
+        {showForm && (
+          <PromoForm
+            onSubmit={selectedPromo ? handleUpdatePromo : handleCreatePromo}
+            onClose={() => {
+              setShowForm(false);
+              setSelectedPromo(null);
+            }}
+            initialData={selectedPromo || undefined}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
-};
-
-export default PromoManager;
+}

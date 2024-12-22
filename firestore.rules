@@ -131,7 +131,8 @@ service cloud.firestore {
 
     // Promos collection rules
     match /promos/{promoId} {
-      allow read, write: if isAdmin() && validatePromoData(request.resource.data);
+      allow read: if true;  // Allow public read access to promos
+      allow write: if isAdmin() && validatePromoData(request.resource.data);
     
       function validatePromoData(promo) {
         return promo.product is string &&
@@ -143,6 +144,13 @@ service cloud.firestore {
                promo.endDate is timestamp &&
                promo.endDate > promo.startDate;
       }
+    }
+
+    // Photos collection rules
+    match /photos/{photoId} {
+      allow read: if true; // Adjust as needed
+      allow create: if request.auth.uid == resource.data.uploadedBy;
+      allow update, delete: if isAdmin();
     }
   }
 }

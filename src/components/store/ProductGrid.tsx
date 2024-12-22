@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Product } from '../../types/product';
 import { MapPin } from 'lucide-react';
-import { ProductModal } from '../store/ProductModal';
+import ProductModal from '../store/ProductModal';
 import { useCart } from '../../contexts/CartContext';
 import { useCartToggle } from '../../contexts/CartToggleContext';
 import { db } from '../../lib/firebase';
@@ -18,6 +18,7 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
   const { addToCart } = useCart();
   const { isCartEnabled } = useCartToggle();
   const [promo, setPromo] = useState<any>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchPromo = async () => {
@@ -51,38 +52,58 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
           <img 
             src={product.images?.[0] || '/placeholder-product.png'} 
             alt={product.name} 
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 min-h-[200px] relative"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          
+          {/* Promo Badge */}
+          {promo && (
+            <div className="absolute top-0 right-0 bg-gradient-to-l from-primary-600 to-primary-700 text-white text-xs font-bold py-1 px-3 rounded-bl-lg shadow-lg transform transition-transform duration-300 group-hover:scale-105">
+              <div className="relative">
+                {promo.product}
+                <div className="absolute -bottom-1 left-0 w-full h-[1px] bg-white/30" />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Product Details */}
         <div className="p-1 space-y-0.5 sm:p-2 sm:space-y-1">
-          <h3 className="text-sm font-bold text-slate-800 dark:text-white truncate sm:text-base">
+          <h3 className="text-base sm:text-lg font-bold text-slate-800 dark:text-white truncate leading-tight">
             {product.name}
           </h3>
-          {promo && (
-            <>
-              {promo.product && (
-                <div className="absolute top-2 right-0 bg-primary-700 text-white text-xs font-bold py-0.5 px-2 rounded-sm transform rotate-45 origin-top-right whitespace-nowrap z-10">
-                  {promo.product}
-                </div>
-              )}
-              {promo.discount && (
-                <div className="text-primary-500 text-xs font-bold mb-1">
-                  {promo.discount}% Off
-                </div>
-              )}
-            </>
-          )}
+          
+          {/* Price Section with Original and Discounted Price */}
           <div className="flex justify-between items-center">
-            <span className="text-teal-600 font-semibold text-base sm:text-lg">
-              ${product.price.toFixed(2)}
-            </span>
+            <div className="flex flex-col">
+              {promo?.discount ? (
+                <div className="flex items-center gap-2">
+                  <div className="flex flex-col">
+                    <span className="text-gray-400 line-through text-sm opacity-75">
+                      ${product.price.toFixed(2)}
+                    </span>
+                    <span className="text-teal-500 font-bold text-base sm:text-lg">
+                      ${(product.price * (1 - promo.discount / 100)).toFixed(2)}
+                    </span>
+                  </div>
+                  <span className="bg-primary-500 text-white text-xs font-bold px-2 py-1 rounded-md">
+                    {promo.discount}% OFF
+                  </span>
+                </div>
+              ) : (
+                <span className="text-teal-500 font-semibold text-base sm:text-lg">
+                  ${product.price.toFixed(2)}
+                </span>
+              )}
+            </div>
+          </div>
+          
+          {/* Cart/Location Button */}
+          <div className="mt-2">
             {isCartEnabled ? (
               <button
                 onClick={handleAddToCart}
-                className="text-teal-400 hover:text-teal-300 text-xs italic flex items-center justify-center"
+                className="w-full text-teal-400 hover:text-teal-300 text-xs italic flex items-center justify-center bg-teal-500/10 rounded-md py-1.5 hover:bg-teal-500/20 transition-colors"
               >
                 <MapPin className="h-3 w-3 mr-0.5" />
                 Add to Cart
@@ -92,7 +113,7 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
                 href="https://www.google.com/maps/search/bullocks+smoke+shop"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-teal-400 hover:text-teal-300 text-xs italic flex items-center justify-center"
+                className="w-full text-teal-400 hover:text-teal-300 text-xs italic flex items-center justify-center bg-teal-500/10 rounded-md py-1.5 hover:bg-teal-500/20 transition-colors"
               >
                 <MapPin className="h-3 w-3 mr-0.5" />
                 Come Pick it Up
@@ -130,7 +151,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products, initialCategory }) 
         </motion.div>
       ) : (
         <motion.div 
-          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
+          className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4"
           initial="hidden"
           animate="visible"
           variants={{
