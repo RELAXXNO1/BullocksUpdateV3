@@ -1,10 +1,5 @@
 import { create } from 'zustand';
-
-interface Message {
-  content: string;
-  sender: 'user' | 'ai';
-  timestamp: Date;
-}
+import { Message } from '../types/chat';
 
 interface ChatState {
   messages: Message[];
@@ -17,9 +12,11 @@ interface ChatState {
 
 export const useChatStore = create<ChatState>((set) => ({
   messages: [{
+    id: 'initial',
     content: "Hello! I'm your AI assistant. How can I help you today?",
     sender: 'ai',
-    timestamp: new Date()
+    timestamp: Date.now(),
+    context: { sessionId: 'default' }
   }],
   isOpen: false,
   isTyping: false,

@@ -1,7 +1,7 @@
 import { collection, doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import { DEFAULT_CATEGORIES } from '../constants/categories';
-import { checkAdminStatus } from './admin';
+import { checkAdminStatus } from './firebase';
 
 export async function initializeFirestoreCollections() {
   try {

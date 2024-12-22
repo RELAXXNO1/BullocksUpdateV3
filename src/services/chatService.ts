@@ -1,26 +1,23 @@
-import type { 
-  AIResponse, 
-  ChatConfig, 
+import type {
+  AIResponse,
+  ChatConfig,
   ConversationContext,
+  Message,
 } from '../types/chat';
-import { HfInference } from '@huggingface/inference';
-import { FallbackChatService } from './fallbackChatService';
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export class ChatService {
   private config: ChatConfig;
   private conversationContext: ConversationContext;
-  private hfClient: HfInference | null;
+  private genAI: GoogleGenerativeAI | null = null;
+  private model: any = null;
+  private chat: any = null;
 
   constructor(config: ChatConfig) {
     if (!config || !config.apiKey || !config.model) {
-      console.warn('Invalid ChatConfig: Using fallback service');
+      throw new Error('Invalid ChatConfig: API key or model missing');
     }
     this.config = config;
-    
-    // Only initialize if API key is present
-    this.hfClient = config.apiKey 
-      ? new HfInference(config.apiKey) 
-      : null;
 
     this.conversationContext = {
       sessionId: this.generateSessionId(),
@@ -29,7 +26,6 @@ export class ChatService {
     };
   }
 
-  // Expose method to update conversation context if needed
   updateConversationContext(newContext: Partial<ConversationContext>) {
     this.conversationContext = {
       ...this.conversationContext,
@@ -37,160 +33,154 @@ export class ChatService {
     };
   }
 
-  // Expose method to get current conversation context
   getConversationContext(): ConversationContext {
     return this.conversationContext;
+  }
+
+  replaceMessages(messages: Message[]) {
+    this.conversationContext = { ...this.conversationContext, messages: messages }
   }
 
   private generateSessionId(): string {
     return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
+  private prepareMessageHistory(systemPrompt: string) {
+    // Combine system prompt and all previous messages into a coherent history
+    let fullHistory = systemPrompt + "\n\n";
+    
+    this.conversationContext.messages.forEach(message => {
+      const prefix = message.sender === 'user' ? 'User: ' : 'Assistant: ';
+      fullHistory += prefix + message.content + "\n";
+    });
+
+    return fullHistory;
+  }
+
   async generateResponse(
-    input: string, 
-    context?: Partial<ConversationContext>
+    input: string,
+    systemPrompt: string,
+    onUpdate: (text: string) => void
   ): Promise<AIResponse> {
-    try {
-      // If no API key or client, use fallback immediately
-      if (!this.hfClient) {
-        return FallbackChatService.generateResponse(input, context);
-      }
-      
-      // Prepare prompt with system instructions
-      const systemInstructions = `You are an AI. 
-Respond directly to the user's input. 
-Provide a single, concise output.
-Do not include any previous conversation history in your response.
-If the input is not clear, ask for clarification.`;
-      
-      const fullPrompt = `${systemInstructions}\n\n${input}`;
+    if (!this.config.apiKey || !this.config.model) {
+      throw new Error('API key or model not configured');
+    }
 
-      // Attempt Hugging Face query
+    if (!this.genAI || !this.chat) {
       try {
-        const aiResponse = await this.queryHuggingFace(fullPrompt, systemInstructions);
-
-        // Generate dynamic suggestions based on input and context
-        const suggestions = this.generateContextualSuggestions(input, []);
-
+        this.genAI = new GoogleGenerativeAI(this.config.apiKey);
+        this.model = this.genAI.getGenerativeModel({ 
+          model: this.config.model,
+          generationConfig: {
+            maxOutputTokens: this.config.maxTokens || 200,
+          },
+        });
+        this.chat = this.model.startChat();
+      } catch (error: any) {
+        console.error("Failed to initialize Gemini API", error);
+        let errorMessage = 'Sorry, there was an error processing your request.';
+        if (error.message.includes('API key not valid')) {
+          errorMessage = 'Invalid API key. Please check your API key and try again.';
+        } else if (error.message.includes('model not found')) {
+          errorMessage = 'Model not found. Please check your model name and try again.';
+        } else if (error.message.includes('quota exceeded')) {
+          errorMessage = 'Quota exceeded. Please try again later.';
+        }
         return {
-          text: aiResponse,
-          confidence: 0.8,
-          suggestions: suggestions,
-          context: { 
+          text: errorMessage,
+          confidence: 0,
+          suggestions: [],
+          context: {
             originalInput: input,
             processedAt: Date.now(),
-            category: 'general_response'
+            category: 'error'
           }
         };
-      } catch (aiError) {
-        // If AI query fails, use fallback
-        console.warn('AI query failed, using fallback:', aiError);
-        return FallbackChatService.generateResponse(input, context);
       }
-    } catch (error) {
-      console.error('Response Generation Error:', error);
-      return FallbackChatService.generateResponse(input, context);
     }
-  }
 
-  private generateContextualSuggestions(input: string, contexts: string[]): string[] {
-    // Generate suggestions based on input and relevant contexts
-    const baseSuggestions = [
-      'Need more details?',
-      'Want to explore another topic?'
-    ];
-
-    return baseSuggestions;
-  }
-
-  async queryHuggingFace(prompt: string, systemInstructions: string): Promise<string> {
     try {
-      console.log('Querying Hugging Face with prompt:', prompt);
-      console.log('Using model:', this.config.model);
-      
-      if (!this.hfClient) {
-        throw new Error('Hugging Face client not initialized');
-      }
-      
-      const response = await this.hfClient.textGeneration({
-        model: this.config.model,
-        inputs: prompt,
-        parameters: {
-          max_new_tokens: this.config.maxTokens || 250,
-          temperature: this.config.temperature || 0.7
-        }
+      // Add user message to context first
+      this.conversationContext.messages.push({
+        id: `user-${Date.now()}`,
+        content: input,
+        sender: 'user',
+        timestamp: Date.now(),
+        context: { sessionId: this.conversationContext.sessionId }
       });
 
-      console.log('Hugging Face Response:', response);
-      
-      // Extract generated text, handling different response formats
-      let generatedText = Array.isArray(response) 
-        ? response[0]?.generated_text 
-        : (response as any).generated_text || response;
+      // Prepare the full conversation history
+      const history = this.prepareMessageHistory(systemPrompt);
 
-      if (typeof generatedText === 'string') {
-        const regex = new RegExp(`^\\s*${systemInstructions.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*`, 'gm');
-        generatedText = generatedText.trim().replace(regex, '').trim();
-      } else {
-        generatedText = 'No response generated';
+      // Generate response using the chat with full context
+      const result = await this.model.generateContentStream([{
+        text: history + "\nUser: " + input + "\nAssistant:"
+      }]);
+
+      let fullText = '';
+      for await (const chunk of result.stream) {
+        const text = chunk.text();
+        fullText += text;
+        onUpdate(fullText);
       }
 
-      return generatedText;
-    } catch (error) {
-      console.error('Hugging Face Query Error:', error);
-      
-      // More detailed error logging
-      if (error instanceof Error) {
-        console.error('Error Name:', error.name);
-        console.error('Error Message:', error.message);
-        console.error('Error Stack:', error.stack);
-      }
+      const suggestedQuestions = await this.generateSuggestedQuestions(input, systemPrompt);
 
-      throw error;
-    }
-  }
-
-  // Add a method to test connection that uses fallback if needed
-  async testConnection(): Promise<boolean> {
-    try {
-      if (!this.config.apiKey) {
-        console.warn('No API key, using fallback service');
-        return false;
-      }
-
-      console.log('Testing Hugging Face connection');
-      console.log('API Key:', this.config.apiKey ? '[REDACTED]' : 'MISSING');
-      console.log('Model:', this.config.model);
-
-      // Ensure hfClient is not null before testing connection
-      if (!this.hfClient) {
-        this.hfClient = new HfInference(this.config.apiKey);
-      }
-
-      // Actual connection test
-      const response = await this.hfClient.textGeneration({
-        model: this.config.model,
-        inputs: 'Test connection',
-        parameters: {
-          max_new_tokens: 10,
-          temperature: 0.1
+      return {
+        text: fullText,
+        confidence: 0.8,
+        suggestions: suggestedQuestions,
+        context: {
+          originalInput: input,
+          processedAt: Date.now(),
+          category: 'general_response'
         }
-      });
-
-      console.log('Connection Test Response:', response);
-
-      return true;
-    } catch (error) {
-      console.error('Connection Test Failed:', error);
+      };
+    } catch (error: any) {
+      console.error('Error communicating with Gemini API:', error);
+      let errorMessage = 'Sorry, there was an error processing your request.';
       
-      // More detailed error logging
-      if (error instanceof Error) {
-        console.error('Error Name:', error.name);
-        console.error('Error Message:', error.message);
-        console.error('Error Stack:', error.stack);
+      if (error.message.includes('API key not valid')) {
+        errorMessage = 'Invalid API key. Please check your API key and try again.';
+      } else if (error.message.includes('model not found')) {
+        errorMessage = 'Model not found. Please check your model name and try again.';
+      } else if (error.message.includes('quota exceeded')) {
+        errorMessage = 'Quota exceeded. Please try again later.';
       }
 
-      return false;
+      return {
+        text: errorMessage,
+        confidence: 0,
+        suggestions: [],
+        context: {
+          originalInput: input,
+          processedAt: Date.now(),
+          category: 'error'
+        }
+      };
     }
   }
+
+  private async generateSuggestedQuestions(input: string, systemPrompt: string): Promise<string[]> {
+    if (!this.model) {
+        return [];
+    }
+
+    try {
+        const prompt = `Generate 3 very short suggested questions based on the following user input and system prompt. Format each question as a single line without any numbering or bullet points.
+        
+        System Prompt: ${systemPrompt}
+        
+        User Input: ${input}
+        
+        Suggested Questions:`;
+
+        const result = await this.model.generateContent(prompt);
+        const text = result.text();
+        return text.split("\n").filter(Boolean).map((q: string) => q.trim());
+    } catch (error) {
+        console.error("Error generating suggested questions:", error);
+        return [];
+    }
+}
 }

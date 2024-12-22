@@ -28,5 +28,7 @@ export default function ProtectedRoute({ children, requiredRole = 'user' }: Prot
     return <Navigate to="/" replace />;
   }
 
-  return <>{children}</>;
+  return (
+    <>{children}</>
+  );
 }

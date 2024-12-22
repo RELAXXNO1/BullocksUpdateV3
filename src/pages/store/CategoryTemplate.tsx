@@ -39,6 +39,7 @@ export default function CategoryTemplate({ categorySlug }: CategoryTemplateProps
     container: containerRef,
     offset: ["start start", "end start"],
     smooth: 15, // Increased smoothness
+    layoutEffect: false
   });
 
   // More sophisticated parallax and scroll transformations

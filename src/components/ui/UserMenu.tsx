@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 
 interface UserMenuProps {
@@ -12,7 +12,6 @@ interface UserMenuProps {
 
 export default function UserMenu({ isOpen, onClose, closeMenu, showAdminLink }: UserMenuProps) {
   const { user, logout } = useAuth();
-  const location = useLocation();
 
   const handleLogout = () => {
     logout();
@@ -56,14 +55,6 @@ export default function UserMenu({ isOpen, onClose, closeMenu, showAdminLink }: 
                     className="block px-4 py-2 text-white hover:bg-dark-500 rounded-md mt-2"
                   >
                     Admin Dashboard
-                  </Link>
-                )}
-                {user.isAdmin && location.pathname !== '/store' && (
-                  <Link
-                    to="/admin/dashboard"
-                    className="block px-4 py-2 text-white hover:bg-dark-500 rounded-md mt-2"
-                  >
-                    Back to Dashboard
                   </Link>
                 )}
                 <button

@@ -1,55 +1,61 @@
 import { create } from 'zustand';
-import { Message, ProFeature } from '../types/chat';
-import { PRO_FEATURES } from '../constants/chatKnowledge';
+import { Message } from '../types/chat';
 
 interface ChatState {
   messages: Message[];
   isMinimized: boolean;
-  showProModal: boolean;
-  selectedFeature?: string | ProFeature;
   isTyping: boolean;
   isSpeaking: boolean;
   addMessage: (message: Message) => void;
+  setMessages: (messages: Message[]) => void;
+  updateMessage: (messageId: string, updates: Partial<Message>) => void;
   setIsMinimized: (value: boolean) => void;
-  setShowProModal: (value: boolean) => void;
-  setSelectedFeature: (feature: string | ProFeature) => void;
   setIsTyping: (value: boolean) => void;
   setIsSpeaking: (value: boolean) => void;
   clearMessages: () => void;
 }
 
+const INITIAL_MESSAGE: Message = {
+  id: 'initial-message',
+  content: "Hello! I'm your AI assistant. How can I help you today?",
+  sender: 'ai',
+  timestamp: Date.now(),
+  context: { sessionId: 'default' }
+};
+
 export const useChatStore = create<ChatState>((set) => ({
-  messages: [{
-    content: "Hello! I'm your AI assistant. How can I help you today?",
-    sender: 'ai',
-    timestamp: new Date()
-  }],
+  messages: [INITIAL_MESSAGE],
   isMinimized: false,
-  showProModal: false,
-  selectedFeature: undefined,
   isTyping: false,
   isSpeaking: false,
+
   addMessage: (message) => set((state) => ({ 
     messages: [...state.messages, { 
       ...message, 
-      timestamp: message.timestamp || new Date() 
+      id: message.id || `msg-${Date.now()}`,
+      timestamp: message.timestamp || Date.now(),
+      context: message.context || { sessionId: 'default' }
     }] 
   })),
+
+  setMessages: (messages) => set({ messages }),
+
+  updateMessage: (messageId, updates) => set((state) => ({
+    messages: state.messages.map(message => 
+      message.id === messageId 
+        ? { ...message, ...updates }
+        : message
+    )
+  })),
+
   setIsMinimized: (value) => set({ isMinimized: value }),
-  setShowProModal: (value) => set({ showProModal: value }),
-  setSelectedFeature: (feature) => set({ 
-    selectedFeature: typeof feature === 'string' 
-      ? PRO_FEATURES[feature as keyof typeof PRO_FEATURES] 
-      : feature 
-  }),
+  
   setIsTyping: (value) => set({ isTyping: value }),
+  
   setIsSpeaking: (value) => set({ isSpeaking: value }),
+  
   clearMessages: () => set({ 
-    messages: [{
-      content: "Hello! I'm your AI assistant. How can I help you today?",
-      sender: 'ai',
-      timestamp: new Date()
-    }],
+    messages: [INITIAL_MESSAGE],
     isTyping: false,
     isSpeaking: false
   })

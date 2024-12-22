@@ -98,7 +98,7 @@ export default function Dashboard() {
         <h2 className="text-xl font-semibold mb-6">Recent Activity</h2>
         <div className="space-y-4">
           {analyticsData.recentActivity.map((activity, index) => (
-            <div 
+            <div
               key={index}
               className="flex items-center justify-between p-4 bg-dark-500/50 rounded-lg border border-dark-400/20 hover:border-primary-500/30 transition-colors"
             >

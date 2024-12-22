@@ -101,7 +101,8 @@ body::before {
 
 @media (max-width: 640px) {
   .flex.relative > aside {
-    width: 80%;
+    width: 100%;
+    z-index: 50;
   }
 }
 

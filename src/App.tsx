@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { Suspense, lazy } from 'react';
 import { StoreContentProvider } from './contexts/StoreContentContext';
 import { ChatProvider } from './contexts/ChatContext';
@@ -42,6 +42,7 @@ const PromoManager = lazy(() => import(/* webpackChunkName: "promo-manager" */ '
 const PhotoBank = lazy(() => import(/* webpackChunkName: "admin-photo-bank" */ './pages/admin/PhotoBank'));
 const ProtectedRoute = lazy(() => import(/* webpackChunkName: "protected-route" */ './components/ProtectedRoute'));
 const Orders = lazy(() => import(/* webpackChunkName: "admin-orders" */ './pages/admin/Orders'));
+const GeminiChatbotPage = lazy(() => import(/* webpackChunkName: "gemini-chatbot-page" */ './pages/admin/GeminiChatbotPage'));
 
 // Legal Pages
 const PrivacyPolicy = lazy(() => import(/* webpackChunkName: "privacy-policy" */ './pages/PrivacyPolicy'));
@@ -89,23 +90,22 @@ export default function App() {
 
                     {/* Admin Routes */}
                     <Route 
-                      path="admin" 
+                      path="/admin" 
                       element={
                         <ProtectedRoute requiredRole="admin">
-                          <AdminLayout />
+                          <AdminLayout>
+                            <Outlet />
+                          </AdminLayout>
                         </ProtectedRoute>
-                      }
+                      } 
                     >
-                      <Route path="dashboard" element={<AdminDashboard />} />
+                      <Route index element={<AdminDashboard />} />
                       <Route path="products" element={<AdminProducts />} />
                       <Route path="store-content" element={<StoreContentEditor />} />
                       <Route path="photo-bank" element={<PhotoBank />} />
                       <Route path="orders" element={<Orders />} />
-                      <Route path="promo-manager" element={
-                        <Suspense fallback={<LoadingSpinner />}>
-                          <PromoManager />
-                        </Suspense>
-                      } />
+                      <Route path="promo-manager" element={<PromoManager />} />
+                      <Route path="gemini-assistant" element={<GeminiChatbotPage />} />
                     </Route>
 
                     {/* Catch all route */}

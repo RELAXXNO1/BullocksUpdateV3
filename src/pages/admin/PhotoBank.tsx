@@ -4,7 +4,7 @@ import { Upload, Trash2, ImageIcon, Link2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { BackButton } from '../../components/ui/BackButton';
-import { auth, storage, db, checkAdminStatus } from '../../lib/firebase';
+import { auth, storage, db } from '../../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { collection, addDoc, serverTimestamp, query as firestoreQuery, getDocs, doc, setDoc, where } from 'firebase/firestore';
 import { DEFAULT_CATEGORIES } from '../../config/categories';
@@ -356,7 +356,7 @@ export default function PhotoBank() {
       <Card className="bg-dark-600/50 backdrop-blur-sm rounded-xl border border-dark-400/30">
         <CardHeader className="flex justify-between items-center border-b border-dark-400/30 p-6">
           <CardTitle className="text-xl font-semibold">Manage Photos</CardTitle>
-          <div className="flex items-center space-x-4 relative">
+          <div className="flex flex-col md:flex-row items-center space-y-2 md:space-x-4 md:space-y-0 relative">
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value === "" ? undefined : e.target.value)}
@@ -454,10 +454,10 @@ export default function PhotoBank() {
                   <h3 className="text-xl font-semibold mb-4 text-primary-400 capitalize">
                     {DEFAULT_CATEGORIES.find((cat: CategoryConfig) => cat.slug === category)?.name || category}
                   </h3>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     <AnimatePresence>
                       {categoryPhotos.map((photo, index) => (
-                        <motion.div 
+                        <motion.div
                           key={photo.downloadURL}
                           initial={{ opacity: 0, scale: 0.9 }}
                           animate={{ opacity: 1, scale: 1 }}

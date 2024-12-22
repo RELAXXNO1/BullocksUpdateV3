@@ -5,7 +5,6 @@ import { useStoreContent } from '../../contexts/StoreContentContext';
 import { useProducts } from '../../hooks/useProducts';
 import ProductGrid from '../../components/store/ProductGrid';
 import LoadingSpinner from '../../components/LoadingSpinner';
-import { Guru } from '../../components/store/Guru';
 
 export default function StorePage() {
   const { products, loading, error } = useProducts();
@@ -20,7 +19,8 @@ export default function StorePage() {
   const ref = useRef(null);
   const { scrollYProgress } = useScroll({
     target: ref,
-    offset: ["start start", "end start"]
+    offset: ["start start", "end start"],
+    layoutEffect: false
   });
 
   // Transform scroll progress into visual effects
@@ -116,8 +116,6 @@ export default function StorePage() {
           </div>
         </section>
       </div>
-
-      <Guru />
     </>
   );
 }
