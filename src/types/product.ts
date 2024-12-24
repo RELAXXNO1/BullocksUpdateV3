@@ -10,6 +10,7 @@ export const ProductSchema = z.object({
   images: z.array(z.string()).optional(),
   attributes: z.record(z.union([z.string(), z.number()])).optional(),
   isVisible: z.boolean().optional(),
+  isFeatured: z.boolean().optional(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
   isActive: z.boolean().optional(),
@@ -18,6 +19,7 @@ export const ProductSchema = z.object({
 
 export type Product = z.infer<typeof ProductSchema> & {
   category: string;
+  isFeatured?: boolean;
 };
 
 export type ProductFormData = Product & {

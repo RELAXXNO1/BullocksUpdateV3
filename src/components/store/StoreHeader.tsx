@@ -5,15 +5,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { LOGO_PATH, STORE_INFO } from '../../config/constants';
 import ReactDOM from 'react-dom';
 import { useCartToggle } from '../../contexts/CartToggleContext';
-import ShoppingCart from './ShoppingCart';
 import { ShoppingCart as ShoppingCartIcon } from 'lucide-react';
 import UserMenu from '../ui/UserMenu';
 import { useAuth } from '../../hooks/useAuth';
+import ShoppingCart from './ShoppingCart';
 
 export default function StoreHeader() {
   const [showHours, setShowHours] = useState(false);
-  const { isCartEnabled, setCartEnabled } = useCartToggle();
-  const [showCart, setShowCart] = useState(false);
+  const { isCartEnabled } = useCartToggle();
+  const [isCartModalOpen, setIsCartModalOpen] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const { user } = useAuth();
   const isAdminOnStorePage = user?.isAdmin;
@@ -24,8 +24,7 @@ export default function StoreHeader() {
   };
 
   const toggleCart = () => {
-    setCartEnabled(!isCartEnabled);
-    setShowCart(!showCart);
+    setIsCartModalOpen(!isCartModalOpen);
   };
 
     const toggleUserModal = () => {
@@ -173,12 +172,9 @@ export default function StoreHeader() {
         </div>
       </div>
       <HoursModal />
-      {ReactDOM.createPortal(
-        <AnimatePresence>
-          {showCart && <ShoppingCart />}
-        </AnimatePresence>,
-        document.body
-      )}
+      <AnimatePresence>
+        {isCartModalOpen && isCartEnabled && <ShoppingCart  closeCart={() => setIsCartModalOpen(false)} />}
+      </AnimatePresence>
     </header>
   );
 }

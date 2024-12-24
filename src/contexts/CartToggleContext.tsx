@@ -16,6 +16,7 @@ const CartToggleContext = createContext<CartToggleContextProps>({
 export const CartToggleProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isCartEnabled, setIsCartEnabled] = useState(false);
   const { user } = useAuth();
+  console.log('CartToggleContext user:', user);
 
   useEffect(() => {
     const fetchCartSetting = async () => {
@@ -24,9 +25,12 @@ export const CartToggleProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           setIsCartEnabled(docSnap.data().enabled);
+          console.log('Cart setting fetched:', docSnap.data().enabled);
         } else {
-          setIsCartEnabled(false);
+          console.log('No cart setting found, defaulting to false');
         }
+      } else {
+        console.log('User not logged in, defaulting to false');
       }
     };
 
@@ -39,6 +43,7 @@ export const CartToggleProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     if (user) {
       const docRef = doc(db, 'cartSettings', user.uid);
       await setDoc(docRef, { enabled });
+      console.log('Cart setting saved:', enabled);
     }
   };
 

@@ -16,17 +16,16 @@ export default function ScrollWrapper({ children }: ScrollWrapperProps) {
 
   // Transform scroll progress into visual effects
   const backgroundY = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
-  const textY = useTransform(scrollYProgress, [0, 1], ["0%", "150%"]);
 
   return (
-    <div ref={ref} className="relative min-h-screen overflow-hidden">
+    <div ref={ref} className="relative min-h-screen">
       <motion.div
         style={{ y: backgroundY }}
         className="absolute inset-0 bg-gradient-mesh opacity-20 z-0"
       />
-      <motion.div style={{ y: textY }}>
+      <div>
         {children}
-      </motion.div>
+      </div>
     </div>
   );
 }

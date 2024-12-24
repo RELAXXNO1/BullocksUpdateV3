@@ -1,4 +1,4 @@
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, collection, addDoc } from 'firebase/firestore';
 import { db } from './firebase';
 
 export async function addAdminUser(uid: string) {
@@ -13,4 +13,16 @@ export async function addAdminUser(uid: string) {
     console.error('Error adding admin user:', error);
     return false;
   }
+}
+
+export async function submitPickupOrder(orderData: any) {
+    try {
+        const pickupOrdersRef = collection(db, 'pickupOrders');
+        await addDoc(pickupOrdersRef, orderData);
+        console.log('Pickup order submitted successfully');
+        return true;
+    } catch (error) {
+        console.error('Error submitting pickup order:', error);
+        return false;
+    }
 }

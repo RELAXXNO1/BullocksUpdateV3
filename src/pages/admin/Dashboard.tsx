@@ -2,9 +2,18 @@ import { useAnalytics } from '../../hooks/useAnalytics';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { Package, Eye, ShoppingBag, Users } from 'lucide-react';
 
+import { useCartToggle } from '../../contexts/CartToggleContext';
+import { ToggleSwitch } from '../../components/ui/ToggleSwitch';
+
 export default function Dashboard() {
   const { data: analyticsData, loading: analyticsLoading } = useAnalytics();
+  const { isCartEnabled, setCartEnabled } = useCartToggle();
   console.log('Dashboard rendered', { analyticsData, analyticsLoading });
+
+  const handleToggleCart = (checked: boolean) => {
+    setCartEnabled(checked);
+  };
+
   if (analyticsLoading) {
     return <LoadingSpinner />;
   }
@@ -47,6 +56,13 @@ export default function Dashboard() {
   return (
     <div className="flex">
       <div className="flex-1 p-8">
+        <div className="flex items-center mb-4">
+          <span className="mr-2">Enable Cart Functionality</span>
+          <ToggleSwitch
+            checked={isCartEnabled}
+            onChange={handleToggleCart}
+          />
+        </div>
         <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {stats.map((stat) => (

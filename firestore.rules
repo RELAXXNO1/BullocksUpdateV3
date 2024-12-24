@@ -18,6 +18,12 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    // Orders collection rules
+    match /orders/{orderId} {
+      allow create: if isValidUser();
+      allow read: if isAdmin();
+    }
+
     // Settings collection rules
     match /settings/{settingId} {
       allow read, write: if isAdmin();

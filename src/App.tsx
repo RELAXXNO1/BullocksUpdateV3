@@ -57,27 +57,27 @@ export default function App() {
                       {/* Dynamically generate category routes */}
                       {DEFAULT_CATEGORIES.map((category) => (
                         <Route 
-                          key={category.slug} 
+                          key={category.slug}
                           path={category.slug} 
                           element={React.createElement(categoryPages[category.slug] || StorePage)}
                         />
                       ))}
                       
                       {/* New category routes */}
-                      <Route path="pre-rolls" element={<PreRollsPage />} />
-                      <Route path="mushrooms" element={<MushroomsPage />} />
-                      <Route path="lighters-torches" element={<LightersPage />} />
+                      <Route key="pre-rolls" path="pre-rolls" element={<PreRollsPage />} />
+                      <Route key="mushrooms" path="mushrooms" element={<MushroomsPage />} />
+                      <Route key="lighters-torches" path="lighters-torches" element={<LightersPage />} />
                       
                       {/* Legal Pages */}
-                      <Route path="privacy" element={<PrivacyPolicy />} />
-                      <Route path="thca-compliance" element={<THCACompliance />} />
-                      <Route path="terms" element={<TermsOfService />} />
+                      <Route key="privacy" path="privacy" element={<PrivacyPolicy />} />
+                      <Route key="thca-compliance" path="thca-compliance" element={<THCACompliance />} />
+                      <Route key="terms" path="terms" element={<TermsOfService />} />
                     </Route>
                     
                     {/* Auth Routes */}
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/signup" element={<Signup />} />
-                    <Route path="/account" element={<AccountManagement />} />
+                    <Route key="login" path="/login" element={<Login />} />
+                    <Route key="signup" path="/signup" element={<Signup />} />
+                    <Route key="account" path="/account" element={<AccountManagement />} />
 
                     {/* Admin Routes */}
                     {adminRoutes.map((route) => (

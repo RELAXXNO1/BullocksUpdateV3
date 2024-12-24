@@ -1,25 +1,42 @@
+import React, {
+    useState,
+    useEffect,
+    useRef,
+    useCallback,
+} from 'react';
+import { v4 as uuidv4 } from 'uuid';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleAIFileManager, GoogleAICacheManager } from '@google/generative-ai/server';
+
 import { ChatService } from '../../services/chatService';
 import { useChatStore } from '../../store/useChatStore';
 import { Message } from '../../types/chat';
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { v4 as uuidv4 } from 'uuid';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { BUSINESS_ASSISTANT_PROMPT } from '../../config/chat';
+import { Button } from '../../components/ui/Button';
 
 const GeminiChatbot: React.FC = () => {
+    // --- State Variables ---
     const [inputValue, setInputValue] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const chatContainerRef = useRef<HTMLDivElement>(null);
-    const { addMessage, messages } = useChatStore();
-    const [currentBotMessage, setCurrentBotMessage] = useState<Message | null>(null);
-    const chatServiceRef = useRef<ChatService | null>(null);
     const [uploadedFile, setUploadedFile] = useState<{
         uri: string;
         mimeType: string;
         name?: string;
     } | null>(null);
+    const [fileAnalyzing, setFileAnalyzing] = useState(false);
+    const [showClearChatModal, setShowClearChatModal] = useState(false);
+    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+    const [transitioning, setTransitioning] = useState(false);
 
+    // --- Refs ---
+    const chatContainerRef = useRef<HTMLDivElement>(null);
+    const chatServiceRef = useRef<ChatService | null>(null);
+
+    // --- Store ---
+    const { addMessage, messages, clearMessages } = useChatStore();
+
+    // --- Constants ---
     const suggestedQuestions = [
         "Let's make a promo for a product",
         "Let's brainstorm some marketing ideas",
@@ -33,55 +50,69 @@ const GeminiChatbot: React.FC = () => {
         "What are effective ways to handle customer complaints?",
     ];
 
-    useEffect(() => {
+    // --- Initialization Effect ---
+     useEffect(() => {
         const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
         const MODEL_NAME = 'gemini-1.5-flash';
 
+        if (!API_KEY) {
+            setError('Gemini API key is missing.');
+            return;
+        }
         if (!chatServiceRef.current) {
             chatServiceRef.current = new ChatService({
-                apiKey: API_KEY || '',
+                apiKey: API_KEY,
                 model: MODEL_NAME,
                 maxTokens: 1000,
             });
         }
 
-        if (messages.length > 0) {
-            chatServiceRef.current.replaceMessages(messages);
-        }
+        //syncing existing messages with chat service
+        chatServiceRef.current?.replaceMessages(messages);
+
     }, [messages]);
 
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        console.log("handleFileUpload called", e.target.files);
-        if (!e.target.files) return;
-        const file = e.target.files[0];
+
+    // --- File Upload Handler ---
+    const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
 
         try {
-            const fileData = await file.arrayBuffer();
-            const fileDataBase64 = btoa(String.fromCharCode(...new Uint8Array(fileData)));
-            console.log('fileDataBase64:', fileDataBase64)
-            console.log('file type', file.type)
-            console.log('file name', file.name)
+            setFileAnalyzing(true);
+            const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+            if (!API_KEY) {
+                setError('Gemini API key is missing.');
+                return;
+            }
+            const fileManager = new GoogleAIFileManager(API_KEY);
+
+           const uploadResult = await fileManager.uploadFile(
+                file as any,
+                {
+                    mimeType: file.type,
+                    displayName: file.name,
+                }
+            );
 
             setUploadedFile({
-                uri: fileDataBase64,
-                mimeType: file.type,
+                uri: uploadResult.file.uri,
+                mimeType: uploadResult.file.mimeType,
                 name: file.name,
             });
-             // Immediately trigger analysis after file upload
-            handleSendMessage("Analyze the uploaded file");
         } catch (err) {
             console.error('Error uploading file:', err);
             setError('Error uploading file. Please try again.');
+            setFileAnalyzing(false);
         }
-    };
+    }, []);
 
-
-  const handleSendMessage = useCallback(async (messageOverride?: string) => {
+    // --- Send Message Handler ---
+   const handleSendMessage = useCallback(async (messageOverride?: string) => {
         const userMessageText = messageOverride ? messageOverride : inputValue.trim();
-        if (!userMessageText || !chatServiceRef.current) return;
+        if ((!userMessageText && !uploadedFile?.uri) || !chatServiceRef.current) return;
 
         setError(null);
-        setIsLoading(true);
         setInputValue('');
 
         const userMessage: Message = {
@@ -91,122 +122,219 @@ const GeminiChatbot: React.FC = () => {
             timestamp: Date.now(),
             context: { sessionId: 'default' },
         };
-
-        const streamingMessage: Message = {
-            id: uuidv4(),
-            content: '',
-            sender: 'ai',
-            timestamp: Date.now(),
-            context: { sessionId: 'default' },
-        };
+        addMessage(userMessage);
 
         try {
-            addMessage(userMessage);
-            setCurrentBotMessage(streamingMessage);
-            let apiResponse;
-             //if file was uploaded
-             if (uploadedFile?.uri) {
-                const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
-                const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+            setIsLoading(true);
+           let botMessage: Message | null = null;
+            if (uploadedFile?.uri) {
+               await analyzeFileAndRequestInstructions();
 
-                let prompt = userMessageText;
+            }else{
+               botMessage =  await sendMessageToGemini(userMessageText);
+                 if (botMessage) {
+                    addMessage(botMessage);
+                 }
+            }
 
-                if (uploadedFile.mimeType.startsWith("image/")) {
-                    prompt = `
-                     Analyze the following image and respond to the question: ${userMessageText}
-                     `;
-                }
-                else if (
-                    uploadedFile.mimeType === 'application/pdf' ||
-                    uploadedFile.mimeType === 'application/msword' ||
-                    uploadedFile.mimeType ===
-                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-                ) {
-                    prompt = `
-                        Analyze the content of the document provided and answer the question: ${userMessageText}.
-                    `;
-                }
 
-                const result = await model.generateContent([
-                     prompt,
-                     {
-                        inlineData: {
-                            data: uploadedFile.uri,
+        } catch (err) {
+            handleChatError(err)
+        } finally {
+           setIsLoading(false);
+        }
+    }, [inputValue, addMessage, uploadedFile, fileAnalyzing]);
+
+
+    const cacheFile = async (fileUri: string, mimeType: string, displayName: string) => {
+        const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+        if (!API_KEY) {
+            setError('Gemini API key is missing.');
+            return null;
+        }
+        const cacheManager = new GoogleAICacheManager(API_KEY);
+        const model = 'models/gemini-1.5-flash-001';
+        const systemInstruction = 'You are an expert analyzing transcripts.';
+        let ttlSeconds = 300;
+
+        try {
+            const cache = await cacheManager.create({
+                model,
+                displayName,
+                systemInstruction,
+                contents: [
+                    {
+                        role: 'user',
+                        parts: [
+                            {
+                                fileData: {
+                                    mimeType,
+                                    fileUri,
+                                },
+                            },
+                        ],
+                    },
+                ],
+                ttlSeconds,
+            });
+            return cache;
+        } catch (error) {
+            console.error('Error creating cache:', error);
+            return null;
+        }
+    };
+
+    const analyzeFileAndRequestInstructions = async () => {
+         if(!uploadedFile?.uri) return;
+
+      try{
+            const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
+            const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+            const prompt = `Provide a concise summary of the following file and then ask the user for further instructions on what they would like to do with the file. Format the response as JSON object with a "summary" and "instructionPrompt" property.`;
+
+            let result;
+            const cachedContent = await cacheFile(uploadedFile.uri, uploadedFile.mimeType, uploadedFile.name || 'uploaded file');
+            if (cachedContent) {
+                const genModel = genAI.getGenerativeModelFromCachedContent(cachedContent);
+                 result = await genModel.generateContent({
+                    contents: [
+                        {
+                            role: 'user',
+                            parts: [
+                                {
+                                    text: prompt,
+                                },
+                            ],
+                        },
+                    ],
+                });
+            } else {
+                 result = await model.generateContent([
+                    prompt,
+                    {
+                        fileData: {
+                            fileUri: uploadedFile.uri,
                             mimeType: uploadedFile.mimeType,
                         },
-                     },
+                    },
                 ]);
-                apiResponse = { text: result.response.text() };
-                console.log("API Response Text", result.response.text())
-
             }
 
-           // No file was uploaded so just perform the Gemini API Chat
-            else {
-               apiResponse = await chatServiceRef.current.generateResponse(
-                   userMessageText,
-                   BUSINESS_ASSISTANT_PROMPT,
+
+            try{
+               const response  =  JSON.parse(result.response.text());
+               const {summary, instructionPrompt} = response;
+
+                  const analysisResultMessage: Message = {
+                        id: uuidv4(),
+                        content: summary,
+                        sender: 'ai',
+                        timestamp: Date.now(),
+                        context: { sessionId: 'default' },
+                    };
+                  addMessage(analysisResultMessage);
+
+                  if(instructionPrompt){
+                     const analysisQuestionMessage: Message = {
+                        id: uuidv4(),
+                        content: instructionPrompt,
+                        sender: 'ai',
+                        timestamp: Date.now(),
+                        context: { sessionId: 'default' },
+                    };
+                      addMessage(analysisQuestionMessage);
+                 }
+
+
+            }catch(e){
+                 console.error("Error parsing response from Gemini, response is not a JSON object")
+                handleChatError(e);
+            }
+
+
+            setFileAnalyzing(false);
+             setUploadedFile(null);
+        }catch(e){
+            handleChatError(e);
+        }
+    }
+
+     const sendMessageToGemini = async (userMessageText:string) : Promise<Message| null> => {
+      if(!chatServiceRef.current) return null;
+
+        const apiResponse = await chatServiceRef.current.generateResponse(
+                    userMessageText,
+                    BUSINESS_ASSISTANT_PROMPT,
                     (text) => {
-                        setCurrentBotMessage((prev) => (prev ? { ...prev, content: text } : null));
+                        // This callback is called when new text is received from the stream
+                        // You can use this to update the UI in real-time if needed
                     }
                 );
-            }
-            if (apiResponse?.text) {
-                const finalBotMessage: Message = {
-                    ...streamingMessage,
-                    content: apiResponse.text,
-                };
-                addMessage(finalBotMessage);
-            }
-        } catch (err) {
+                if (apiResponse?.text) {
+                    return {
+                        id: uuidv4(),
+                        content: apiResponse.text,
+                        sender: 'ai',
+                        timestamp: Date.now(),
+                        context: { sessionId: 'default' },
+                    };
+                }
+        return null;
+    }
+    const handleChatError = (err:any) =>{
             console.error('Error in chat:', err);
-            setError(err instanceof Error ? err.message : 'An error occurred during the conversation');
+                setError(err instanceof Error ? err.message : 'An error occurred during the conversation');
 
-            const errorMessage: Message = {
-                id: uuidv4(),
-                content: 'I apologize, but I encountered an error. Please try again.',
-                sender: 'ai',
-                timestamp: Date.now(),
-                context: { sessionId: 'default' },
-            };
-            addMessage(errorMessage);
-        } finally {
-            setIsLoading(false);
-            setCurrentBotMessage(null);
-            setUploadedFile(null);
+                const errorMessage: Message = {
+                    id: uuidv4(),
+                    content: 'I apologize, but I encountered an error. Please try again.',
+                    sender: 'ai',
+                    timestamp: Date.now(),
+                    context: { sessionId: 'default' },
+                };
+                addMessage(errorMessage);
         }
-    }, [inputValue, addMessage, uploadedFile]);
 
 
+    // --- Scroll to Bottom Effect ---
     useEffect(() => {
         if (chatContainerRef.current) {
-            const element = chatContainerRef.current;
-            element.scrollTop = element.scrollHeight;
+            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
         }
-    }, [messages, currentBotMessage]);
+    }, [messages]);
 
+    // --- Input Change Handler ---
     const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         setInputValue(e.target.value);
     }, []);
 
+    // --- Input Keydown Handler ---
     const handleInputKeyDown = useCallback(
         (e: React.KeyboardEvent<HTMLInputElement>) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-               // We call handleSendMessage here without any argument which means the normal input value will be used
                 handleSendMessage();
             }
         },
         [handleSendMessage]
     );
 
+    // --- Clear Chat Handlers ---
     const handleClearChat = useCallback(() => {
-        useChatStore.getState().clearMessages();
+        setShowClearChatModal(true);
     }, []);
 
-    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-    const [transitioning, setTransitioning] = useState(false);
+    const handleConfirmClearChat = useCallback(() => {
+        clearMessages();
+        setShowClearChatModal(false);
+    }, [clearMessages]);
 
+    const handleCancelClearChat = useCallback(() => {
+        setShowClearChatModal(false);
+    }, []);
+
+    // --- Suggested Question Rotation Effect ---
     useEffect(() => {
         const interval = setInterval(() => {
             setTransitioning(true);
@@ -218,11 +346,12 @@ const GeminiChatbot: React.FC = () => {
         return () => clearInterval(interval);
     }, [suggestedQuestions.length]);
 
-  const handleSendButtonClick = useCallback(() => {
-       // We call handleSendMessage here without any argument which means the normal input value will be used
+    // --- Send Button Click Handler ---
+    const handleSendButtonClick = useCallback(() => {
       handleSendMessage();
-    }, [handleSendMessage])
+    }, [handleSendMessage]);
 
+    // --- Render ---
     return (
         <div className="flex flex-col h-full bg-dark-500 w-full max-w-sm sm:max-w-full mx-auto">
             {error && (
@@ -236,14 +365,16 @@ const GeminiChatbot: React.FC = () => {
                     <div
                         key={message.id}
                         className={`flex ${
-                            message.sender === 'user' ? 'justify-end' : 'justify-start'
+                            message.sender === 'user' ? 'justify-end' : message.sender === 'ai' ? 'justify-start' : 'justify-center italic text-gray-400'
                         }`}
                     >
                         <div
                             className={`max-w-[80%] p-3 rounded-lg shadow-md ${
                                 message.sender === 'user'
                                     ? 'bg-gradient-to-r from-blue-500 to-blue-700 text-white rounded-br-none'
-                                    : 'bg-gradient-to-r from-teal-500 to-teal-700 text-black rounded-bl-none'
+                                    : message.sender === 'ai'
+                                      ? 'bg-gradient-to-r from-teal-500 to-teal-700 text-black rounded-bl-none'
+                                      : 'bg-gray-700 text-gray-400'
                             }`}
                         >
                             <div className="whitespace-pre-wrap break-words">{message.content}</div>
@@ -251,18 +382,9 @@ const GeminiChatbot: React.FC = () => {
                     </div>
                 ))}
 
-                {currentBotMessage && (
-                    <div className="flex justify-start">
-                        <div className="max-w-[80%] p-3 rounded-lg shadow-md bg-gradient-to-r from-teal-500 to-teal-700 text-gray-800 rounded-bl-none">
-                            <div className="whitespace-pre-wrap break-words">
-                                {currentBotMessage.content || 'Thinking...'}
-                            </div>
-                        </div>
-                    </div>
-                )}
             </div>
 
-            <div className="border-t border-gray-700 bg-gray-800 p-4">
+            <div className="border-t border-gray-700 bg-gray-800 p-4 z-10">
                 <div
                     className={`pb-2 transition-opacity duration-500 ${
                         transitioning ? 'opacity-0' : 'opacity-100'
@@ -282,49 +404,70 @@ const GeminiChatbot: React.FC = () => {
                         onChange={handleInputChange}
                         onKeyDown={handleInputKeyDown}
                         placeholder="Type your message..."
-                        disabled={isLoading}
+                        disabled={isLoading || fileAnalyzing}
                         className="flex-1 min-w-0 px-4 py-2 text-white bg-gray-900 shadow-md border-none rounded-full focus:ring-2 focus:ring-blue-500 focus:outline-none"
                     />
-                    <button
+                    <Button
                          onClick={handleSendButtonClick}
-                        disabled={isLoading || inputValue.trim() === ''}
-                        className="px-4 py-2 text-sm font-semibold shadow-md text-white rounded-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+                        disabled={isLoading || fileAnalyzing}
+                        className="mx-1"
+                        title="Send"
+                        size="icon"
                     >
-                        {isLoading ? 'Sending...' : 'Send'}
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-4 h-4">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.769 59.769 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
-                        </svg>
-                    </button>
-                    <div className="flex gap-2">
-                        <input
-                            type="file"
-                            id="fileUpload"
-                            disabled={isLoading}
-                            onChange={handleFileUpload}
-                            className="opacity-0 z-10 absolute w-[120px] h-[38px]"
-                        />
-                        <label
-                            htmlFor="fileUpload"
-                            className="relative flex items-center justify-center px-4 py-2 text-sm font-semibold shadow-md text-teal-500 rounded-full bg-transparent hover:bg-teal-700 hover:text-white disabled:opacity-50 gap-2 pointer-events-none"
+                        {isLoading ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-4 h-4 animate-spin">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M16.023 9.348l-.003-.001a9.348 9.348 0 01-.53 1.175M16.025 9.348l.001-.002 1.01-1.01a4.674 4.674 0 00-1.39-.757M16.023 9.348l-.004.006-.713.712a4.674 4.674 0 01-.9.342M15.018 10.355a4.674 4.674 0 01-1.389-.757l-1.01-1.01a9.348 9.348 0 012.932 3.592m-1.514 2.028a4.674 4.674 0 01-.9.342l-.715.712a9.348 9.348 0 01-1.891 1.175m1.734 1.734a9.348 9.348 0 01-1.518 1.175l-.003-.003a9.348 9.348 0 01-.53 1.175m1.514 2.028a4.674 4.674 0 01-.9.342l-.715.712a4.674 4.674 0 01-.9.342m.002 1.006a4.674 4.674 0 01-.9.342l-.715.712a9.348 9.348 0 01-1.891 1.175m1.734 1.734a9.348 9.348 0 01-1.518 1.175l-.003-.003a9.348 9.348 0 01-.53 1.175" />
+                            </svg>
+                        ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-4 h-4">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.769 59.769 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+                            </svg>
+                        )}
+                    </Button>
+                    <div className="flex items-center">
+                        <Button
+                            className="mx-1 relative"
+                            title="Upload File"
+                            size="icon"
+                            variant="outline"
                         >
-                            Upload File
+                            <input
+                                type="file"
+                                id="fileUpload"
+                                disabled={isLoading}
+                                onChange={handleFileUpload}
+                                className="opacity-0 z-10 absolute w-[100%] h-[100%]"
+                            />
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-4 h-4">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M6 7.5h12" />
                             </svg>
-                        </label>
-                        <button
+                        </Button>
+                        <Button
                             onClick={handleClearChat}
                             disabled={isLoading}
-                            className="px-4 py-2 text-sm font-semibold shadow-md text-red-500 rounded-full bg-transparent hover:bg-red-700 hover:text-white disabled:opacity-50 flex items-center gap-2"
+                            className="mx-1"
+                            title="Clear Chat"
+                            size="icon"
+                            variant="destructive"
                         >
-                            Clear Chat
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-4 h-4">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m6-6H6" />
                             </svg>
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </div>
+             {showClearChatModal && (
+                <div className="fixed inset-0 bg-gray-900 bg-opacity-75 overflow-y-auto h-full w-full flex items-center justify-center">
+                    <div className="bg-dark-700 rounded-lg shadow-xl p-6">
+                        <p className="text-lg font-semibold mb-4 text-teal-500">Are you sure you want to clear the chat?</p>
+                        <div className="flex justify-end gap-4">
+                            <Button onClick={handleCancelClearChat} variant="outline">Cancel</Button>
+                            <Button onClick={handleConfirmClearChat} variant="destructive">Clear</Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

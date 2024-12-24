@@ -6,7 +6,7 @@ import {
   createUserWithEmailAndPassword as firebaseCreateUser, 
   GoogleAuthProvider 
 } from 'firebase/auth';
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, collection, addDoc } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { getAnalytics, logEvent } from 'firebase/analytics';
 
@@ -57,6 +57,19 @@ const googleProvider = new GoogleAuthProvider();
 const trackEvent = (eventName: string, params?: Record<string, any>) => {
   logEvent(analytics, eventName, params);
 }
+
+// Function to add an order to Firestore
+export const addOrder = async (orderData: any) => {
+  try {
+    const ordersCollection = collection(db, 'orders');
+    await addDoc(ordersCollection, orderData);
+    console.log('Order added to Firestore');
+  } catch (error) {
+    console.error('Error adding order to Firestore:', error);
+    throw error;
+  }
+};
+
 
 export {
   app,
