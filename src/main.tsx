@@ -1,8 +1,6 @@
-import { StrictMode, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, createRoutesFromElements, Route } from 'react-router-dom';
 import App from './App';
-import LoadingSpinner from './components/LoadingSpinner';
 import './index.css';
 
 // Add mouse tracking for dynamic background
@@ -15,12 +13,12 @@ const updateMousePosition = (e: MouseEvent) => {
 
 document.addEventListener('mousemove', updateMousePosition);
 
+const routes = createRoutesFromElements(
+  <Route path="*" element={<App />} />
+);
+
+const router = createBrowserRouter(routes);
+
 createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <BrowserRouter>
-      <Suspense fallback={<LoadingSpinner />}>
-        <App />
-      </Suspense>
-    </BrowserRouter>
-  </StrictMode>
+    <RouterProvider router={router} />
 );

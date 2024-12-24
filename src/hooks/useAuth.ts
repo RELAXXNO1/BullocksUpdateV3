@@ -10,7 +10,6 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
-import { ADMIN_CONFIG } from '../config/admin';
 
 interface AuthUser extends FirebaseUser {
   isAdmin: boolean;
@@ -22,6 +21,7 @@ export function useAuth() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      console.log('Auth State Changed', { firebaseUser });
       if (firebaseUser) {
         try {
           // Check admin status
@@ -34,6 +34,11 @@ export function useAuth() {
             ...firebaseUser,
             isAdmin
           } as AuthUser);
+          console.log('User with admin status', {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            isAdmin
+          });
         } catch (error) {
           console.error('Error checking admin status:', error);
           setUser({
@@ -147,7 +152,7 @@ export function useAuth() {
   return { 
     user, 
     loading, 
-    login, 
+    login,
     logout, 
     signup,
     deleteAccount

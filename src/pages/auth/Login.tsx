@@ -22,6 +22,7 @@ export default function Login() {
 
     try {
       const { isAdmin } = await login(email, password);
+      console.log('Login isAdmin:', isAdmin);
       navigate(isAdmin ? '/admin/dashboard' : '/');
     } catch (err) {
       setError('Invalid login credentials');

@@ -23,7 +23,7 @@ const NAV_ITEMS: NavItem[] = [
   { 
     icon: LayoutDashboard, 
     label: 'Dashboard', 
-    path: '/admin/dashboard'
+    path: '/admin'
   },
   { 
     icon: Package, 

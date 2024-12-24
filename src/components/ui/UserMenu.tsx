@@ -51,7 +51,7 @@ export default function UserMenu({ isOpen, onClose, closeMenu, showAdminLink }: 
                 </Link>
                 {showAdminLink && user.isAdmin && (
                   <Link
-                    to="/admin/dashboard"
+                    to="/admin"
                     className="block px-4 py-2 text-white hover:bg-dark-500 rounded-md mt-2"
                   >
                     Admin Dashboard

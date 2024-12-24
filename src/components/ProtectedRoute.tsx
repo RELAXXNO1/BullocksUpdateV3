@@ -13,7 +13,8 @@ export default function ProtectedRoute({ children, requiredRole = 'user' }: Prot
   console.log('🔒 Protected Route Check', { 
     user, 
     loading, 
-    isAdmin: user?.isAdmin 
+    isAdmin: user?.isAdmin,
+    requiredRole
   });
 
   if (loading) {
@@ -28,7 +29,5 @@ export default function ProtectedRoute({ children, requiredRole = 'user' }: Prot
     return <Navigate to="/" replace />;
   }
 
-  return (
-    <>{children}</>
-  );
+  return <>{children}</>;
 }

@@ -77,10 +77,8 @@ export default function CategoryTemplate({ categorySlug }: CategoryTemplateProps
     }
   };
 
-  // Add scroll event logging for debugging
-  useMotionValueEvent(scrollYProgress, "change", (latest: number) => {
-    console.log("Scroll progress:", latest);
-  });
+  // Remove scroll event logging for debugging
+  useMotionValueEvent(scrollYProgress, "change", () => {});
 
   // Determine category details
   const categoryDetails: CategoryConfig = useMemo(() => {

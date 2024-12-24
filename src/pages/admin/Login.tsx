@@ -16,8 +16,9 @@ export default function AdminLogin() {
     setLoading(true);
 
     try {
-      await login(email, password);
-      navigate('/admin/dashboard');
+      const authUser = await login(email, password);
+      console.log('Login successful, user:', authUser);
+      navigate('/admin');
     } catch (err) {
       setError('Invalid login credentials');
     } finally {

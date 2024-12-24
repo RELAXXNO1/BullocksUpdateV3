@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Phone, Clock, MapPin } from 'lucide-react';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -16,8 +16,7 @@ export default function StoreHeader() {
   const [showCart, setShowCart] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const { user } = useAuth();
-  const location = useLocation();
-  const isAdminOnStorePage = user?.isAdmin && location.pathname === '/store';
+  const isAdminOnStorePage = user?.isAdmin;
 
 
   const handleCall = () => {
