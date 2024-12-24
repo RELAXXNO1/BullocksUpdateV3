@@ -5,6 +5,7 @@ import { useCartToggle } from '../../contexts/CartToggleContext';
 import { ToggleSwitch } from '../../components/ui/ToggleSwitch';
 
 const Orders: React.FC = () => {
+    console.log('Orders component rendered');
     const [orders, setOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const { isCartEnabled } = useCartToggle();
