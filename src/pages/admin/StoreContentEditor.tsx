@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useStoreContent } from '../../contexts/StoreContentContext';
 import { motion } from 'framer-motion';
 import { Edit, Eye, EyeOff, Save } from 'lucide-react';
+import ImageUpload from '../../components/ui/ImageUpload';
 
 export default function StoreContentEditor() {
-  const { storeContents, updateStoreContent, createStoreContent } = useStoreContent();
+  const { storeContents, updateStoreContent } = useStoreContent();
+  console.log('storeContents:', storeContents);
   const [editingContent, setEditingContent] = useState<{ [key: string]: boolean }>({});
 
   const handleToggleVisibility = (section: string) => {
@@ -73,6 +75,12 @@ export default function StoreContentEditor() {
                 className="w-full bg-gray-700 text-white p-2 rounded h-24"
                 placeholder="Section Description"
               />
+              {content.section === 'hero' && (
+                <ImageUpload 
+                  images={content.images || []}
+                  onUpload={(images) => updateStoreContent(content.section, { images })}
+                />
+              )}
               <button 
                 onClick={() => toggleEditMode(content.section)}
                 className="bg-green-600 text-white px-4 py-2 rounded flex items-center hover:bg-green-700 transition-colors"
@@ -84,6 +92,13 @@ export default function StoreContentEditor() {
             <div>
               <h3 className="text-lg font-semibold text-white mb-2">{content.title}</h3>
               <p className="text-gray-400">{content.description}</p>
+               {content.section === 'hero' && content.images && content.images.length > 0 && (
+                <div className="flex space-x-2 mt-2">
+                  {content.images.map((image, index) => (
+                    <img key={index} src={image} alt={`Hero Image ${index + 1}`} className="h-16 w-auto rounded-md object-cover" />
+                  ))}
+                </div>
+              )}
               <p className="text-xs text-gray-500 mt-2">
                 Last Updated: {new Date(content.lastUpdated).toLocaleString()}
               </p>

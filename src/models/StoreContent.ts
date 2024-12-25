@@ -5,7 +5,8 @@ export interface StoreContent {
   description: string;
   isVisible: boolean;
   order?: number;
-  lastUpdated: Date;
+  lastUpdated: number;
+  images?: string[];
 }
 
 export interface StoreContentUpdateDTO {
@@ -13,4 +14,5 @@ export interface StoreContentUpdateDTO {
   description?: string;
   isVisible?: boolean;
   order?: number;
+  images?: string[];
 }

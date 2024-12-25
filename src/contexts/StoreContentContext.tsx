@@ -11,60 +11,88 @@ interface StoreContentContextType {
 
 const StoreContentContext = createContext<StoreContentContextType | undefined>(undefined);
 
-export const StoreContentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [storeContents, setStoreContents] = useState<StoreContent[]>(() => {
-    // Initialize with default content if no saved content exists
-    const savedContent = localStorage.getItem('storeContents');
-    return savedContent ? JSON.parse(savedContent) : [
-      {
-        id: uuidv4(),
-        section: 'hero',
-        title: 'Welcome to Bullocks Smoke Shop',
-        description: 'Your premier destination for quality smoking accessories and vaporizers.',
-        isVisible: true,
-        lastUpdated: new Date()
-      },
-      {
-        id: uuidv4(),
-        section: 'products',
-        title: 'Featured Products',
-        description: 'Browse our selection of premium smoking accessories',
-        isVisible: true,
-        lastUpdated: new Date()
-      }
-    ];
-  });
+import { db } from '../lib/firebase';
+import { collection, doc, getDocs, setDoc } from 'firebase/firestore';
+import defaultStoreContent from '../lib/defaultStoreContent';
 
-  // Save to localStorage whenever contents change
+export const StoreContentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [storeContents, setStoreContents] = useState<StoreContent[]>([]);
+  const storeContentCollection = collection(db, 'storeContent');
+
   useEffect(() => {
-    localStorage.setItem('storeContents', JSON.stringify(storeContents));
-  }, [storeContents]);
+    const fetchStoreContent = async () => {
+      try {
+        const querySnapshot = await getDocs(storeContentCollection);
+        const fetchedContent = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as StoreContent));
+        setStoreContents(fetchedContent);
+      } catch (error) {
+        console.error('Error fetching store content:', error);
+      }
+    };
+
+    const createDefaultStoreContent = async () => {
+      try {
+        const querySnapshot = await getDocs(storeContentCollection);
+        if (querySnapshot.empty) {
+          for (const content of defaultStoreContent) {
+            const docRef = doc(storeContentCollection, content.id);
+            await setDoc(docRef, content);
+          }
+          fetchStoreContent();
+        } else {
+          fetchStoreContent();
+        }
+      } catch (error) {
+        console.error('Error creating default store content:', error);
+      }
+    };
+
+    createDefaultStoreContent();
+  }, []);
 
   const getContentBySection = (section: string) => {
     return storeContents.find(content => content.section === section);
   };
 
-  const updateStoreContent = (section: string, updates: StoreContentUpdateDTO) => {
-    setStoreContents(current => 
-      current.map(content => 
-        content.section === section 
-          ? { 
-              ...content, 
-              ...updates, 
-              lastUpdated: new Date() 
-            } 
+  const updateStoreContent = async (section: string, updates: StoreContentUpdateDTO) => {
+    setStoreContents(current =>
+      current.map(content =>
+        content.section === section
+          ? {
+            ...content,
+            ...updates,
+            lastUpdated: Date.now()
+          }
           : content
       )
     );
+    try {
+      const content = storeContents.find(c => c.section === section);
+      if (content) {
+        const contentRef = doc(storeContentCollection, content.id);
+        await setDoc(contentRef, { ...content, ...updates, lastUpdated: Date.now() }, { merge: true });
+      }
+    } catch (error) {
+      console.error('Error updating store content in Firestore:', error);
+    }
   };
 
-  const createStoreContent = (content: Omit<StoreContent, 'id' | 'lastUpdated'>) => {
+  const createStoreContent = async (content: Omit<StoreContent, 'id' | 'lastUpdated'>) => {
     const newContent: StoreContent = {
       ...content,
       id: uuidv4(),
-      lastUpdated: new Date()
+      lastUpdated: Date.now()
     };
     setStoreContents(current => [...current, newContent]);
+    try {
+      const docRef = doc(storeContentCollection, newContent.id);
+      await setDoc(docRef, newContent);
+    } catch (error) {
+      console.error('Error creating store content in Firestore:', error);
+    }
   };
 
   return (

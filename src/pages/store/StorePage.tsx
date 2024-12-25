@@ -5,6 +5,7 @@ import { useProducts } from '../../hooks/useProducts';
 import ProductGrid from '../../components/store/ProductGrid';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ScrollWrapper from '../../components/store/ScrollWrapper';
+import SlideshowBackground from '../../components/ui/SlideshowBackground';
 
 export default function StorePage() {
   const { products, loading, error } = useProducts();
@@ -42,7 +43,10 @@ export default function StorePage() {
   return (
     <ScrollWrapper>
         {/* Hero Section */}
-        <section className="relative min-h-screen flex flex-col justify-center items-center text-center px-4">
+        <section className="relative min-h-screen flex flex-col justify-center items-center text-center px-4 overflow-hidden">
+          <div className="absolute inset-0 z-0">
+            <SlideshowBackground images={heroContent?.images || []} />
+          </div>
           <div 
             className="max-w-4xl mx-auto relative z-10"
           >
