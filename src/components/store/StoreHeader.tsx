@@ -121,7 +121,7 @@ export default function StoreHeader() {
               {
                 icon: MapPin,
                 label: 'Location',
-                action: () => window.open("https://www.google.com/maps/search/bullocks+smoke+shop", "_blank"),
+                action: () => window.open("https://www.google.com/maps/dir//400+Vernonview+Dr,+Mt+Vernon,+OH+43050/@40.4004795,-82.5389536,12z/data=!4m8!4m7!1m0!1m5!1m1!1s0x8839ccb9b3f11bed:0x4ca1ad52339bb0f0!2m2!1d-82.4566284!2d40.4004932?entry=ttu&g_ep=EgoyMDI0MTIxMS4wIKXMDSoASAFQAw%3D%3D", "_blank"),
                 title: 'Come Pick it Up'
               }
             ].map(({ icon: Icon, label, action, title }) => (
