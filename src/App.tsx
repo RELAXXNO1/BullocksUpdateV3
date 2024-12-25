@@ -64,20 +64,21 @@ export default function App() {
                       ))}
                       
                       {/* New category routes */}
-                      <Route key="pre-rolls" path="pre-rolls" element={<PreRollsPage />} />
-                      <Route key="mushrooms" path="mushrooms" element={<MushroomsPage />} />
-                      <Route key="lighters-torches" path="lighters-torches" element={<LightersPage />} />
+                      <Route path="pre-rolls" element={<PreRollsPage />} />
+                      <Route path="mushrooms" element={<MushroomsPage />} />
+                      <Route path="lighters-torches" element={<LightersPage />} />
                       
                       {/* Legal Pages */}
-                      <Route key="privacy" path="privacy" element={<PrivacyPolicy />} />
-                      <Route key="thca-compliance" path="thca-compliance" element={<THCACompliance />} />
-                      <Route key="terms" path="terms" element={<TermsOfService />} />
+                      <Route path="privacy" element={<PrivacyPolicy />} />
+                      <Route path="thca-compliance" element={<THCACompliance />} />
+                      <Route path="terms" element={<TermsOfService />} />
+                      <Route path="order" element={React.createElement(lazy(() => import('./pages/store/OrderPage')))} />
                     </Route>
                     
-                    {/* Auth Routes */}
-                    <Route key="login" path="/login" element={<Login />} />
-                    <Route key="signup" path="/signup" element={<Signup />} />
-                    <Route key="account" path="/account" element={<AccountManagement />} />
+                     {/* Auth Routes */}
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/signup" element={<Signup />} />
+                    <Route path="/account" element={<AccountManagement />} />
 
                     {/* Admin Routes */}
                     {adminRoutes.map((route) => (

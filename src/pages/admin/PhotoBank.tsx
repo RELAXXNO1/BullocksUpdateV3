@@ -9,6 +9,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { collection, addDoc, serverTimestamp, query as firestoreQuery, getDocs, doc, setDoc, where } from 'firebase/firestore';
 import { DEFAULT_CATEGORIES } from '../../config/categories';
 import { useNavigate } from 'react-router-dom';
+import { checkAdminStatus } from '../../lib/firebase';
 import type { CategoryConfig } from '../../constants/categories';
 
 const WATERMARK_LOGO_PATH = '/logos/black_logo_transparent_background_page-0001-removebg-preview.png';

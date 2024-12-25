@@ -25,8 +25,8 @@ export default function ProtectedRoute({ children, requiredRole = 'user' }: Prot
     return <Navigate to="/login" replace />;
   }
 
-  if (requiredRole === 'admin' && !user.isAdmin) {
-    return <Navigate to="/" replace />;
+  if (!loading && requiredRole === 'admin' && !user.isAdmin) {
+      return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;
