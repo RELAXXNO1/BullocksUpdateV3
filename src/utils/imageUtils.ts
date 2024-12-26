@@ -1,49 +1,57 @@
-import { WATERMARK_LOGO_PATH } from '../config/constants';
+import Color from 'color';
 
-export async function addWatermark(imageFile: File): Promise<Blob> {
+export async function getDominantColor(imageUrl: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    const watermark = new Image();
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-
-    if (!ctx) {
-      reject(new Error('Canvas context not available'));
-      return;
-    }
+    img.crossOrigin = 'Anonymous';
+    img.src = imageUrl;
 
     img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Could not get canvas context'));
+        return;
+      }
       canvas.width = img.width;
       canvas.height = img.height;
       ctx.drawImage(img, 0, 0);
 
-      watermark.onload = () => {
-        // Calculate watermark size (20% of the smallest image dimension)
-        const size = Math.min(img.width, img.height) * 0.2;
-        const padding = 20;
-        
-        // Position watermark in bottom right corner
-        ctx.globalAlpha = 0.5;
-        ctx.drawImage(
-          watermark,
-          canvas.width - size - padding,
-          canvas.height - size - padding,
-          size,
-          size
-        );
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      const colorCounts: { [color: string]: number } = {};
 
-        canvas.toBlob((blob) => {
-          if (blob) {
-            resolve(blob);
-          } else {
-            reject(new Error('Failed to create blob'));
-          }
-        }, 'image/jpeg', 0.9);
-      };
+      for (let i = 0; i < imageData.length; i += 4) {
+        const r = imageData[i];
+        const g = imageData[i + 1];
+        const b = imageData[i + 2];
+        const color = `rgb(${r},${g},${b})`;
+        colorCounts[color] = (colorCounts[color] || 0) + 1;
+      }
 
-      watermark.src = WATERMARK_LOGO_PATH;
+      let dominantColor = 'rgb(255,255,255)';
+      let maxCount = 0;
+      for (const color in colorCounts) {
+        if (colorCounts[color] > maxCount) {
+          maxCount = colorCounts[color];
+          dominantColor = color;
+        }
+      }
+      resolve(dominantColor);
     };
 
-    img.src = URL.createObjectURL(imageFile);
+    img.onerror = (error) => {
+      reject(error);
+    };
   });
+}
+
+export function getContrastingColor(color: string): string {
+  try {
+    const rgbColor = Color(color);
+    const luminance = rgbColor.luminosity();
+    return luminance > 0.5 ? '#000' : '#fff';
+  } catch (error) {
+    console.error("Error calculating contrasting color:", error);
+    return '#000';
+  }
 }

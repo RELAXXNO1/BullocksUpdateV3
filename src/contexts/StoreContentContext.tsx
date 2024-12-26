@@ -16,7 +16,7 @@ import { collection, doc, getDocs, setDoc } from 'firebase/firestore';
 import defaultStoreContent from '../lib/defaultStoreContent';
 
 export const StoreContentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [storeContents, setStoreContents] = useState<StoreContent[]>([]);
+  const [storeContents, setStoreContents] = useState<StoreContent[]>(defaultStoreContent);
   const storeContentCollection = collection(db, 'storeContent');
 
   useEffect(() => {

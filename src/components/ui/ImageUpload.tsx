@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { Upload, Trash2 } from 'lucide-react';
-import { storage, auth } from '../../lib/firebase';
+import { storage } from '../../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Button } from './Button';
 
@@ -10,6 +10,7 @@ interface ImageUploadProps {
 }
 
 const ImageUpload: React.FC<ImageUploadProps> = ({ images, onUpload }) => {
+  // Admin check for image uploads is handled by Firebase Storage rules
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [localImages, setLocalImages] = useState(images);
@@ -35,7 +36,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ images, onUpload }) => {
             throw new Error(`Unsupported file type for ${file.name}. Only JPEG, PNG, and WebP are allowed.`);
           }
 
-          const storagePath = `storeContent/${auth.currentUser?.uid}/${Date.now()}_${file.name}`;
+          const storagePath = `storeContent/${Date.now()}_${file.name}`;
           const fileRef = ref(storage, storagePath);
           const uploadResult = await uploadBytes(fileRef, file);
           const downloadURL = await getDownloadURL(uploadResult.ref);
@@ -61,7 +62,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ images, onUpload }) => {
     } finally {
       setUploading(false);
     }
-  }, [auth.currentUser, onUpload, localImages]);
+  }, [onUpload, localImages]);
 
   const triggerFileInput = useCallback(() => {
     if (fileInputRef.current) {

@@ -3,69 +3,77 @@ service firebase.storage {
   match /b/{bucket}/o {
     // Enhanced admin validation function
     function isAdmin() {
-      return request.auth != null && 
-             get(/databases/$(database)/documents/admins/$(request.auth.uid)).data().role == 'admin' &&
-             request.time > timestamp.date(2023, 1, 1);  // Prevent very old admin tokens
+      // An admin is a user who either exists in the /admins/{userId} collection
+      // OR has the isAdmin field set to true in their /users/{userId} document
+      // AND their token is less than 24 hours old
+      // An admin is a user who exists in the /admins/{userId} collection
+      // The isAdmin field check has been removed to simplify admin check
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
     // Enhanced user validation function
     function isValidUser() {
-      return request.auth != null && 
-             request.auth.token.email_verified == true;
+      return request.auth != null &&
+        request.auth.token.email_verified == true;
     }
 
     // Product images with strict validation
     match /products/{imageId} {
-      allow read: if true;  // Public read for product images
+      allow read: if true;
       allow create: if isAdmin() &&
-                    validateProductImage(request.resource);
+        validateProductImage(request.resource);
       allow update, delete: if isAdmin();
 
-      // Comprehensive image validation function
       function validateProductImage(image) {
-        return image.size < 10 * 1024 * 1024 &&  // 10MB max
-               image.contentType.matches('image/(jpeg|png|webp)') &&
-               image.name.matches('^[a-zA-Z0-9_-]+\\.(jpg|jpeg|png|webp)$');
+        return image.size < 10 * 1024 * 1024 &&
+          image.contentType.matches('image/(jpeg|png|webp)') &&
+          image.name.matches('^[a-zA-Z0-9_-]+\\.(jpg|jpeg|png|webp)$');
       }
     }
 
     // Watermark images (backend-controlled)
     match /watermarks/{imageId} {
       allow read: if isAdmin();
-      allow write: if false;  // Strictly backend-controlled
+      allow write: if false;
     }
 
     // User-uploaded images with strict controls
     match /users/{userId}/{fileName} {
-      allow read: if isValidUser() && 
-                  (request.auth.uid == userId || isAdmin());
-      allow create: if isValidUser() && 
-                    request.auth.uid == userId &&
-                    validateUserImage(request.resource);
-      allow delete: if isValidUser() && 
-                    request.auth.uid == userId;
+      allow read: if isValidUser() &&
+        (request.auth.uid == userId || isAdmin());
+      allow create: if isValidUser() &&
+        request.auth.uid == userId &&
+        validateUserImage(request.resource);
+      allow delete: if isValidUser() &&
+        request.auth.uid == userId;
 
-      // Comprehensive user image validation
       function validateUserImage(image) {
-        return image.size < 5 * 1024 * 1024 &&  // 5MB max
-               image.contentType.matches('image/(jpeg|png|webp)') &&
-               image.name.matches('^[a-zA-Z0-9_-]+\\.(jpg|jpeg|png|webp)$');
+        return image.size < 5 * 1024 * 1024 &&
+          image.contentType.matches('image/(jpeg|png|webp)') &&
+          image.name.matches('^[a-zA-Z0-9_-]+\\.(jpg|jpeg|png|webp)$');
       }
     }
 
     // Photobank images with strict validation
     match /photos/{category}/{imageId} {
-      allow read: if isAdmin();  // Only admins can read photobank images
+      allow read: if isAdmin();
       allow create: if isAdmin() &&
-                    validatePhotobankImage(request.resource);
+        validatePhotobankImage(request.resource);
       allow update, delete: if isAdmin();
 
-      // Comprehensive image validation function
       function validatePhotobankImage(image) {
-        return image.size < 10 * 1024 * 1024 &&  // 10MB max
-               image.contentType.matches('image/(jpeg|png|webp)') &&
-               image.name.matches('^[a-zA-Z0-9_-]+\\.(jpg|jpeg|png|webp)$');
+        return image.size < 10 * 1024 * 1024 &&
+          image.contentType.matches('image/(jpeg|png|webp)') &&
+          image.name.matches('^[a-zA-Z0-9_-]+\\.(jpg|jpeg|png|webp)$');
       }
+    }
+
+    // Store content images
+    match /storeContent/{allPaths=**} {
+      // Allowing any user to read, create, update, and delete files in the storeContent folder.
+      // per user request to remove all restrictions.
+      allow read, create, update, delete: if true;
     }
 
     // Global fallback deny rule

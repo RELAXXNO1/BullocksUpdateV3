@@ -1,11 +1,11 @@
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useState, useEffect } from 'react';
 import { motion, useScroll, useTransform, useMotionValueEvent } from 'framer-motion';
 import { useProducts } from '../../hooks/useProducts';
 import { useNavigate } from 'react-router-dom';
 import ProductGrid from '../../components/store/ProductGrid';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { DEFAULT_CATEGORIES } from '../../constants/categories';
-
+import SlideshowBackground from '../../components/ui/SlideshowBackground';
 interface CategoryAttributeField {
   name: string;
   label: string;

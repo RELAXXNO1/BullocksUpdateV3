@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { ShoppingBag, ChevronDown } from 'lucide-react';
 import { useStoreContent } from '../../contexts/StoreContentContext';
@@ -6,15 +7,55 @@ import ProductGrid from '../../components/store/ProductGrid';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ScrollWrapper from '../../components/store/ScrollWrapper';
 import SlideshowBackground from '../../components/ui/SlideshowBackground';
+import { getDominantColor, getContrastingColor } from '../../utils/imageUtils';
+import { storage } from '../../lib/firebase';
+import { ref, listAll, getDownloadURL } from 'firebase/storage';
 
 export default function StorePage() {
   const { products, loading, error } = useProducts();
   const { getContentBySection } = useStoreContent();
   
+  const [textColor, setTextColor] = useState('#000');
   const visibleProducts = products.filter(p => p.isVisible);
+  const slideshowRef = useRef<HTMLDivElement>(null);
+  const [slideshowImages, setSlideshowImages] = useState<string[]>([]);
 
   const heroContent = getContentBySection('hero');
   const productsContent = getContentBySection('products');
+
+  useEffect(() => {
+    const fetchSlideshowImages = async () => {
+      const storageRef = ref(storage, 'storeContent');
+      try {
+        const res = await listAll(storageRef);
+        const urls = await Promise.all(res.items.map(item => getDownloadURL(item)));
+        setSlideshowImages(urls);
+      } catch (e) {
+        console.error("Error fetching slideshow images:", e);
+      }
+    };
+    fetchSlideshowImages();
+
+    const updateTextColor = async () => {
+      if (slideshowImages.length > 0 && slideshowRef.current) {
+        const currentImage = slideshowRef.current.querySelector('img[style*="opacity: 1"]') as HTMLImageElement;
+         if (currentImage) {
+          try {
+            const dominantColor = await getDominantColor(currentImage.src);
+            const contrastingColor = getContrastingColor(dominantColor);
+            setTextColor(contrastingColor);
+          } catch (error) {
+            console.error("Error getting dominant color:", error);
+          }
+        }
+      }
+    };
+
+    updateTextColor();
+    const intervalId = setInterval(updateTextColor, 5000);
+
+    return () => clearInterval(intervalId);
+  }, [slideshowImages]);
 
 
   if (loading) {
@@ -44,16 +85,18 @@ export default function StorePage() {
     <ScrollWrapper>
         {/* Hero Section */}
         <section className="relative min-h-screen flex flex-col justify-center items-center text-center px-4 overflow-hidden">
-          <div className="absolute inset-0 z-0">
-            <SlideshowBackground images={heroContent?.images || []} />
-          </div>
+          {heroContent?.images && heroContent.images.length > 0 && (
+            <div className="absolute inset-0 z-0">
+              <SlideshowBackground images={heroContent.images} />
+            </div>
+          )}
           <div 
             className="max-w-4xl mx-auto relative z-10"
           >
-            <h1 className="text-4xl md:text-6xl font-bold mb-6 text-slate-800 dark:text-white">
+            <h1 className="text-4xl md:text-6xl font-bold mb-6" style={{ color: textColor }}>
               {heroContent?.title || 'Discover Premium THC-A Products'}
             </h1>
-            <p className="text-xl md:text-2xl mb-8 text-slate-600 dark:text-slate-300">
+            <p className="text-xl md:text-2xl mb-8" style={{ color: textColor }}>
               {heroContent?.description || 'Explore our curated selection of high-quality THC-A products.'}
             </p>
             
