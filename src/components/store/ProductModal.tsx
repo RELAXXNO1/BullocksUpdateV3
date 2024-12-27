@@ -83,7 +83,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
         transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-        className="bg-slate-800 rounded-lg sm:rounded-2xl w-full max-w-2xl shadow-2xl border border-slate-700 relative max-h-[90vh] overflow-hidden"
+        className="bg-slate-800 rounded-lg sm:rounded-2xl w-full max-w-2xl shadow-2xl border border-slate-700 relative max-h-[90vh] overflow-hidden overflow-y-auto"
         onClick={handleStopPropagation}
       >
         <div className="grid grid-cols-1 md:grid-cols-2 h-full">
