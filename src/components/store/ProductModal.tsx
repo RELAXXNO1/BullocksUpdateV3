@@ -6,6 +6,7 @@ import { useCart } from '../../contexts/CartContext';
 import { useCartToggle } from '../../contexts/CartToggleContext';
 import { db } from '../../lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import { cropImageToSquare } from '../../utils/imageUtils';
 
 interface ProductModalProps {
   product: Product;
@@ -14,6 +15,8 @@ interface ProductModalProps {
 
 const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [croppedImageUrl, setCroppedImageUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const { addToCart } = useCart();
   const { isCartEnabled } = useCartToggle();
   const [promo, setPromo] = useState<any>(null);
@@ -30,6 +33,25 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
     };
     fetchPromo();
   }, [product.promoId]);
+
+  useEffect(() => {
+    const loadImage = async () => {
+      setLoading(true);
+      if (product.images && product.images[currentImageIndex]) {
+        try {
+          const cropped = await cropImageToSquare(product.images[currentImageIndex]);
+          setCroppedImageUrl(cropped);
+        } catch (error) {
+          console.error("Error cropping image:", error);
+          setCroppedImageUrl(product.images[currentImageIndex]);
+        }
+      } else {
+         setCroppedImageUrl('/placeholder.png');
+      }
+      setLoading(false);
+    };
+    loadImage();
+  }, [product.images, currentImageIndex]);
 
   const handleNextImage = () => {
     setCurrentImageIndex((prev) => 
@@ -79,11 +101,17 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
             >
               →
             </button>
-            <img 
-              src={product.images?.[currentImageIndex] || '/placeholder.png'} 
-              alt={product.name} 
-              className="max-h-[250px] sm:max-h-[400px] object-contain w-full p-4 sm:p-8"
-            />
+            {loading ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-emerald-500"></div>
+              </div>
+            ) : (
+              <img
+                src={croppedImageUrl || '/placeholder.png'}
+                alt={product.name}
+                className="max-h-[250px] sm:max-h-[400px] object-contain w-full p-4 sm:p-8"
+              />
+            )}
           </div>
 
           {/* Details Section */}

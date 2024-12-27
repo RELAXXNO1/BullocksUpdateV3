@@ -55,3 +55,35 @@ export function getContrastingColor(color: string): string {
     return '#000';
   }
 }
+
+export async function cropImageToSquare(imageUrl: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.src = imageUrl;
+
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Could not get canvas context'));
+        return;
+      }
+
+      let size = Math.min(img.width, img.height);
+      let x = (img.width - size) / 2;
+      let y = (img.height - size) / 2;
+
+      canvas.width = size;
+      canvas.height = size;
+      ctx.drawImage(img, x, y, size, size, 0, 0, size, size);
+
+
+      resolve(canvas.toDataURL());
+    };
+
+    img.onerror = (error) => {
+      reject(error);
+    };
+  });
+}
