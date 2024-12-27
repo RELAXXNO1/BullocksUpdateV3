@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ShoppingBag, ChevronDown } from 'lucide-react';
 import { useStoreContent } from '../../contexts/StoreContentContext';
@@ -7,7 +7,6 @@ import ProductGrid from '../../components/store/ProductGrid';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ScrollWrapper from '../../components/store/ScrollWrapper';
 import SlideshowBackground from '../../components/ui/SlideshowBackground';
-import { getDominantColor, getContrastingColor } from '../../utils/imageUtils';
 import { storage } from '../../lib/firebase';
 import { ref, listAll, getDownloadURL } from 'firebase/storage';
 
@@ -16,11 +15,20 @@ export default function StorePage() {
   const { getContentBySection } = useStoreContent();
   
   const visibleProducts = products.filter(p => p.isVisible);
-  const slideshowRef = useRef<HTMLDivElement>(null);
   const [slideshowImages, setSlideshowImages] = useState<string[]>([]);
+  const [defaultSlideshowImages, setDefaultSlideshowImages] = useState<string[]>([]);
+  const [currentSlideshowImages, setCurrentSlideshowImages] = useState<string[]>([]);
 
   const heroContent = getContentBySection('hero');
   const productsContent = getContentBySection('products');
+
+  useEffect(() => {
+    if (heroContent?.images && heroContent.images.length > 0) {
+      setCurrentSlideshowImages(heroContent.images);
+    } else {
+      setCurrentSlideshowImages(defaultSlideshowImages);
+    }
+  }, [heroContent, defaultSlideshowImages]);
 
   useEffect(() => {
     const fetchSlideshowImages = async () => {
@@ -37,6 +45,22 @@ export default function StorePage() {
 
     return () => {};
   }, [slideshowImages]);
+
+  useEffect(() => {
+    const fetchDefaultSlideshowImages = async () => {
+      const storageRef = ref(storage, 'gs://bullocksbasic.firebasestorage.app/storeContent/tkJiKDSAxYUsJp0W7AO2FgqDRkh2');
+      try {
+        const res = await listAll(storageRef);
+        const urls = await Promise.all(res.items.map(item => getDownloadURL(item)));
+        setDefaultSlideshowImages(urls);
+      } catch (e) {
+        console.error("Error fetching default slideshow images:", e);
+      }
+    };
+    fetchDefaultSlideshowImages();
+
+    return () => {};
+  }, []);
 
 
   if (loading) {
@@ -66,11 +90,9 @@ export default function StorePage() {
     <ScrollWrapper>
         {/* Hero Section */}
         <section className="relative min-h-screen flex flex-col justify-center items-center text-center px-4 overflow-hidden">
-          {heroContent?.images && heroContent.images.length > 0 && (
-            <div className="absolute inset-0 z-0">
-              <SlideshowBackground images={heroContent.images} onImageChange={(index) => console.log('Image changed to:', index)} />
-            </div>
-          )}
+          <div className="absolute inset-0 z-0">
+            <SlideshowBackground images={currentSlideshowImages} />
+          </div>
           <div 
             className="max-w-4xl mx-auto relative z-10"
           >

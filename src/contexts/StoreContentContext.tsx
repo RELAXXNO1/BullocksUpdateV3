@@ -13,10 +13,10 @@ const StoreContentContext = createContext<StoreContentContextType | undefined>(u
 
 import { db } from '../lib/firebase';
 import { collection, doc, getDocs, setDoc } from 'firebase/firestore';
-import defaultStoreContent from '../lib/defaultStoreContent';
+import fetchDefaultStoreContent from '../lib/defaultStoreContent';
 
 export const StoreContentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [storeContents, setStoreContents] = useState<StoreContent[]>(defaultStoreContent);
+  const [storeContents, setStoreContents] = useState<StoreContent[]>([]);
   const storeContentCollection = collection(db, 'storeContent');
 
   useEffect(() => {
@@ -30,21 +30,20 @@ export const StoreContentProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setStoreContents(fetchedContent);
       } catch (error) {
         console.error('Error fetching store content:', error);
+        // If there's an error fetching from Firestore, use default content
+        const defaultContent = await fetchDefaultStoreContent();
+        setStoreContents(defaultContent);
       }
     };
 
     const createDefaultStoreContent = async () => {
       try {
-        const querySnapshot = await getDocs(storeContentCollection);
-        if (querySnapshot.empty) {
-          for (const content of defaultStoreContent) {
-            const docRef = doc(storeContentCollection, content.id);
-            await setDoc(docRef, content);
-          }
-          fetchStoreContent();
-        } else {
-          fetchStoreContent();
+        const defaultContent = await fetchDefaultStoreContent();
+        for (const content of defaultContent) {
+          const docRef = doc(storeContentCollection, content.id);
+          await setDoc(docRef, content);
         }
+        fetchStoreContent();
       } catch (error) {
         console.error('Error creating default store content:', error);
       }
