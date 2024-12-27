@@ -49,7 +49,7 @@ export function getContrastingColor(color: string): string {
   try {
     const rgbColor = Color(color);
     const luminance = rgbColor.luminosity();
-    return luminance > 0.5 ? '#000' : '#fff';
+    return luminance > 0.45 ? '#000' : '#fff';
   } catch (error) {
     console.error("Error calculating contrasting color:", error);
     return '#000';

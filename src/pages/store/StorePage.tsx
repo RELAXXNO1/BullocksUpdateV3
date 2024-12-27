@@ -15,7 +15,6 @@ export default function StorePage() {
   const { products, loading, error } = useProducts();
   const { getContentBySection } = useStoreContent();
   
-  const [textColor, setTextColor] = useState('#000');
   const visibleProducts = products.filter(p => p.isVisible);
   const slideshowRef = useRef<HTMLDivElement>(null);
   const [slideshowImages, setSlideshowImages] = useState<string[]>([]);
@@ -36,25 +35,7 @@ export default function StorePage() {
     };
     fetchSlideshowImages();
 
-    const updateTextColor = async () => {
-      if (slideshowImages.length > 0 && slideshowRef.current) {
-        const currentImage = slideshowRef.current.querySelector('img[style*="opacity: 1"]') as HTMLImageElement;
-         if (currentImage) {
-          try {
-            const dominantColor = await getDominantColor(currentImage.src);
-            const contrastingColor = getContrastingColor(dominantColor);
-            setTextColor(contrastingColor);
-          } catch (error) {
-            console.error("Error getting dominant color:", error);
-          }
-        }
-      }
-    };
-
-    updateTextColor();
-    const intervalId = setInterval(updateTextColor, 5000);
-
-    return () => clearInterval(intervalId);
+    return () => {};
   }, [slideshowImages]);
 
 
@@ -87,16 +68,16 @@ export default function StorePage() {
         <section className="relative min-h-screen flex flex-col justify-center items-center text-center px-4 overflow-hidden">
           {heroContent?.images && heroContent.images.length > 0 && (
             <div className="absolute inset-0 z-0">
-              <SlideshowBackground images={heroContent.images} />
+              <SlideshowBackground images={heroContent.images} onImageChange={(index) => console.log('Image changed to:', index)} />
             </div>
           )}
           <div 
             className="max-w-4xl mx-auto relative z-10"
           >
-            <h1 className="text-4xl md:text-6xl font-bold mb-6" style={{ color: textColor }}>
+            <h1 className="text-4xl md:text-6xl font-bold mb-6 text-white" style={{textShadow: '0 0 10px black'}}>
               {heroContent?.title || 'Discover Premium THC-A Products'}
             </h1>
-            <p className="text-xl md:text-2xl mb-8" style={{ color: textColor }}>
+            <p className="text-xl md:text-2xl mb-8 text-white" style={{textShadow: '0 0 10px black'}}>
               {heroContent?.description || 'Explore our curated selection of high-quality THC-A products.'}
             </p>
             
