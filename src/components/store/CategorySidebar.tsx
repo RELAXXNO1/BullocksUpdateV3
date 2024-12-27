@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion, useMotionValue, useDragControls } from 'framer-motion';
+import { motion, useMotionValue } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { DEFAULT_CATEGORIES } from '../../constants/categories';
 import { X } from 'lucide-react';
@@ -11,7 +11,6 @@ interface CategorySidebarProps {
 
 const CategorySidebar: React.FC<CategorySidebarProps> = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
-  const dragControls = useDragControls();
   const y = useMotionValue(0);
 
   const handleCategoryClick = (slug: string) => {
@@ -70,9 +69,6 @@ const CategorySidebar: React.FC<CategorySidebarProps> = ({ isOpen, onClose }) =>
 
           {/* Categories list */}
           <motion.div
-            drag="y"
-            dragControls={dragControls}
-            dragElastic={0.5}
             style={{ y }}
             className="space-y-3 relative"
           >
