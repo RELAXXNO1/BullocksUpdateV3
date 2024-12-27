@@ -1,11 +1,10 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { LOGO_PATH } from '../../config/constants';
 import { ShieldCheck, FileText, Lock } from 'lucide-react';
 
 export default function StoreFooter() {
   return (
-    <footer className="bg-dark-600/80 mt-12 relative overflow-hidden">
+    <footer className="bg-dark-600/80 mt-12 relative overflow-hidden backdrop-blur-md">
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-teal-500/5 to-teal-500/10" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom,theme(colors.teal.500/0.1),transparent_50%)]" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

@@ -18,7 +18,7 @@ export default function StoreHeader() {
   const { user } = useAuth();
   const isAdminOnStorePage = user?.isAdmin;
 
-
+  // Existing handlers remain unchanged
   const handleCall = () => {
     window.location.href = `tel:${STORE_INFO.phone.replace(/\D/g, '')}`;
   };
@@ -27,13 +27,13 @@ export default function StoreHeader() {
     setIsCartModalOpen(!isCartModalOpen);
   };
 
-    const toggleUserModal = () => {
-        setIsUserModalOpen(prev => !prev);
-    };
+  const toggleUserModal = () => {
+    setIsUserModalOpen(prev => !prev);
+  };
 
-    const closeUserModal = () => {
-        setIsUserModalOpen(false);
-    };
+  const closeUserModal = () => {
+    setIsUserModalOpen(false);
+  };
 
   const HoursModal = () => {
     return ReactDOM.createPortal(
@@ -43,32 +43,40 @@ export default function StoreHeader() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-4"
           >
             <motion.div
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.9 }}
-              className="bg-dark-600 rounded-super-elegant p-8 max-w-md w-full shadow-super-elegant border border-dark-400/30"
+              className="bg-dark-600/90 backdrop-blur-xl rounded-2xl p-8 max-w-md w-full shadow-2xl border border-white/10 relative overflow-hidden"
             >
-              <h3 className="text-2xl font-display font-bold gradient-text mb-6 text-center">
+              {/* Glass reflections */}
+              <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent pointer-events-none" />
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,theme(colors.teal.500/0.15),transparent_70%)]" />
+              
+              <h3 className="text-2xl font-display font-bold bg-gradient-to-r from-teal-300 to-teal-200 bg-clip-text text-transparent mb-6 text-center relative">
                 Store Hours
               </h3>
-              <div className="space-y-4">
-                <div className="bg-dark-500 p-4 rounded-elegant">
-                  <h4 className="font-semibold text-primary-400 mb-2">In-Store Hours</h4>
-                  <p className="text-secondary-300">Open Daily: 8:00 AM - 10:00 PM</p>
+              <div className="space-y-4 relative">
+                <div className="bg-dark-500/50 backdrop-blur-sm p-4 rounded-xl border border-white/5 relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent" />
+                  <h4 className="font-semibold text-primary-400 mb-2 relative">In-Store Hours</h4>
+                  <p className="text-secondary-300 relative">Open Daily: 8:00 AM - 10:00 PM</p>
                 </div>
-                <div className="bg-dark-500 p-4 rounded-elegant">
-                  <h4 className="font-semibold text-primary-400 mb-2">Drive-Thru Hours</h4>
-                  <p className="text-secondary-300">Open Daily: 8:00 AM - 11:00 PM</p>
+                <div className="bg-dark-500/50 backdrop-blur-sm p-4 rounded-xl border border-white/5 relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent" />
+                  <h4 className="font-semibold text-primary-400 mb-2 relative">Drive-Thru Hours</h4>
+                  <p className="text-secondary-300 relative">Open Daily: 8:00 AM - 11:00 PM</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowHours(false)}
-                className="mt-6 w-full bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 px-4 rounded-elegant transition-elegant"
+                className="mt-6 w-full bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white font-medium py-3 px-4 rounded-xl transition-all duration-300 relative overflow-hidden group"
               >
-                Close
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <span className="relative">Close</span>
               </button>
             </motion.div>
           </motion.div>
@@ -78,23 +86,31 @@ export default function StoreHeader() {
     );
   };
 
-
   return (
-    <header className="bg-dark-600/80 shadow-[0_4px_30px_rgba(0,0,0,0.3)] sticky top-0 z-40 backdrop-blur-md border-b border-dark-400/30 relative">
-      <div className="absolute inset-0 bg-gradient-to-r from-teal-500/5 via-transparent to-teal-500/5" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,theme(colors.teal.500/0.1),transparent_50%)]" />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+    <header className="sticky top-0 relative z-40 overflow-hidden">
+      {/* Enhanced glass effect background */}
+      <div className="absolute inset-0 bg-dark-600/70 backdrop-blur-xl" />
+      <div className="absolute inset-0 bg-gradient-to-r from-teal-500/10 via-transparent to-teal-500/10" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,theme(colors.teal.500/0.15),transparent_60%)]" />
+      <div className="absolute inset-0 bg-gradient-to-b from-white/5 via-transparent to-transparent" />
+      
+      {/* Subtle animated gradient */}
+      <div className="absolute inset-0 opacity-30">
+        <div className="absolute inset-0 bg-gradient-to-r from-teal-500/20 via-transparent to-teal-500/20 animate-gradient" />
+      </div>
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 relative">
         <div className="flex items-center justify-between gap-4">
-          <Link to="/" className="flex items-center gap-4 hover-lift relative z-10">
+          <Link to="/" className="flex items-center gap-4 hover-lift relative z-10 group">
             <motion.img
               src={LOGO_PATH}
               alt="Bullocks Smoke Shop"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5, type: 'spring' }}
-              className="h-20 w-auto object-contain"
+              className="h-20 w-auto object-contain group-hover:brightness-110 transition-all duration-300"
             />
-            <h1 className="text-2xl font-display font-bold hidden md:block bg-gradient-to-r from-teal-300 via-teal-400 to-teal-300 bg-clip-text text-transparent">
+            <h1 className="text-2xl font-display font-bold hidden md:block bg-gradient-to-r from-teal-300 via-teal-200 to-teal-300 bg-clip-text text-transparent">
               Bullocks Smoke Shop
             </h1>
           </Link>
@@ -135,13 +151,13 @@ export default function StoreHeader() {
                   action();
                 }}
                 title={title}
-                className="group relative flex flex-col items-center text-secondary-400 hover:text-primary-400 transition-all duration-200 px-3 py-2 -m-2 hover:bg-dark-600/20 rounded-lg cursor-pointer 
-                  before:absolute before:inset-0 before:bg-primary-500/10 before:opacity-0 before:transition-opacity before:rounded-lg
-                  hover:before:opacity-100 
-                  active:before:opacity-20"
+                className="group relative flex flex-col items-center text-secondary-300 hover:text-primary-300 transition-all duration-300 px-3 py-2 -m-2 rounded-xl cursor-pointer overflow-hidden"
               >
-                <Icon className="h-6 w-6 group-hover:scale-110 transition-transform duration-200" />
-                <span className="text-xs mt-1 opacity-70 group-hover:opacity-100 transition-opacity duration-200">
+                <div className="absolute inset-0 bg-dark-500/0 group-hover:bg-dark-500/50 transition-all duration-300 backdrop-blur-sm rounded-xl" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300" />
+                <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300" />
+                <Icon className="h-6 w-6 relative z-10 group-hover:scale-110 transition-transform duration-300" />
+                <span className="text-xs mt-1 opacity-70 group-hover:opacity-100 transition-all duration-300 relative z-10">
                   {label}
                 </span>
               </button>
@@ -150,13 +166,13 @@ export default function StoreHeader() {
               <button
                 onClick={toggleCart}
                 title="Shopping Cart"
-                className="group relative flex flex-col items-center text-secondary-400 hover:text-primary-400 transition-all duration-200 px-3 py-2 -m-2 hover:bg-dark-600/20 rounded-lg cursor-pointer 
-                  before:absolute before:inset-0 before:bg-primary-500/10 before:opacity-0 before:transition-opacity before:rounded-lg
-                  hover:before:opacity-100 
-                  active:before:opacity-20"
+                className="group relative flex flex-col items-center text-secondary-300 hover:text-primary-300 transition-all duration-300 px-3 py-2 -m-2 rounded-xl cursor-pointer overflow-hidden"
               >
-                <ShoppingCartIcon className="h-6 w-6 group-hover:scale-110 transition-transform duration-200" />
-                <span className="text-xs mt-1 opacity-70 group-hover:opacity-100 transition-opacity duration-200">
+                <div className="absolute inset-0 bg-dark-500/0 group-hover:bg-dark-500/50 transition-all duration-300 backdrop-blur-sm rounded-xl" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300" />
+                <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300" />
+                <ShoppingCartIcon className="h-6 w-6 relative z-10 group-hover:scale-110 transition-transform duration-300" />
+                <span className="text-xs mt-1 opacity-70 group-hover:opacity-100 transition-all duration-300 relative z-10">
                   Cart
                 </span>
               </button>
@@ -164,8 +180,13 @@ export default function StoreHeader() {
             {user ? (
               <UserMenu isOpen={isUserModalOpen} onClose={toggleUserModal} closeMenu={closeUserModal} showAdminLink={isAdminOnStorePage} />
             ) : (
-              <Link to="/login" className="bg-teal-500 hover:bg-teal-600 text-white font-medium py-2 px-4 rounded-elegant transition-elegant">
-                Sign In
+              <Link 
+                to="/login" 
+                className="relative overflow-hidden bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white font-medium py-2 px-4 rounded-xl transition-all duration-300 group"
+              >
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <span className="relative">Sign In</span>
               </Link>
             )}
           </motion.div>
@@ -173,7 +194,7 @@ export default function StoreHeader() {
       </div>
       <HoursModal />
       <AnimatePresence>
-        {isCartModalOpen && isCartEnabled && <ShoppingCart  closeCart={() => setIsCartModalOpen(false)} />}
+        {isCartModalOpen && isCartEnabled && <ShoppingCart closeCart={() => setIsCartModalOpen(false)} />}
       </AnimatePresence>
     </header>
   );
