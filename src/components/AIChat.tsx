@@ -34,7 +34,7 @@ export const AIChat: React.FC = () => {
   // Comprehensive system prompt with clear guidelines
   const createSystemPrompt = () => {
     const contexts = [
-      "You are an AI assistant for Bullocks Smoke Shop.",
+      "You are an AI assistant for High10 Wellness.",
       "Your goal is to provide helpful, clear, and professional customer service.",
       "Always respond in a friendly, informative, and structured manner.",
       "Prioritize clarity and provide specific, actionable information.",

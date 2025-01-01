@@ -51,7 +51,7 @@ export default function Login() {
             <div className="text-center mb-8">
               <img 
                 src={LOGO_PATH}
-                alt="Bullocks Smoke Shop"
+                alt="High10 Wellness"
                 className="h-24 mx-auto mb-6"
               />
               <h2 className="text-3xl font-display font-bold mb-2 bg-gradient-to-r from-teal-300 via-teal-400 to-teal-300 bg-clip-text text-transparent">

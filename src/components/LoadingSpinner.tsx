@@ -36,8 +36,8 @@ export default function LoadingSpinner() {
           />
           <img 
             src={LOGO_PATH}
-            alt="Bullocks Smoke Shop" 
-            className="absolute inset-0 w-full h-full object-contain p-4 filter brightness-110"
+            alt="High10 Wellness" 
+            className="absolute inset-0 w-full h-full object-contain p-4 filter brightness-110 drop-shadow-[0_0_8px_theme(colors.teal.500)]"
           />
         </motion.div>
         <motion.p 

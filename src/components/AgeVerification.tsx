@@ -48,8 +48,8 @@ export default function AgeVerification() {
             >
               <img 
                 src={LOGO_PATH}
-                alt="Bullocks Smoke Shop"
-                className="h-24 mx-auto"
+                alt="High10 Wellness"
+                className="h-24 mx-auto drop-shadow-[0_0_8px_theme(colors.teal.500)]"
               />
             </motion.div>
             
@@ -64,7 +64,7 @@ export default function AgeVerification() {
                 </span>
               </h2>
               <p className="text-gray-300 text-lg mb-8">
-                You must be 21 years or older to visit Bullocks Smoke Shop.
+                You must be 21 years or older to visit High10 Wellness.
               </p>
             </motion.div>
 

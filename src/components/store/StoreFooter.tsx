@@ -11,8 +11,8 @@ export default function StoreFooter() {
         <div className="flex flex-col items-center relative z-10">
           <img 
             src={LOGO_PATH}
-            alt="Bullocks Smoke Shop" 
-            className="h-24 w-auto object-contain mb-4 opacity-90" 
+            alt="High10 Wellness" 
+            className="h-24 w-auto object-contain mb-4 opacity-90 drop-shadow-[0_0_8px_theme(colors.teal.500)]"
           />
           <p className="text-gray-400 text-center max-w-md">
             Your premier destination for quality smoking accessories and vaporizers.
@@ -40,7 +40,7 @@ export default function StoreFooter() {
           </div>
           
           <p className="mt-4 text-sm text-gray-500">
-            {new Date().getFullYear()} Bullocks Smoke Shop. All rights reserved.
+            {new Date().getFullYear()} High10 Wellness. All rights reserved.
           </p>
         </div>
       </div>

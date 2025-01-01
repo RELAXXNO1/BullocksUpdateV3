@@ -48,7 +48,7 @@ export default function App() {
           <CartProvider>
             <CartToggleProvider>
               <Suspense fallback={<LoadingSpinner />}>
-                <div className="dark">
+                <div className="dark drop-shadow-[0_0_8px_theme(colors.teal.500)]">
                   <Routes>
                     {/* Store Routes */}
                     <Route path="/" element={<StoreLayout />}>

@@ -18,7 +18,7 @@ export default function AdminHeader() {
         <div className="flex items-center gap-3">
           <img 
             src={LOGO_PATH}
-            alt="Bullocks Smoke Shop" 
+            alt="High10 Wellness" 
             className="h-12 sm:h-16 w-auto object-contain" 
           />
           <h1 className="text-lg sm:text-xl font-bold hidden sm:block">Admin Dashboard</h1>

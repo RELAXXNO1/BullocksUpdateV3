@@ -5,7 +5,7 @@ export const defaultKnowledgeBase: KnowledgeBase = {
     {
       id: 'store_info',
       name: 'Store Information',
-      description: 'General information about Bullocks Smoke Shop',
+      description: 'General information about High10 Wellness',
       keywords: ['hours', 'location', 'contact', 'info'],
       capabilities: {}
     },
@@ -58,7 +58,7 @@ export const defaultKnowledgeBase: KnowledgeBase = {
   ],
   context: {
     storeInfo: {
-      name: 'Bullocks Smoke Shop',
+      name: 'High10 Wellness',
       location: '123 Main Street, Anytown, USA',
       hours: 'Mon-Sat: 10am-8pm, Sun: 12pm-6pm',
       contact: {

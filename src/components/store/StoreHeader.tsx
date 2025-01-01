@@ -104,14 +104,14 @@ export default function StoreHeader() {
           <Link to="/" className="flex items-center gap-4 hover-lift relative z-10 group">
             <motion.img
               src={LOGO_PATH}
-              alt="Bullocks Smoke Shop"
+              alt="High10 Wellness"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5, type: 'spring' }}
-              className="h-20 w-auto object-contain group-hover:brightness-110 transition-all duration-300"
+              className="h-20 w-auto object-contain group-hover:brightness-110 transition-all duration-300 drop-shadow-[0_0_8px_theme(colors.teal.500)]"
             />
-            <h1 className="text-2xl font-display font-bold hidden md:block bg-gradient-to-r from-teal-300 via-teal-200 to-teal-300 bg-clip-text text-transparent">
-              Bullocks Smoke Shop
+            <h1 className="text-2xl font-display font-bold hidden md:block bg-gradient-to-r from-teal-300 via-teal-200 to-teal-300 bg-clip-text text-transparent drop-shadow-[0_0_4px_theme(colors.dark.500)]">
+              High10 Wellness
             </h1>
           </Link>
 
