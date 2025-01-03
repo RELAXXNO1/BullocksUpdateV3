@@ -12,6 +12,9 @@ import LightersPage from './pages/store/LightersPage';
 import { CartProvider } from './contexts/CartContext';
 import { CartToggleProvider } from './contexts/CartToggleContext';
 import adminRoutes from './config/adminRoutes';
+import { useState, useEffect } from 'react';
+import THCAPopupModal from './components/store/THCAPopupModal';
+import Portal from './components/Portal';
 
 // Lazy load components with descriptive chunk names
 const StoreLayout = lazy(() => import(/* webpackChunkName: "store-layout" */ './components/layouts/StoreLayout'));
@@ -41,6 +44,16 @@ const THCACompliance = lazy(() => import(/* webpackChunkName: "thca-compliance" 
 const TermsOfService = lazy(() => import(/* webpackChunkName: "terms-of-service" */ './pages/TermsOfService'));
 
 export default function App() {
+  const [showModal, setShowModal] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowModal(true);
+    }, 8000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <ErrorBoundary>
       <ChatProvider>
@@ -93,6 +106,14 @@ export default function App() {
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
                 </div>
+                  {showModal && (
+                    <Portal>
+                      <THCAPopupModal
+                        onClose={() => setShowModal(false)}
+                        videoPath="/video/Whiteboard Animation THCA.mp4"
+                      />
+                    </Portal>
+                  )}
               </Suspense>
             </CartToggleProvider>
           </CartProvider>

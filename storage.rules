@@ -3,13 +3,10 @@ service firebase.storage {
   match /b/{bucket}/o {
     // Enhanced admin validation function
     function isAdmin() {
-      // An admin is a user who either exists in the /admins/{userId} collection
-      // OR has the isAdmin field set to true in their /users/{userId} document
-      // AND their token is less than 24 hours old
-      // An admin is a user who exists in the /admins/{userId} collection
-      // The isAdmin field check has been removed to simplify admin check
       return request.auth != null &&
-        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+        (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        request.auth.token.email == "travisbishopmackie@gmail.com" ||
+        request.auth.token.email == "harbosamah@gmail.com");
     }
 
     // Enhanced user validation function
@@ -24,7 +21,6 @@ service firebase.storage {
       allow create: if isAdmin() &&
         validateProductImage(request.resource);
       allow update, delete: if isAdmin();
-
       function validateProductImage(image) {
         return image.size < 10 * 1024 * 1024 &&
           image.contentType.matches('image/(jpeg|png|webp)') &&
@@ -47,7 +43,6 @@ service firebase.storage {
         validateUserImage(request.resource);
       allow delete: if isValidUser() &&
         request.auth.uid == userId;
-
       function validateUserImage(image) {
         return image.size < 5 * 1024 * 1024 &&
           image.contentType.matches('image/(jpeg|png|webp)') &&
@@ -55,18 +50,8 @@ service firebase.storage {
       }
     }
 
-    // Photobank images with strict validation
-    match /photos/{category}/{imageId} {
-      allow read: if isAdmin();
-      allow create: if isAdmin() &&
-        validatePhotobankImage(request.resource);
-      allow update, delete: if isAdmin();
-
-      function validatePhotobankImage(image) {
-        return image.size < 10 * 1024 * 1024 &&
-          image.contentType.matches('image/(jpeg|png|webp)') &&
-          image.name.matches('^[a-zA-Z0-9_-]+\\.(jpg|jpeg|png|webp)$');
-      }
+    match /photos/{allPaths=**} {
+      allow list, read, create: if request.auth != null;
     }
 
     // Store content images

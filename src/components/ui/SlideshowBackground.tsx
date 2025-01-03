@@ -18,7 +18,7 @@ const SlideshowBackground: React.FC<SlideshowBackgroundProps> = ({ images }) => 
   }, [images, images]);
 
   return (
-    <div ref={slideshowRef} className="absolute inset-0 overflow-hidden">
+    <div ref={slideshowRef} className="absolute inset-0 overflow-hidden z-[-1]">
       {images.map((image, index) => (
         <motion.img
           key={image}

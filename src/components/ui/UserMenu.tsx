@@ -1,7 +1,7 @@
-import { motion, AnimatePresence } from 'framer-motion';
 import { Menu } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import ReactDOM from 'react-dom';
 
 interface UserMenuProps {
     isOpen: boolean;
@@ -21,6 +21,51 @@ export default function UserMenu({ isOpen, onClose, closeMenu, showAdminLink }: 
     return null;
   }
 
+    const ModalContent = () => {
+        return (
+            <div className="fixed top-0 mt-2 z-[3000]" style={{left: 'calc(100vw - 256px - 1rem)'}}>
+                <div className="bg-dark-600/50 backdrop-blur-xl rounded-super-elegant shadow-super-elegant border border-dark-400/30 p-4 relative overflow-hidden shadow-[0_0_20px_theme(colors.teal.500)]">
+                    <div className="absolute inset-0 bg-gradient-to-r from-teal-500/5 via-transparent to-teal-500/5" />
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,theme(colors.teal.500/0.1),transparent_70%)]" />
+                    <div className="relative z-10">
+                        <button onClick={() => {
+                            console.log('onClose called');
+                            closeMenu();
+                        }} className="absolute top-2 right-2 text-gray-400 hover:text-gray-300 focus:outline-none" aria-label="Close modal">
+                            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                        {user && (
+                            <>
+                                <Link
+                                    to="/account"
+                                    className="block px-4 py-2 text-white hover:bg-dark-500 rounded-md"
+                                >
+                                    Account Details
+                                </Link>
+                                {showAdminLink && user.isAdmin && (
+                                    <Link
+                                        to="/admin"
+                                        className="block px-4 py-2 text-white hover:bg-dark-500 rounded-md mt-2"
+                                    >
+                                        Admin Dashboard
+                                    </Link>
+                                )}
+                                <button
+                                    onClick={handleLogout}
+                                    className="block px-4 py-2 text-white hover:bg-dark-500 rounded-md mt-2"
+                                >
+                                    Log Out
+                                </button>
+                            </>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
   return (
     <div className="relative">
       <button
@@ -32,42 +77,7 @@ export default function UserMenu({ isOpen, onClose, closeMenu, showAdminLink }: 
       >
         <Menu className="h-6 w-6 group-hover:scale-110 transition-transform duration-200" />
       </button>
-
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            className="absolute right-0 mt-2 bg-dark-600 rounded-super-elegant shadow-super-elegant border border-dark-400/30 p-4 z-[1000]"
-          >
-            {user && (
-              <>
-                <Link
-                  to="/account"
-                  className="block px-4 py-2 text-white hover:bg-dark-500 rounded-md"
-                >
-                  Account Details
-                </Link>
-                {showAdminLink && user.isAdmin && (
-                  <Link
-                    to="/admin"
-                    className="block px-4 py-2 text-white hover:bg-dark-500 rounded-md mt-2"
-                  >
-                    Admin Dashboard
-                  </Link>
-                )}
-                <button
-                  onClick={handleLogout}
-                  className="block px-4 py-2 text-white hover:bg-dark-500 rounded-md mt-2"
-                >
-                  Log Out
-                </button>
-              </>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+        {isOpen && ReactDOM.createPortal(<ModalContent />, document.body)}
     </div>
   );
 }

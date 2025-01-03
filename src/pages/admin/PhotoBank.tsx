@@ -12,7 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import { checkAdminStatus } from '../../lib/firebase';
 import type { CategoryConfig } from '../../constants/categories';
 
-const WATERMARK_LOGO_PATH = '/logos/black_logo_transparent_background_page-0001-removebg-preview.png';
+const WATERMARK_LOGO_PATH = '/logos/DALL·E 2024-12-31 21.50.35 - A series of minimalistic logo designs featuring a large triangle with variations of a smaller superscript \'10\' positioned in the upper right corner. V (1)-fotor-bg-remover-20241231215642 (1).png';
 
 interface Photo {
   fileName: string;

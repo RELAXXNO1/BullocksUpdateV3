@@ -6,7 +6,6 @@ interface ScrollWrapperProps {
 }
 
 export default function ScrollWrapper({ children }: ScrollWrapperProps) {
-  // Ref for scroll-based parallax
   const ref = useRef(null);
   const { scrollYProgress } = useScroll({
     target: ref,

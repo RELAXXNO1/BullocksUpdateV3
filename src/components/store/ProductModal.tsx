@@ -7,6 +7,7 @@ import { useCartToggle } from '../../contexts/CartToggleContext';
 import { db } from '../../lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { cropImageToSquare } from '../../utils/imageUtils';
+import { applyKeywordStyling } from '../admin/ProductForm';
 
 interface ProductModalProps {
   product: Product;
@@ -145,7 +146,10 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
 
             <div className="mb-6">
               <h3 className="text-xl font-semibold text-slate-200 mb-2">Description</h3>
-              <p className="text-slate-400">{product.description}</p>
+              <p 
+                className="text-slate-400"
+                dangerouslySetInnerHTML={{ __html: applyKeywordStyling(product.description || '') }}
+              />
             </div>
 
             {product.attributes && Object.keys(product.attributes).length > 0 && (

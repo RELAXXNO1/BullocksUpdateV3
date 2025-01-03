@@ -31,7 +31,6 @@ export default function AgeVerification() {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,theme(colors.teal.500/0.1),transparent_70%)]" />
       
       <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         className="bg-dark-600/50 backdrop-blur-xl rounded-2xl shadow-super-elegant border border-dark-400/30 p-8 max-w-md w-full relative overflow-hidden"
       >
@@ -53,11 +52,6 @@ export default function AgeVerification() {
               />
             </motion.div>
             
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.3 }}
-            >
               <h2 className="text-3xl font-display font-bold mb-4">
                 <span className="bg-gradient-to-r from-teal-300 via-teal-400 to-teal-300 bg-clip-text text-transparent">
                   Age Verification Required
@@ -66,7 +60,7 @@ export default function AgeVerification() {
               <p className="text-gray-300 text-lg mb-8">
                 You must be 21 years or older to visit High10 Wellness.
               </p>
-            </motion.div>
+            
 
             <AnimatePresence>
               {error && (

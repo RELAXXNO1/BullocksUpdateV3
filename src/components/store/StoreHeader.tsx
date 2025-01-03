@@ -14,7 +14,7 @@ export default function StoreHeader() {
   const [showHours, setShowHours] = useState(false);
   const { isCartEnabled } = useCartToggle();
   const [isCartModalOpen, setIsCartModalOpen] = useState(false);
-  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+    const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const { user } = useAuth();
   const isAdminOnStorePage = user?.isAdmin;
 
@@ -27,15 +27,15 @@ export default function StoreHeader() {
     setIsCartModalOpen(!isCartModalOpen);
   };
 
-  const toggleUserModal = () => {
-    setIsUserModalOpen(prev => !prev);
-  };
+    const toggleUserModal = () => {
+        setIsUserModalOpen(prev => !prev);
+    };
 
-  const closeUserModal = () => {
-    setIsUserModalOpen(false);
-  };
+    const closeUserModal = () => {
+        setIsUserModalOpen(false);
+    };
 
-  const HoursModal = () => {
+    const HoursModal = () => {
     return ReactDOM.createPortal(
       <AnimatePresence>
         {showHours && (
@@ -87,7 +87,7 @@ export default function StoreHeader() {
   };
 
   return (
-    <header className="sticky top-0 relative z-40 overflow-hidden">
+    <header className="fixed top-0 left-0 w-full z-[100] overflow-hidden">
       {/* Enhanced glass effect background */}
       <div className="absolute inset-0 bg-dark-600/70 backdrop-blur-xl" />
       <div className="absolute inset-0 bg-gradient-to-r from-teal-500/10 via-transparent to-teal-500/10" />

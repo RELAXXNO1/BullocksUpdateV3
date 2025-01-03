@@ -19,7 +19,7 @@ export default function AdminHeader() {
           <img 
             src={LOGO_PATH}
             alt="High10 Wellness" 
-            className="h-12 sm:h-16 w-auto object-contain" 
+            className="h-12 sm:h-16 w-auto object-contain drop-shadow-[0_0_8px_theme(colors.teal.500)]"
           />
           <h1 className="text-lg sm:text-xl font-bold hidden sm:block">Admin Dashboard</h1>
         </div>
