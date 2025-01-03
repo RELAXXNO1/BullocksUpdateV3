@@ -24,7 +24,7 @@ export const applyKeywordStyling = (description: string) => {
 
     const styledDescription = description.split(" ").map(word => {
         if (KEYWORDS.includes(word.toLowerCase())) {
-            return `<span style="font-weight: bold; font-style: italic; color: teal; text-shadow: 0 0 5px rgb(20, 245, 106);">${word}</span>`;
+            return `<span style="font-weight: bold; font-style: italic; color: teal; text-shadow: 0 0 5px rgb(14, 15, 4);">${word}</span>`;
         }
         return word;
     }).join(" ");
