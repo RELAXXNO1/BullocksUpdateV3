@@ -5,7 +5,16 @@ export const ProductSchema = z.object({
   category: z.string().min(1, "Category name is required"),
   name: z.string().min(2, "Product name must be at least 2 characters"),
   description: z.string().optional(),
-  price: z.number().positive("Price must be positive"),
+  price: z.union([
+    z.number().positive("Price must be positive"),
+    z.object({
+        '1.75g': z.number(),
+        '3.5g': z.number(),
+        '7g': z.number(),
+        '14g': z.number(),
+        '1oz': z.number(),
+    })
+]),
   imageUrl: z.string().optional(),
   images: z.array(z.string()).optional(),
   attributes: z.record(z.union([z.string(), z.number()])).optional(),
@@ -20,9 +29,25 @@ export const ProductSchema = z.object({
 export type Product = z.infer<typeof ProductSchema> & {
   category: string;
   isFeatured?: boolean;
+  cartImage?: string;
+  quantity?: number;
+    price: number | {
+        '1.75g': number;
+        '3.5g': number;
+        '7g': number;
+        '14g': number;
+        '1oz': number;
+    };
 };
 
-export type ProductFormData = Product & {
+export type ProductFormData = Omit<Product, 'price'> & {
+  price: number | {
+        '1.75g': number;
+        '3.5g': number;
+        '7g': number;
+        '14g': number;
+        '1oz': number;
+    };
   imageFile?: File;
 };
 

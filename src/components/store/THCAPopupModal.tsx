@@ -185,7 +185,7 @@ const THCAPopupModal: React.FC<THCAPopupModalProps> = ({
                   </button>
                 ) : (
                   <div className="mt-4 space-y-4">
-                    <div className="relative rounded-lg overflow-hidden bg-black/20">
+                    <div className="relative rounded-lg overflow-hidden bg-black/20 max-w-full max-h-[40vh]">
                       <video
                         ref={videoRef}
                         src={videoPath}

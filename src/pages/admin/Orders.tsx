@@ -1,15 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
-import { useCartToggle } from '../../contexts/CartToggleContext';
-import { ToggleSwitch } from '../../components/ui/ToggleSwitch';
 
 const Orders: React.FC = () => {
-    console.log('Orders component rendered');
     const [orders, setOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const { isCartEnabled } = useCartToggle();
-    console.log('isCartEnabled:', isCartEnabled);
 
     useEffect(() => {
         const fetchOrders = async () => {
@@ -18,7 +13,6 @@ const Orders: React.FC = () => {
                 const ordersSnapshot = await getDocs(ordersCollection);
                 const ordersList = ordersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 setOrders(ordersList);
-                console.log('Fetched orders:', ordersList);
             } catch (error) {
                 console.error('Error fetching orders:', error);
             } finally {
@@ -77,12 +71,6 @@ const Orders: React.FC = () => {
 };
 
 const OrderRow: React.FC<{ order: any }> = ({ order }) => {
-    const { isCartEnabled, setCartEnabled } = useCartToggle();
-
-    const handleToggleCart = () => {
-        setCartEnabled(!isCartEnabled);
-    };
-
     return (
         <tr className="border-b border-slate-700 hover:bg-slate-700">
             <td className="py-2 px-3 border border-slate-700 text-slate-400">{order.id}</td>
@@ -93,15 +81,6 @@ const OrderRow: React.FC<{ order: any }> = ({ order }) => {
             <td className="py-2 px-3 border border-slate-700 text-slate-400">${order.total.toFixed(2)}</td>
             <td className="py-2 px-3 border border-slate-700 text-slate-400">
                 <CartItemsList cart={order.cart} />
-            </td>
-            <td className="py-2 px-3 border border-slate-700 text-slate-400">
-              <div className="flex items-center">
-                <span className="mr-2">Enable Cart Functionality</span>
-                <ToggleSwitch
-                  checked={isCartEnabled}
-                  onChange={handleToggleCart}
-                />
-              </div>
             </td>
         </tr>
     );

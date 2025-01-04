@@ -1,10 +1,9 @@
 import { useRef, useEffect, useState, useCallback, memo } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { useCartToggle } from '../../contexts/CartToggleContext';
-import { useCart } from '../../contexts/CartContext';
 import UserMenu from '../ui/UserMenu';
 import CartModal from './CartModal';
+import CartIcon from './CartIcon';
 import { motion } from 'framer-motion';
 import { LOGO_PATH } from '../../config/constants';
 import { FunctionComponent, ReactNode, JSX } from 'react';
@@ -13,7 +12,7 @@ import { FunctionComponent, ReactNode, JSX } from 'react';
 const ANIMATION_INTERVAL = 4000;
 const ANIMATION_DURATION = 1500;
 const WORDS = ['Wellness', 'Mentality', 'Mood', 'Self'] as const;
-const PARALLAX_FACTOR = 0.4;
+const PARALLAX_FACTOR = 0.64;
 
 // Define the word type
 type AnimationWord = typeof WORDS[number];
@@ -59,14 +58,23 @@ interface HeaderProps {
 
 // Memoized navigation link component
 const NavLink: FunctionComponent<{ to: string; children: ReactNode }> = memo(function NavLink({ to, children }): JSX.Element | null {
+  let textColor = 'text-gray-100';
+  let underglowColor = 'teal-500';
+  if (to === '/login') {
+    textColor = 'text-teal-300';
+    underglowColor = 'black';
+  } else if (to === '/products' || to === 'mailto:high10.verify@gmail.com') {
+      textColor = 'text-black';
+      underglowColor = 'teal-500';
+  }
   return (
     <Link
       to={to}
-      className="hover:text-teal-300 transition-colors duration-200 relative group overflow-hidden bg-dark-600/50 rounded-md px-3 py-2 before:absolute before:inset-0 before:bg-teal-500/10 before:opacity-0 before:transition-opacity before:rounded-md hover:before:opacity-100 active:before:opacity-20"
+      className={`hover:text-teal-300 transition-colors duration-200 relative group overflow-hidden bg-dark-600/50 rounded-md px-3 py-2 before:absolute before:inset-0 before:bg-${underglowColor}/10 before:opacity-0 before:transition-opacity before:rounded-md hover:before:opacity-100 active:before:opacity-20`}
       role="menuitem"
     >
-      <span className="block">{children}</span>
-      <span className="absolute bottom-0 left-0 w-full h-0.5 bg-teal-300 transform scale-x-0 origin-left transition-transform duration-300 group-hover:scale-x-100"
+      <span className={`block ${textColor} drop-shadow-[0_0_2px_${underglowColor}]`}>{children}</span>
+      <span className={`absolute bottom-0 left-0 w-full h-0.5 bg-teal-300 transform scale-x-0 origin-left transition-transform duration-300 group-hover:scale-x-100`}
         aria-hidden="true"
       />
     </Link>
@@ -78,24 +86,28 @@ NavLink.displayName = 'NavLink';
 
 export const StoreHeader = memo(({ className = '' }: HeaderProps) => {
   const { user } = useAuth();
-  const { isCartEnabled, setCartEnabled } = useCartToggle();
-  const { cart } = useCart();
   const headerRef = useRef<HTMLElement>(null);
   const { currentWord, nextWord, isAnimating } = useWordAnimation();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [cartIconRef, setCartIconRef] = useState<HTMLButtonElement | null>(null);
+  const [isCartModalOpen, setIsCartModalOpen] = useState(false);
 
-  // Memoized cart toggle handler
-  const toggleCart = useCallback(() => {
-    setCartEnabled(!isCartEnabled);
-  }, [isCartEnabled, setCartEnabled]);
 
-    const toggleUserMenu = useCallback(() => {
-        setIsUserMenuOpen(!isUserMenuOpen);
-    }, [isUserMenuOpen]);
+  const toggleCartModal = useCallback(() => {
+    setIsCartModalOpen(!isCartModalOpen);
+  }, [isCartModalOpen]);
 
-    const closeUserMenu = useCallback(() => {
-        setIsUserMenuOpen(false);
-    }, []);
+  const closeCartModal = useCallback(() => {
+    setIsCartModalOpen(false);
+  }, []);
+
+  const toggleUserMenu = useCallback(() => {
+    setIsUserMenuOpen(!isUserMenuOpen);
+  }, [isUserMenuOpen]);
+
+  const closeUserMenu = useCallback(() => {
+    setIsUserMenuOpen(false);
+  }, []);
 
   // CSS Custom Properties for dynamic animations
   useEffect(() => {
@@ -147,52 +159,54 @@ export const StoreHeader = memo(({ className = '' }: HeaderProps) => {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, type: 'spring' }}
-            className="h-16 mr-4 drop-shadow-[0_0_8px_theme(colors.teal.500)]" // Reduced logo size
+            className="h-16 mr-4 drop-shadow-[0_0_8px_theme(colors.teal.500)] md:h-12"
             loading="eager"
             width={64}
             height={64}
           />
-          <span className="font-extrabold text-2xl tracking-wider uppercase">
-            <span className="text-black drop-shadow-[0_0_4px_theme(colors.teal.500)]">High</span>
-            <span className="text-teal-500 drop-shadow-[0_0_4px_black] text-shadow-[0_0_2px_black]">10</span>
-            <span className="ml-2 text-black drop-shadow-[0_0_4px_theme(colors.teal.500)] relative">
-              <span
-                className={`
-                  block transform transition-all duration-500 ease
-                  ${isAnimating ? 'translate-y-full opacity-0' : 'translate-y-0 opacity-100'}
-                `}
-                style={{ position: 'absolute', top: 0, left: 0, right: 0 }} // Ensure same x-axis
-              >
-                {currentWord}
-              </span>
-              <span className="absolute inset-0 flex items-center justify-start">
+            <span className="font-extrabold text-2xl tracking-wider uppercase md:text-xl">
+              <span className="text-black drop-shadow-[0_0_4px_theme(colors.teal.500)]">High</span>
+              <span className="text-teal-500 drop-shadow-[0_0_4px_black] text-shadow-[0_0_2px_black]">10</span>
+              <span className="ml-2 text-black drop-shadow-[0_0_4px_theme(colors.teal.500)] relative" style={{ fontSize: '1em' }}>
                 <span
                   className={`
                     block transform transition-all duration-500 ease
-                    ${isAnimating ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}
+                    ${isAnimating ? 'translate-y-full opacity-0' : 'translate-y-0 opacity-100'}
                   `}
-                  style={{ position: 'absolute', top: 0, left: 0, right: 0 }} // Ensure same x-axis
+                  style={{ position: 'absolute', top: 0, left: 0, right: 0, fontSize: '0.8em' }} // Ensure same x-axis
                 >
-                  {nextWord}
+                  {currentWord}
                 </span>
+                <span className="absolute inset-0 flex items-center justify-start">
+                  <span
+                    className={`
+                      block transform transition-all duration-500 ease
+                      ${isAnimating ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}
+                    `}
+                    style={{ position: 'absolute', top: 0, left: 0, right: 0, fontSize: '0.8em' }} // Ensure same x-axis
+                  >
+                    {nextWord}
+                  </span>
+                </span>
+                <span className="invisible">{currentWord}</span>
               </span>
-              <span className="invisible">{currentWord}</span>
             </span>
-          </span>
         </Link>
 
-        <nav className="flex items-center space-x-8 text-lg font-semibold text-gray-100" role="navigation"> {/* Reduced space-x */}
-          <div role="menu" className="flex items-center space-x-8">
+        <nav className="flex items-center space-x-8 text-lg font-semibold text-gray-100 md:space-x-4" role="navigation"> {/* Reduced space-x */}
+          <div role="menu" className="flex items-center space-x-8 md:space-x-4 md:flex-wrap">
             <NavLink to="/products">Products</NavLink>
-
             <NavLink to="mailto:high10.verify@gmail.com">Contact Us</NavLink>
-            <NavLink to="/login">Sign In</NavLink>
+            {!user && <NavLink to="/login">Sign In</NavLink>}
           </div>
-          {user && <UserMenu isOpen={isUserMenuOpen} onClose={toggleUserMenu} closeMenu={closeUserMenu} showAdminLink={true} />}
+          <div className="flex items-center space-x-4 md:space-x-2">
+            <CartIcon onClick={toggleCartModal} ref={setCartIconRef} />
+            {user && <UserMenu isOpen={isUserMenuOpen} onClose={toggleUserMenu} closeMenu={closeUserMenu} showAdminLink={true} />}
+          </div>
         </nav>
       </div>
 
-      {isCartEnabled && <CartModal isOpen={isCartEnabled} onClose={toggleCart} />}
+      {isCartModalOpen && <CartModal onClose={closeCartModal} cartIconRef={cartIconRef} />}
     </header>
   );
 });

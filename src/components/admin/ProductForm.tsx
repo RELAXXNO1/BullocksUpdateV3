@@ -98,7 +98,7 @@ export function ProductForm({ onClose, initialProduct }: ProductFormProps) {
                 const basicDetailsValid = !!(
                     formData.name.trim() &&
                     (formData.description || '').trim() &&
-                    formData.price > 0
+                    (typeof formData.price === 'number' ? formData.price > 0 : Object.values(formData.price).some(price => price > 0))
                 );
 
                 const attributesValid = categoryAttributes.every(attr => {
@@ -357,24 +357,51 @@ export function ProductForm({ onClose, initialProduct }: ProductFormProps) {
                             >
                                 Price <span className="text-red-500">*</span>
                             </label>
-                            <div className="relative">
-                                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-teal-400">$</span>
-                                <input
-                                    id="productPrice"
-                                    type="number"
-                                    value={formData.price || ''}
-                                    onChange={(e) => updateFormData({
-                                        price: e.target.value ? parseFloat(e.target.value) : 0
-                                    })}
-                                    placeholder="0.00"
-                                    min="0"
-                                    step="0.01"
-                                    className="w-full pl-6 pr-3 py-2 bg-teal-800 border border-teal-700 rounded text-teal-100
-                    focus:outline-none focus:ring-2 focus:ring-teal-500
-                    placeholder-teal-500 transition-all duration-300"
-                                    required
-                                />
-                            </div>
+                            {typeof formData.price === 'number' ? (
+                                <div className="relative">
+                                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-teal-400">$</span>
+                                    <input
+                                        id="productPrice"
+                                        type="number"
+                                        value={formData.price}
+                                        onChange={(e) => updateFormData({
+                                            price: e.target.value ? parseFloat(e.target.value) : 0
+                                        })}
+                                        placeholder="0.00"
+                                        min="0"
+                                        step="0.01"
+                                        className="w-full pl-6 pr-3 py-2 bg-teal-800 border border-teal-700 rounded text-teal-100
+                                        focus:outline-none focus:ring-2 focus:ring-teal-500
+                                        placeholder-teal-500 transition-all duration-300"
+                                        required
+                                    />
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-2 gap-2">
+                                    {Object.entries(formData.price).map(([key, value]) => (
+                                        <div key={key} className="relative">
+                                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-teal-400">$</span>
+                                            <input
+                                                type="number"
+                                                value={value}
+                                                onChange={(e) => updateFormData({
+                                                    price: {
+                                                        ...formData.price,
+                                                        [key]: e.target.value ? parseFloat(e.target.value) : 0
+                                                    }
+                                                })}
+                                                placeholder={key}
+                                                min="0"
+                                                step="0.01"
+                                                className="w-full pl-6 pr-3 py-2 bg-teal-800 border border-teal-700 rounded text-teal-100
+                                                focus:outline-none focus:ring-2 focus:ring-teal-500
+                                                placeholder-teal-500 transition-all duration-300"
+                                                required
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
 

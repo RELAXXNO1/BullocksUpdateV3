@@ -12,7 +12,13 @@ interface CartItem {
     product: {
         id?: string;
         name: string;
-        price?: number;
+        price?: number | {
+            '1.75g': number;
+            '3.5g': number;
+            '7g': number;
+            '14g': number;
+            '1oz': number;
+        };
         images?: string[];
     };
     quantity: number;
@@ -25,9 +31,10 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ closeCart }) => {
     const navigate = useNavigate();
 
     const calculateTotal = useCallback(() => {
-        return cart.reduce((sum, item) => 
-            sum + (item.product?.price || 0) * item.quantity, 0
-        );
+        return cart.reduce((sum, item) => {
+            const price = typeof item.product?.price === 'number' ? item.product.price : Math.min(...Object.values(item.product?.price || {}));
+            return sum + (price || 0) * item.quantity;
+        }, 0);
     }, [cart]);
 
     useEffect(() => {
@@ -175,7 +182,7 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ closeCart }) => {
                                                     </h3>
                                                     <p className="bg-gradient-to-r from-teal-300 to-teal-200 
                                                               bg-clip-text text-transparent font-medium">
-                                                        ${item.product.price?.toFixed(2)}
+                                                        ${typeof item.product.price === 'number' ? item.product.price.toFixed(2) : Math.min(...Object.values(item.product.price || {})).toFixed(2)}
                                                     </p>
                                                 </div>
                                             </div>
@@ -236,7 +243,7 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ closeCart }) => {
                             <span className="text-gray-400">Total: </span>
                             <span className="bg-gradient-to-r from-teal-300 to-teal-100 
                                          bg-clip-text text-transparent">
-                                ${total.toFixed(2)}
+                                ${typeof total === 'number' ? total.toFixed(2) : total}
                             </span>
                         </h3>
                     </div>

@@ -6,14 +6,22 @@ interface CartItemProps {
         product: {
             id?: string;
             name: string;
-            price: number;
+            price: number | { [key: string]: number };
             images?: string[];
         };
         quantity: number;
     };
-    onRemove: (productId: string | undefined) => void;
-    onQuantityChange: (productId: string | undefined, quantity: number) => void;
+    onRemove: (productId: string) => void;
+    onQuantityChange: (productId: string, quantity: number) => void;
 }
+
+const getPrice = (price: number | { [key: string]: number }): number => {
+    if (typeof price === 'number') {
+        return price;
+    }
+    // If it's an object, return the first value
+    return Object.values(price)[0];
+};
 
 const CartItem: React.FC<CartItemProps> = ({ item, onRemove, onQuantityChange }) => {
     const handleIncrement = () => {
@@ -40,7 +48,7 @@ const CartItem: React.FC<CartItemProps> = ({ item, onRemove, onQuantityChange })
                 <img src={item.product.images?.[0] || '/placeholder-product.png'} alt={item.product.name} className="h-14 w-14 object-cover rounded-md" />
                 <div>
                     <h3 className="text-white font-medium">{item.product.name}</h3>
-                    <p className="text-gray-400 text-sm">${item.product.price?.toFixed(2)}</p>
+                    <p className="text-gray-400 text-sm">${getPrice(item.product.price).toFixed(2)}</p>
                 </div>
             </div>
             <div className="flex items-center space-x-4">

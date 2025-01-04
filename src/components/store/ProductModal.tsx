@@ -3,7 +3,6 @@ import { motion } from 'framer-motion';
 import { X, MapPin } from 'lucide-react';
 import { Product } from '../../types/product';
 import { useCart } from '../../contexts/CartContext';
-import { useCartToggle } from '../../contexts/CartToggleContext';
 import { db } from '../../lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { cropImageToSquare } from '../../utils/imageUtils';
@@ -19,8 +18,8 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
   const [croppedImageUrl, setCroppedImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const { addToCart } = useCart();
-  const { isCartEnabled } = useCartToggle();
   const [promo, setPromo] = useState<any>(null);
+  const [quantity] = useState(1);
 
   useEffect(() => {
     const fetchPromo = async () => {
@@ -43,11 +42,10 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
           const cropped = await cropImageToSquare(product.images[currentImageIndex]);
           setCroppedImageUrl(cropped);
         } catch (error) {
-          console.error("Error cropping image:", error);
           setCroppedImageUrl(product.images[currentImageIndex]);
         }
       } else {
-         setCroppedImageUrl('/placeholder.png');
+        setCroppedImageUrl('/placeholder.png');
       }
       setLoading(false);
     };
@@ -55,13 +53,13 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
   }, [product.images, currentImageIndex]);
 
   const handleNextImage = () => {
-    setCurrentImageIndex((prev) => 
+    setCurrentImageIndex((prev) =>
       (prev + 1) % (product.images?.length || 1)
     );
   };
 
   const handlePrevImage = () => {
-    setCurrentImageIndex((prev) => 
+    setCurrentImageIndex((prev) =>
       prev === 0 ? (product.images?.length || 1) - 1 : prev - 1
     );
   };
@@ -71,8 +69,9 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
   };
 
   const handleAddToCart = () => {
-    addToCart(product);
+    addToCart({...product, cartImage: product.images?.[currentImageIndex] || '/placeholder.png', quantity: quantity});
   };
+
 
   return (
     <div
@@ -90,13 +89,13 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 h-full">
           {/* Image Section */}
           <div className="relative bg-slate-900 flex items-center justify-center">
-            <button 
+            <button
               onClick={handlePrevImage}
               className="absolute left-4 top-1/2 -translate-y-1/2 bg-slate-700/50 p-2 rounded-full hover:bg-slate-600/50 z-20"
             >
               ←
             </button>
-            <button 
+            <button
               onClick={handleNextImage}
               className="absolute right-4 top-1/2 -translate-y-1/2 bg-slate-700/50 p-2 rounded-full hover:bg-slate-600/50 z-20"
             >
@@ -114,30 +113,45 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
               />
             )}
           </div>
-
-          {/* Details Section */}
-          <div className="p-6 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800">
-            <div className="flex justify-between items-start mb-6">
+          {/* Product Details */}
+          <div className="p-4 sm:p-6 flex flex-col justify-between">
+            <div className="flex justify-between items-start mb-4">
               <div>
-                <h2 className="text-2xl font-bold text-white mb-2">{product.name}</h2>
-                {promo && (
-                  <>
-                    {promo.product && (
-                      <div className="text-primary-500 text-sm font-bold mb-1">
-                        {promo.product}
-                      </div>
+                <h2 className="text-2xl font-bold text-slate-200 mb-1">{product.name}</h2>
+                {promo && promo.discount && (
+                  <div className="flex items-center gap-2">
+                    {typeof product.price === 'number' ? (
+                      <>
+                        <span className="text-gray-400 line-through text-sm opacity-75">
+                          ${product.price.toFixed(2)}
+                        </span>
+                        <span className="text-emerald-500 text-xl font-semibold">
+                          ${(product.price * (1 - promo.discount / 100)).toFixed(2)}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-gray-400 line-through text-sm opacity-75">
+                          ${Math.min(...Object.values(product.price)).toFixed(2)}
+                        </span>
+                        <span className="text-emerald-500 text-xl font-semibold">
+                          ${(Math.min(...Object.values(product.price)) * (1 - promo.discount / 100)).toFixed(2)}
+                        </span>
+                      </>
                     )}
-                    {promo.discount && (
-                      <div className="text-primary-500 text-sm font-bold mb-1">
-                        {promo.discount}% Off
-                      </div>
-                    )}
-                  </>
+                    <span className="bg-primary-500 text-white text-xs font-bold px-2 py-1 rounded-md">
+                      {promo.discount}% OFF
+                    </span>
+                  </div>
                 )}
-                <p className="text-emerald-500 text-xl font-semibold">${product.price.toFixed(2)}</p>
+                {!promo || !promo.discount && (
+                  <p className="text-emerald-500 text-xl font-semibold">
+                    ${typeof product.price === 'number' ? product.price.toFixed(2) : Math.min(...Object.values(product.price)).toFixed(2)}
+                  </p>
+                )}
               </div>
-              <button 
-                onClick={onClose} 
+              <button
+                onClick={onClose}
                 className="text-slate-400 hover:text-white transition-colors"
               >
                 <X className="h-6 w-6" />
@@ -146,7 +160,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
 
             <div className="mb-6">
               <h3 className="text-xl font-semibold text-slate-200 mb-2">Description</h3>
-              <p 
+              <p
                 className="text-slate-400"
                 dangerouslySetInnerHTML={{ __html: applyKeywordStyling(product.description || '') }}
               />
@@ -157,12 +171,12 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
                 <h3 className="text-xl font-semibold text-slate-200 mb-4">Product Details</h3>
                 <div className="grid grid-cols-2 gap-4">
                   {Object.entries(product.attributes || {}).map(([key, value]) => {
-                    const displayValue = key.toLowerCase() === 'infused' 
-                      ? ((typeof value === 'number' && value === 1) || 
-                         (typeof value === 'boolean' && value === true) || 
-                         (typeof value === 'string' && (value === 'true' || value === '1'))
-                            ? 'Yes, Professionally Infused' 
-                            : 'Not Infused')
+                    const displayValue = key.toLowerCase() === 'infused'
+                      ? ((typeof value === 'number' && value === 1) ||
+                        (typeof value === 'boolean' && value === true) ||
+                        (typeof value === 'string' && (value === 'true' || value === '1'))
+                        ? 'Yes, Professionally Infused'
+                        : 'Not Infused')
                       : String(value);
 
                     return (
@@ -181,31 +195,18 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
             )}
 
             <div className="space-y-4">
-              {isCartEnabled ? (
-                <button
-                  onClick={handleAddToCart}
-                  className="w-full bg-emerald-600/10 text-emerald-400 py-3 rounded-lg 
-                    flex items-center justify-center gap-2 
-                    hover:bg-emerald-600/20 transition-colors
-                    font-semibold border border-emerald-500/30"
-                >
-                  <MapPin className="h-5 w-5" />
-                  Add to Cart
-                </button>
-              ) : (
-                <a
-                  href="https://www.google.com/maps/search/bullocks+smoke+shop"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full bg-emerald-600/10 text-emerald-400 py-3 rounded-lg 
-                    flex items-center justify-center gap-2 
-                    hover:bg-emerald-600/20 transition-colors
-                    font-semibold border border-emerald-500/30"
-                >
-                  <MapPin className="h-5 w-5" />
-                  Come Pick it Up
-                </a>
-              )}
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.02 }}
+                onClick={handleAddToCart}
+                className="w-full bg-emerald-600/10 text-emerald-400 py-3 rounded-lg
+                  flex items-center justify-center gap-2
+                  hover:bg-emerald-600/20 transition-colors
+                  font-semibold border border-emerald-500/30"
+              >
+                <MapPin className="h-5 w-5" />
+                Add to Cart
+              </motion.button>
             </div>
           </div>
         </div>

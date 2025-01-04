@@ -16,7 +16,7 @@
     "target": "ES2020",
     "useDefineForClassFields": true,
     "lib": [
-      "ESNext",  // Changed from "ES2020" to "ESNext" for broader compatibility with newer features
+      "ES2020",
       "DOM",
       "DOM.Iterable"
     ],

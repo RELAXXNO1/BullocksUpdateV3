@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Product } from '../../types/product';
 import { MapPin } from 'lucide-react';
 import ProductModal from '../store/ProductModal';
 import { useCart } from '../../contexts/CartContext';
-import { useCartToggle } from '../../contexts/CartToggleContext';
 import { db } from '../../lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 
@@ -16,9 +15,7 @@ interface ProductGridProps {
 const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { addToCart } = useCart();
-  const { isCartEnabled } = useCartToggle();
   const [promo, setPromo] = useState<any>(null);
-  const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchPromo = async () => {
@@ -35,7 +32,13 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
-    addToCart(product);
+    addToCart({...product, cartImage: product.images?.[0] || '/placeholder-product.png', quantity: 1});
+    
+    const button = e.currentTarget;
+    button.classList.add('animate-pulse');
+    setTimeout(() => {
+      button.classList.remove('animate-pulse');
+    }, 300);
   };
 
   return (
@@ -47,7 +50,6 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5 }}
       >
-        {/* Image Container with Overlay */}
         <div className="relative aspect-square overflow-hidden">
           <img 
             src={product.images?.[0] || '/placeholder-product.png'} 
@@ -79,12 +81,25 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
               {promo?.discount ? (
                 <div className="flex items-center gap-2">
                   <div className="flex flex-col">
-                    <span className="text-gray-400 line-through text-sm opacity-75">
-                      ${product.price.toFixed(2)}
-                    </span>
-                    <span className="text-teal-500 font-bold text-base sm:text-lg">
-                      ${(product.price * (1 - promo.discount / 100)).toFixed(2)}
-                    </span>
+                    {typeof product.price === 'number' ? (
+                      <>
+                        <span className="text-gray-400 line-through text-sm opacity-75">
+                          ${product.price.toFixed(2)}
+                        </span>
+                        <span className="text-teal-500 font-bold text-base sm:text-lg">
+                          ${(product.price * (1 - promo.discount / 100)).toFixed(2)}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-gray-400 line-through text-sm opacity-75">
+                          ${Math.min(...Object.values(product.price)).toFixed(2)} - ${Math.max(...Object.values(product.price)).toFixed(2)}
+                        </span>
+                        <span className="text-teal-500 font-bold text-base sm:text-lg">
+                          ${(Math.min(...Object.values(product.price)) * (1 - promo.discount / 100)).toFixed(2)} - ${(Math.max(...Object.values(product.price)) * (1 - promo.discount / 100)).toFixed(2)}
+                        </span>
+                      </>
+                    )}
                   </div>
                   <span className="bg-primary-500 text-white text-xs font-bold px-2 py-1 rounded-md">
                     {promo.discount}% OFF
@@ -92,7 +107,7 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
                 </div>
               ) : (
                 <span className="text-teal-500 font-semibold text-base sm:text-lg">
-                  ${product.price.toFixed(2)}
+                  ${typeof product.price === 'number' ? product.price.toFixed(2) : `${Math.min(...Object.values(product.price)).toFixed(2)} - ${Math.max(...Object.values(product.price)).toFixed(2)}`}
                 </span>
               )}
             </div>
@@ -100,25 +115,13 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
           
           {/* Cart/Location Button */}
           <div className="mt-2">
-            {isCartEnabled ? (
-              <button
-                onClick={handleAddToCart}
-                className="w-full text-teal-400 hover:text-teal-300 text-xs italic flex items-center justify-center bg-teal-500/10 rounded-md py-1.5 hover:bg-teal-500/20 transition-colors"
-              >
-                <MapPin className="h-3 w-3 mr-0.5" />
-                Add to Cart
-              </button>
-            ) : (
-              <a
-                href="https://www.google.com/maps/search/bullocks+smoke+shop"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full text-teal-400 hover:text-teal-300 text-xs italic flex items-center justify-center bg-teal-500/10 rounded-md py-1.5 hover:bg-teal-500/20 transition-colors"
-              >
-                <MapPin className="h-3 w-3 mr-0.5" />
-                Come Pick it Up
-              </a>
-            )}
+            <button
+              onClick={handleAddToCart}
+              className="w-full text-teal-400 hover:text-teal-300 text-xs italic flex items-center justify-center bg-teal-500/10 rounded-md py-1.5 hover:bg-teal-500/20 transition-colors"
+            >
+              <MapPin className="h-3 w-3 mr-0.5" />
+              Add to Cart
+            </button>
           </div>
         </div>
       </motion.div>
