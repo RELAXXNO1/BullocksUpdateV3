@@ -29,7 +29,6 @@ export default function UserMenu({ isOpen, onClose, closeMenu, showAdminLink }: 
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,theme(colors.teal.500/0.1),transparent_70%)]" />
                     <div className="relative z-10">
                         <button onClick={() => {
-                            console.log('onClose called');
                             closeMenu();
                         }} className="absolute top-2 right-2 text-gray-400 hover:text-gray-300 focus:outline-none" aria-label="Close modal">
                             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -58,6 +57,11 @@ export default function UserMenu({ isOpen, onClose, closeMenu, showAdminLink }: 
                                 >
                                     Log Out
                                 </button>
+                                <a
+                                    href="mailto:high10.verify@gmail.com"
+                                    className="block px-4 py-2 text-white hover:bg-dark-500 rounded-md mt-2"
+                                >
+                                </a>
                             </>
                         )}
                     </div>

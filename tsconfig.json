@@ -3,10 +3,10 @@
   "compilerOptions": {
     "baseUrl": "./",
     "paths": {
-      "@/*": ["src/*"],
-      "@/components/*": ["src/components/*"],
-      "@/components/ui/*": ["src/components/ui/*"],
-      "@/pages/*": ["src/pages/*"]
+      "'*'": ["src/*"],
+      "'components/*'": ["src/components/*"],
+      "'components/ui/*'": ["src/components/ui/*"],
+      "'pages/*'": ["src/pages/*"]
     },
     "outDir": "./dist/out-tsc",
     "sourceMap": true,
@@ -16,8 +16,8 @@
     "target": "ES2020",
     "useDefineForClassFields": true,
     "lib": [
-      "ES2020", 
-      "DOM", 
+      "ESNext",  // Changed from "ES2020" to "ESNext" for broader compatibility with newer features
+      "DOM",
       "DOM.Iterable"
     ],
     "module": "ESNext",
@@ -45,6 +45,12 @@
     "typeRoots": [
       "./node_modules/@types",
       "./src/types"
+    ],
+    "types": [
+      "react",
+      "@types/react",
+      "node",
+      "react-router-dom"
     ]
   },
   "include": [

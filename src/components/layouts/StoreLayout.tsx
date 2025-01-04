@@ -1,5 +1,5 @@
 import { Outlet } from 'react-router-dom';
-import StoreHeader from '../store/StoreHeader';
+import { StoreHeader } from '../store/StoreHeader';
 import StoreFooter from '../store/StoreFooter';
 import AgeVerification from '../AgeVerification';
 import CategorySidebar from '../store/CategorySidebar';

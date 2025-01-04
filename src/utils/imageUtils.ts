@@ -57,10 +57,10 @@ export function getContrastingColor(color: string): string {
 }
 
 export async function cropImageToSquare(imageUrl: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = 'Anonymous';
-    img.src = imageUrl;
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'Anonymous';
+        img.src = imageUrl;
 
     img.onload = () => {
       const canvas = document.createElement('canvas');
