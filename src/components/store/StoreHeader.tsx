@@ -153,17 +153,19 @@ export const StoreHeader = memo(({ className = '' }: HeaderProps) => {
           className="flex items-center transform transition-transform hover:scale-105"
           aria-label="High10 Wellness Home"
         >
-          <motion.img
-            src={LOGO_PATH}
-            alt="High10 Wellness Logo"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, type: 'spring' }}
-            className="h-16 mr-4 drop-shadow-[0_0_8px_theme(colors.teal.500)] md:h-12"
-            loading="eager"
-            width={64}
-            height={64}
-          />
+          <div className="hidden sm:flex items-center">
+            <motion.img
+              src={LOGO_PATH}
+              alt="High10 Wellness Logo"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, type: 'spring' }}
+              className="h-16 mr-4 drop-shadow-[0_0_8px_theme(colors.teal.500)] md:h-12"
+              loading="eager"
+              width={64}
+              height={64}
+            />
+          </div>
             <span className="font-extrabold text-2xl tracking-wider uppercase md:text-xl">
               <span className="text-black drop-shadow-[0_0_4px_theme(colors.teal.500)]">High</span>
               <span className="text-teal-500 drop-shadow-[0_0_4px_black] text-shadow-[0_0_2px_black]">10</span>
@@ -195,8 +197,10 @@ export const StoreHeader = memo(({ className = '' }: HeaderProps) => {
 
         <nav className="flex items-center space-x-8 text-lg font-semibold text-gray-100 md:space-x-4" role="navigation"> {/* Reduced space-x */}
           <div role="menu" className="flex items-center space-x-8 md:space-x-4 md:flex-wrap">
-            <NavLink to="/products">Products</NavLink>
-            <NavLink to="mailto:high10.verify@gmail.com">Contact Us</NavLink>
+            <div className="hidden sm:block">
+              <NavLink to="/products">Products</NavLink>
+              <NavLink to="mailto:high10.verify@gmail.com">Contact Us</NavLink>
+            </div>
             {!user && <NavLink to="/login">Sign In</NavLink>}
           </div>
           <div className="flex items-center space-x-4 md:space-x-2">
