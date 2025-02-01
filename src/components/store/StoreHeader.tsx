@@ -198,8 +198,6 @@ export const StoreHeader = memo(({ className = '' }: HeaderProps) => {
         <nav className="flex items-center space-x-8 text-lg font-semibold text-gray-100 md:space-x-4" role="navigation"> {/* Reduced space-x */}
           <div role="menu" className="flex items-center space-x-8 md:space-x-4 md:flex-wrap">
             <div className="hidden sm:block">
-              <NavLink to="/products">Products</NavLink>
-              <NavLink to="mailto:high10.verify@gmail.com">Contact Us</NavLink>
             </div>
             {!user && <NavLink to="/login">Sign In</NavLink>}
           </div>

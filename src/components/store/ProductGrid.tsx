@@ -34,11 +34,14 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
     e.stopPropagation();
     addToCart({...product, cartImage: product.images?.[0] || '/placeholder-product.png', quantity: 1});
     
-    const button = e.currentTarget;
-    button.classList.add('animate-pulse');
-    setTimeout(() => {
-      button.classList.remove('animate-pulse');
-    }, 300);
+    const card = e.currentTarget.closest('.product-card');
+    if (card) {
+      card.classList.add('animate-scale-up');
+      setTimeout(() => {
+        card.classList.remove('animate-scale-up');
+      }, 300);
+    }
+    console.log('add to cart clicked')
   };
 
   return (

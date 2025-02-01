@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useCart } from '../../contexts/CartContext';
 import CartItem from './CartItem';
+import { useNavigate } from 'react-router-dom';
 
 interface CartModalProps {
   onClose: () => void;
@@ -11,6 +12,7 @@ interface CartModalProps {
 const CartModal: React.FC<CartModalProps> = ({ onClose, cartIconRef }) => {
   const modalRef = useRef<HTMLDivElement>(null);
   const { cart, removeFromCart, updateQuantity } = useCart();
+  const navigate = useNavigate();
 
   // Function to handle closing the modal when clicking outside
   const handleClickOutside = useCallback((event: MouseEvent) => {
@@ -119,7 +121,14 @@ const CartModal: React.FC<CartModalProps> = ({ onClose, cartIconRef }) => {
             <span className="block text-gray-100 drop-shadow-[0_0_2px_teal-500]">Continue Shopping</span>
             <span className="absolute bottom-0 left-0 w-full h-0.5 bg-teal-300 transform scale-x-0 origin-left transition-transform duration-300 group-hover:scale-x-100" aria-hidden="true" />
           </button>
-          <button className="hover:text-teal-300 transition-colors duration-200 relative group overflow-hidden bg-dark-600/50 rounded-md px-3 py-2 before:absolute before:inset-0 before:bg-teal-500/10 before:opacity-0 before:transition-opacity before:rounded-md hover:before:opacity-100 active:before:opacity-20 text-white">
+          <button 
+            onClick={() => {
+              navigate('/order', { state: { total: cart.reduce((sum, item) => {
+                const price = typeof item.product?.price === 'number' ? item.product.price : Math.min(...Object.values(item.product?.price || {}));
+                return sum + (price || 0) * item.quantity;
+              }, 0), items: cart }});
+            }}
+            className="hover:text-teal-300 transition-colors duration-200 relative group overflow-hidden bg-dark-600/50 rounded-md px-3 py-2 before:absolute before:inset-0 before:bg-teal-500/10 before:opacity-0 before:transition-opacity before:rounded-md hover:before:opacity-100 active:before:opacity-20 text-white">
             <span className="block text-gray-100 drop-shadow-[0_0_2px_teal-500]">Checkout</span>
             <span className="absolute bottom-0 left-0 w-full h-0.5 bg-teal-300 transform scale-x-0 origin-left transition-transform duration-300 group-hover:scale-x-100" aria-hidden="true" />
           </button>

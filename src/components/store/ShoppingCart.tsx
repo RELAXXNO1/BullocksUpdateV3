@@ -249,8 +249,6 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ closeCart }) => {
                     </div>
                     <div className="flex flex-col space-y-3">
                         <motion.button
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
                             onClick={handleCheckout}
                             className="w-full bg-gradient-to-r from-teal-600 to-teal-500 
                                      hover:from-teal-500 hover:to-teal-400 text-white font-medium 

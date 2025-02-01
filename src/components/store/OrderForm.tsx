@@ -3,6 +3,8 @@ import PhoneInput from 'react-phone-number-input';
 import { motion } from 'framer-motion';
 import { Clock, User, Phone, Mail, X, ShoppingBag } from 'lucide-react';
 import 'react-phone-number-input/style.css';
+import { useCart } from '../../contexts/CartContext';
+import { useNavigate } from 'react-router-dom';
 
 interface OrderFormProps {
     onClose: () => void;
@@ -12,20 +14,30 @@ interface OrderFormProps {
 
 export interface OrderData {
     name: string;
-    phone: string;
-    email?: string;
+    phone?: string;
+    email: string;
     pickupTime: string;
+    cardName?: string;
+    cardNumber?: string;
+    cardExpiry?: string;
+    cardCvv?: string;
 }
 
 const OrderForm: React.FC<OrderFormProps> = ({ onClose, onSubmit, total }) => {
+    const { cart } = useCart();
     const [formData, setFormData] = useState<OrderData>({
         name: '',
         phone: '',
         email: '',
-        pickupTime: ''
+        pickupTime: '',
+        cardName: '',
+        cardExpiry: '',
+        cardCvv: ''
     });
     const [errors, setErrors] = useState<Partial<Record<keyof OrderData, string>>>({});
     const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
+    const [loading, setLoading] = useState(false);
+    const navigate = useNavigate();
 
     // Generate available time slots for the next 7 days
     useEffect(() => {
@@ -60,28 +72,57 @@ const OrderForm: React.FC<OrderFormProps> = ({ onClose, onSubmit, total }) => {
             newErrors.name = 'Name is required';
         }
         
-        if (!formData.phone) {
-            newErrors.phone = 'Phone number is required';
-        } else if (formData.phone.length < 10) {
+        if (formData.phone && formData.phone.length < 10) {
             newErrors.phone = 'Please enter a valid phone number';
         }
         
-        if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        if (!formData.email) {
+            newErrors.email = 'Email is required';
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
             newErrors.email = 'Please enter a valid email address';
         }
         
         if (!formData.pickupTime) {
             newErrors.pickupTime = 'Please select a pickup time';
         }
+
+        if (!formData.cardName?.trim()) {
+            newErrors.cardName = 'Name on card is required';
+        }
+
+        if (!formData.cardNumber?.trim()) {
+            newErrors.cardNumber = 'Card number is required';
+        } else if (formData.cardNumber.length !== 16 || !/^\d+$/.test(formData.cardNumber)) {
+            newErrors.cardNumber = 'Please enter a valid 16-digit card number';
+        }
+
+        if (!formData.cardExpiry?.trim()) {
+            newErrors.cardExpiry = 'Card expiry is required';
+        }
+
+        if (!formData.cardCvv?.trim()) {
+            newErrors.cardCvv = 'Card CVV is required';
+        }
         
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (validateForm()) {
-            onSubmit(formData);
+            setLoading(true);
+            await onSubmit(formData);
+            // Send email receipt
+            if (formData.email) {
+                console.log('Sending email receipt to:', formData.email);
+                // Placeholder for email sending logic
+                // In a real application, you would use a service like SendGrid or Nodemailer
+                // to send the email.
+            }
+             onClose();
+             navigate('/store', { replace: true });
+            setLoading(false);
         }
     };
 
@@ -209,6 +250,102 @@ const OrderForm: React.FC<OrderFormProps> = ({ onClose, onSubmit, total }) => {
                         )}
                     </div>
 
+                    {/* Name on Card Input */}
+                    <div className="space-y-2">
+                        <label className="flex items-center gap-2 text-gray-300 text-sm font-medium">
+                            <User className="w-4 h-4" />
+                            Name on Card
+                        </label>
+                        <input
+                            type="text"
+                            value={formData.cardName}
+                            onChange={(e) => handleInputChange('cardName', e.target.value)}
+                            className="w-full bg-white/5 text-white rounded-lg p-3 
+                                     border border-white/10 focus:border-emerald-500/50 
+                                     focus:ring-2 focus:ring-emerald-500/20 focus:outline-none
+                                     transition-all duration-300"
+                            placeholder="Enter name on card"
+                        />
+                        {errors.cardName && (
+                            <p className="text-red-400 text-sm flex items-center gap-1">
+                                <span className="w-1 h-1 bg-red-400 rounded-full"></span>
+                                {errors.cardName}
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Card Number Input */}
+                    <div className="space-y-2">
+                        <label className="flex items-center gap-2 text-gray-300 text-sm font-medium">
+                            <Clock className="w-4 h-4" />
+                            Card Number
+                        </label>
+                        <input
+                            type="text"
+                            value={formData.cardNumber}
+                            onChange={(e) => handleInputChange('cardNumber', e.target.value)}
+                            className="w-full bg-white/5 text-white rounded-lg p-3 
+                                     border border-white/10 focus:border-emerald-500/50 
+                                     focus:ring-2 focus:ring-emerald-500/20 focus:outline-none
+                                     transition-all duration-300"
+                            placeholder="Enter 16-digit card number"
+                        />
+                         {errors.cardNumber && (
+                            <p className="text-red-400 text-sm flex items-center gap-1">
+                                <span className="w-1 h-1 bg-red-400 rounded-full"></span>
+                                {errors.cardNumber}
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Expiration Date Input */}
+                    <div className="space-y-2">
+                        <label className="flex items-center gap-2 text-gray-300 text-sm font-medium">
+                            <Clock className="w-4 h-4" />
+                            Expiration Date
+                        </label>
+                        <input
+                            type="text"
+                            value={formData.cardExpiry}
+                            onChange={(e) => handleInputChange('cardExpiry', e.target.value)}
+                            className="w-full bg-white/5 text-white rounded-lg p-3 
+                                     border border-white/10 focus:border-emerald-500/50 
+                                     focus:ring-2 focus:ring-emerald-500/20 focus:outline-none
+                                     transition-all duration-300"
+                            placeholder="MM/YY"
+                        />
+                        {errors.cardExpiry && (
+                            <p className="text-red-400 text-sm flex items-center gap-1">
+                                <span className="w-1 h-1 bg-red-400 rounded-full"></span>
+                                {errors.cardExpiry}
+                            </p>
+                        )}
+                    </div>
+
+                    {/* CVV Input */}
+                    <div className="space-y-2">
+                        <label className="flex items-center gap-2 text-gray-300 text-sm font-medium">
+                            <Clock className="w-4 h-4" />
+                            CVV
+                        </label>
+                        <input
+                            type="text"
+                            value={formData.cardCvv}
+                            onChange={(e) => handleInputChange('cardCvv', e.target.value)}
+                            className="w-full bg-white/5 text-white rounded-lg p-3 
+                                     border border-white/10 focus:border-emerald-500/50 
+                                     focus:ring-2 focus:ring-emerald-500/20 focus:outline-none
+                                     transition-all duration-300"
+                            placeholder="Enter 3-digit code"
+                        />
+                         {errors.cardCvv && (
+                            <p className="text-red-400 text-sm flex items-center gap-1">
+                                <span className="w-1 h-1 bg-red-400 rounded-full"></span>
+                                {errors.cardCvv}
+                            </p>
+                        )}
+                    </div>
+
                     {/* Pickup Time Selection */}
                     <div className="space-y-2">
                         <label className="flex items-center gap-2 text-gray-300 text-sm font-medium">
@@ -240,8 +377,17 @@ const OrderForm: React.FC<OrderFormProps> = ({ onClose, onSubmit, total }) => {
 
                     {/* Order Summary */}
                     <div className="mt-6 p-4 bg-white/5 rounded-lg border border-white/10">
-                        <div className="flex justify-between items-center">
-                            <span className="text-gray-300">Total Amount:</span>
+                        <h3 className="text-lg font-semibold text-gray-300 mb-2">Order Summary</h3>
+                        <ul className="mb-4">
+                            {cart.map((item) => (
+                                <li key={item.product.id} className="flex justify-between items-center py-1">
+                                    <span className="text-gray-400">{item.product.name} x {item.quantity}</span>
+                                    <span className="text-gray-300">${(Number(item.product.price) * item.quantity).toFixed(2)}</span>
+                                </li>
+                            ))}
+                        </ul>
+                        <div className="flex justify-between items-center border-t border-white/10 pt-2">
+                            <span className="text-gray-300 font-medium">Total:</span>
                             <span className="text-xl font-semibold bg-gradient-to-r 
                                          from-emerald-300 to-emerald-100 bg-clip-text 
                                          text-transparent">
@@ -258,17 +404,20 @@ const OrderForm: React.FC<OrderFormProps> = ({ onClose, onSubmit, total }) => {
                             className="flex-1 bg-white/5 hover:bg-white/10 text-gray-300 
                                      font-medium py-3 px-4 rounded-lg transition-all duration-300
                                      border border-white/10 hover:border-white/20"
+                            disabled={loading}
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
-                            className="flex-1 bg-gradient-to-r from-emerald-600 to-emerald-500 
+                            className={`flex-1 bg-gradient-to-r from-emerald-600 to-emerald-500 
                                      hover:from-emerald-500 hover:to-emerald-400 text-white 
                                      font-medium py-3 px-4 rounded-lg transition-all duration-300
-                                     shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40"
+                                     shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40
+                                     ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            disabled={loading}
                         >
-                            Confirm Order
+                            {loading ? 'Processing...' : 'Confirm Order'}
                         </button>
                     </div>
                 </form>

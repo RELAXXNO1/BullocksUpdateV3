@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -11,6 +11,8 @@ import {
   Bot, 
   Image
 } from 'lucide-react';
+import { db } from '../../lib/firebase';
+import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
 
 interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
@@ -59,6 +61,29 @@ const NAV_ITEMS: NavItem[] = [
 
 export default function FloatingSidebar() {
   const [activeModal, setActiveModal] = useState<string | null>(null);
+  const [unseenOrderCount, setUnseenOrderCount] = useState(0);
+
+  useEffect(() => {
+    const fetchUnseenOrders = async () => {
+      const ordersRef = collection(db, 'orders');
+      const q = query(ordersRef, where('seen', '==', false));
+      const querySnapshot = await getDocs(q);
+      setUnseenOrderCount(querySnapshot.size);
+    };
+
+    fetchUnseenOrders();
+  }, []);
+
+  const handleOrdersClick = async () => {
+    const ordersRef = collection(db, 'orders');
+    const q = query(ordersRef, where('seen', '==', false));
+    const querySnapshot = await getDocs(q);
+
+    querySnapshot.forEach(async (docSnap) => {
+      await updateDoc(doc(db, 'orders', docSnap.id), { seen: true });
+    });
+    setUnseenOrderCount(0);
+  };
 
   return (
     <>
@@ -91,6 +116,7 @@ export default function FloatingSidebar() {
               <Link to={item.path || ''}
                 onMouseEnter={() => setActiveModal(item.label)}
                 onMouseLeave={() => setActiveModal(null)}
+                 onClick={item.label === 'Orders' ? handleOrdersClick : undefined}
                 className={`
                   flex items-center justify-center p-2 rounded-full
                   bg-dark-500 shadow-md transition-all duration-200
@@ -101,6 +127,11 @@ export default function FloatingSidebar() {
                 title={item.label}
               >
                 <item.icon className="h-5 w-5 text-teal-400 shadow-md transition-colors" />
+                 {item.label === 'Orders' && unseenOrderCount > 0 && (
+                  <span className="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5">
+                    {unseenOrderCount}
+                  </span>
+                )}
                 <AnimatePresence>
                   {activeModal === item.label && (
                     <motion.div

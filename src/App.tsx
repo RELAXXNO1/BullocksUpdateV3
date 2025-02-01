@@ -15,6 +15,7 @@ import adminRoutes from './config/adminRoutes';
 import { useState, useEffect } from 'react';
 import THCAPopupModal from './components/store/THCAPopupModal';
 import Portal from './components/Portal';
+import OrderConfirmationPage from './pages/store/OrderConfirmationPage';
 
 // Lazy load components with descriptive chunk names
 const StoreLayout = lazy(() => import(/* webpackChunkName: "store-layout" */ './components/layouts/StoreLayout'));
@@ -86,6 +87,7 @@ export default function App() {
                       <Route path="thca-compliance" element={<THCACompliance />} />
                       <Route path="terms" element={<TermsOfService />} />
                       <Route path="order" element={React.createElement(lazy(() => import('./pages/store/OrderPage')))} />
+                      <Route path="/order-confirmation" element={<OrderConfirmationPage />} />
                     </Route>
                     
                      {/* Auth Routes */}
