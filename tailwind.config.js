@@ -154,7 +154,12 @@ export default {
         '.scrollbar-hide': {
           '-ms-overflow-style': 'none',
           'scrollbar-width': 'none'
-        }
+        },
+        '.hidden-sm': {
+          '@media (max-width: 640px)': {
+            display: 'none',
+          },
+        },
       }
       addUtilities(newUtilities)
     }

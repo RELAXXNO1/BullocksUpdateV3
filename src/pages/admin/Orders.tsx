@@ -48,10 +48,11 @@ const Orders: React.FC = () => {
                                 <th className="w-1/10 py-2 px-3 border border-slate-700 text-slate-300">Email</th>
                                 <th className="w-1/10 py-2 px-3 border border-slate-700 text-slate-300">Pickup Time</th>
                                 <th className="w-1/10 py-2 px-3 border border-slate-700 text-slate-300">Total</th>
-                                <th className="w-1/10 py-2 px-3 border border-slate-700 text-slate-300">Card Name</th>
-                                <th className="w-1/10 py-2 px-3 border border-slate-700 text-slate-300">Card Expiry</th>
-                                <th className="w-1/10 py-2 px-3 border border-slate-700 text-slate-300">Card CVV</th>
+                                <th className="w-1/10 py-2 px-3 border border-slate-700 text-slate-300 hidden-sm">Card Name</th>
+                                <th className="w-1/10 py-2 px-3 border border-slate-700 text-slate-300 hidden-sm">Card Expiry</th>
+                                <th className="w-1/10 py-2 px-3 border border-slate-700 text-slate-300 hidden-sm">Card CVV</th>
                                 <th className="w-1/10 py-2 px-3 border border-slate-700 text-slate-300">Items</th>
+                                <th className="w-1/10 py-2 px-3 border border-slate-700 text-slate-300">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="bg-slate-900">
@@ -96,7 +97,10 @@ const OrderRow: React.FC<{ order: any }> = ({ order }) => {
         }
     };
 
+    const [showDetails, setShowDetails] = useState(false);
+
     return (
+        <>
         <tr className="border-b border-slate-700 hover:bg-slate-700">
             <td className="py-2 px-3 border border-slate-700 text-slate-400">{order.id}</td>
             <td className="py-2 px-3 border border-slate-700 text-slate-400">{order.name}</td>
@@ -104,9 +108,9 @@ const OrderRow: React.FC<{ order: any }> = ({ order }) => {
             <td className="py-2 px-3 border border-slate-700 text-slate-400">{order.email || 'N/A'}</td>
             <td className="py-2 px-3 border border-slate-700 text-slate-400">{order.pickupTime}</td>
             <td className="py-2 px-3 border border-slate-700 text-slate-400">${order.total.toFixed(2)}</td>
-            <td className="py-2 px-3 border border-slate-700 text-slate-400">{order.cardName}</td>
-            <td className="py-2 px-3 border border-slate-700 text-slate-400">{order.cardExpiry}</td>
-            <td className="py-2 px-3 border border-slate-700 text-slate-400">{order.cardCvv}</td>
+            <td className="py-2 px-3 border border-slate-700 text-slate-400 hidden-sm">{order.cardName}</td>
+            <td className="py-2 px-3 border border-slate-700 text-slate-400 hidden-sm">{order.cardExpiry}</td>
+            <td className="py-2 px-3 border border-slate-700 text-slate-400 hidden-sm">{order.cardCvv}</td>
             <td className="py-2 px-3 border border-slate-700 text-slate-400">
                 <CartItemsList cart={order.cart} />
             </td>
@@ -118,8 +122,24 @@ const OrderRow: React.FC<{ order: any }> = ({ order }) => {
                 >
                     {shipping ? 'Shipping...' : 'Shipped'}
                 </button>
+                 <button
+                    onClick={() => setShowDetails(!showDetails)}
+                    className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded ml-2"
+                >
+                    {showDetails ? 'Hide Details' : 'Details'}
+                </button>
             </td>
         </tr>
+         {showDetails && (
+            <tr className="border-b border-slate-700 hover:bg-slate-700">
+                <td colSpan={11} className="py-2 px-3 border border-slate-700 text-slate-400">
+                    <p>Card Name: {order.cardName}</p>
+                    <p>Card Expiry: {order.cardExpiry}</p>
+                    <p>Card CVV: {order.cardCvv}</p>
+                </td>
+            </tr>
+        )}
+        </>
     );
 };
 
