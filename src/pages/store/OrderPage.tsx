@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Alert, AlertDescription, AlertTitle } from '../../components/ui/Alert';
 import { useToast } from '../../components/ui/use-toast';
 import { useAnalytics } from '../../hooks/useAnalytics';
+import { addOrder } from '../../lib/firebase';
 import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 import OrderConfirmationModal from '../../components/store/OrderConfirmationModal';
@@ -62,29 +63,28 @@ const OrderPage: React.FC = () => {
                 items: state.items
             });
 
-            const payload = {
-                ...orderData,
+             // Show success message
+            toast("Order Confirmed!", "success");
+
+            // Add order to Firestore
+            await addOrder({
+                name: orderData.name,
+                phone: orderData.phone,
+                email: orderData.email,
+                address: orderData.address,
+                city: orderData.city,
+                state: orderData.state,
+                zipCode: orderData.zipCode,
+                cardName: orderData.cardName,
+                cardExpiry: orderData.cardExpiry,
+                cardCvv: orderData.cardCvv,
                 cart: state.items,
                 total: state.total,
                 orderId: generateOrderId(),
                 timestamp: new Date().toISOString()
-            };
-
-            // Submit order to backend
-            const response = await submitOrder(payload);
-
-            // Track successful order
-            trackEvent('purchase', {
-                transaction_id: response.orderId,
-                value: state.total,
-                items: state.items
             });
-
-             // Show success message
-            toast("Order Confirmed!", "success");
         } catch (err) {
             const errorMessage = extractErrorMessage(err);
-            
             // Track failed order
             trackEvent('purchase_failed', {
                 error_message: errorMessage,

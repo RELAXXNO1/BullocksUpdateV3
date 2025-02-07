@@ -62,7 +62,7 @@ const trackEvent = (eventName: string, params?: Record<string, any>) => {
 export const addOrder = async (orderData: any) => {
   try {
     const ordersCollection = collection(db, 'orders');
-    await addDoc(ordersCollection, { ...orderData, seen: false });
+    await addDoc(ordersCollection, { ...orderData, seen: false, isShipped: false });
     console.log('Order added to Firestore');
   } catch (error) {
     console.error('Error adding order to Firestore:', error);

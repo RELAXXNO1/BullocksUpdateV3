@@ -12,6 +12,8 @@ interface CartContextProps {
   removeFromCart: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
+  animateCart: boolean;
+  triggerCartAnimation: () => void;
 }
 
 const CART_STORAGE_KEY = 'high10-cart';
@@ -28,6 +30,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
   }, [cart]);
 
+  const [animateCart, setAnimateCart] = useState(false);
+
+  const triggerCartAnimation = () => {
+    setAnimateCart(true);
+    setTimeout(() => setAnimateCart(false), 600);
+  };
+
   const addToCart = (product: Product) => {
     const existingItem = cart.find(item => item.product.id === product.id);
     if (existingItem) {
@@ -37,6 +46,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else {
       setCart([...cart, { product: {...product, cartImage: product.images?.[0] || '/placeholder.png'}, quantity: 1 }]);
     }
+    triggerCartAnimation();
   };
 
   const removeFromCart = (productId: string) => {
@@ -55,7 +65,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart }}>
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart, animateCart, triggerCartAnimation }}>
       {children}
     </CartContext.Provider>
   );

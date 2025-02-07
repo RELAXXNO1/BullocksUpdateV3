@@ -125,7 +125,21 @@ export default {
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
-        display: ['Poppins', 'system-ui', 'sans-serif']
+        display: ['Poppins', 'system-ui', 'sans-serif'],
+      },
+      tableLayout: {
+        'auto': 'auto',
+        'fixed': 'fixed',
+      },
+      extend: {
+        spacing: {
+          '1/5': '20%',
+          '1/6': '16.666667%',
+          '1/7': '14.285714%',
+          '1/8': '12.5%',
+          '1/9': '11.111111%',
+          '1/10': '10%',
+        }
       }
     },
   },

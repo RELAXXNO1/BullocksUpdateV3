@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 
 const Orders: React.FC = () => {
@@ -12,7 +12,7 @@ const Orders: React.FC = () => {
                 const ordersCollection = collection(db, 'orders');
                 const ordersSnapshot = await getDocs(ordersCollection);
                 const ordersList = ordersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                setOrders(ordersList);
+                setOrders(ordersList.filter(order => !('isShipped' in order) || order.isShipped !== true));
             } catch (error) {
                 console.error('Error fetching orders:', error);
             } finally {
@@ -39,23 +39,25 @@ const Orders: React.FC = () => {
                 <p className="text-slate-400">Loading orders...</p>
             ) : (
                 <div className="overflow-x-auto rounded-lg border border-slate-700">
-                    <table className="w-full text-left border-collapse border border-slate-700 text-slate-300">
+                    <table className="w-full table-fixed text-left border-collapse border border-slate-700 text-slate-300">
                         <thead className="bg-slate-700">
                             <tr>
-                                <th className="py-2 px-3 border border-slate-700 text-slate-300">Order ID</th>
-                                <th className="py-2 px-3 border border-slate-700 text-slate-300">Name</th>
-                                <th className="py-2 px-3 border border-slate-700 text-slate-300">Phone</th>
-                                <th className="py-2 px-3 border border-slate-700 text-slate-300">Email</th>
-                                <th className="py-2 px-3 border border-slate-700 text-slate-300">Pickup Time</th>
-                                <th className="py-2 px-3 border border-slate-700 text-slate-300">Total</th>
-                                <th className="py-2 px-3 border border-slate-700 text-slate-300">Items</th>
-                                <th className="py-2 px-3 border border-slate-700 text-slate-300">Cart</th>
+                                <th className="w-1/10 py-2 px-3 border border-slate-700 text-slate-300">Order ID</th>
+                                <th className="w-1/10 py-2 px-3 border border-slate-700 text-slate-300">Name</th>
+                                <th className="w-1/10 py-2 px-3 border border-slate-700 text-slate-300">Phone</th>
+                                <th className="w-1/10 py-2 px-3 border border-slate-700 text-slate-300">Email</th>
+                                <th className="w-1/10 py-2 px-3 border border-slate-700 text-slate-300">Pickup Time</th>
+                                <th className="w-1/10 py-2 px-3 border border-slate-700 text-slate-300">Total</th>
+                                <th className="w-1/10 py-2 px-3 border border-slate-700 text-slate-300">Card Name</th>
+                                <th className="w-1/10 py-2 px-3 border border-slate-700 text-slate-300">Card Expiry</th>
+                                <th className="w-1/10 py-2 px-3 border border-slate-700 text-slate-300">Card CVV</th>
+                                <th className="w-1/10 py-2 px-3 border border-slate-700 text-slate-300">Items</th>
                             </tr>
                         </thead>
                         <tbody className="bg-slate-900">
                             {orders.length === 0 ? (
                                 <tr className="text-slate-400">
-                                    <td colSpan={8} className="py-4 px-3 text-center">No orders yet.</td>
+                                    <td colSpan={11} className="py-4 px-3 text-center">No orders yet.</td>
                                 </tr>
                             ) : (
                                 orders.map(order => (
@@ -71,6 +73,29 @@ const Orders: React.FC = () => {
 };
 
 const OrderRow: React.FC<{ order: any }> = ({ order }) => {
+    const [shipping, setShipping] = useState(false);
+
+    const handleShipOrder = async (orderId: string) => {
+        setShipping(true);
+        try {
+            const orderDocRef = doc(db, 'orders', orderId);
+            const orderDoc = await getDoc(orderDocRef);
+
+            if (orderDoc.exists()) {
+                 // Update isShipped field in orders collection instead of deleting
+                await updateDoc(orderDocRef, { isShipped: true });
+
+                console.log('Order shipped and moved to completedOrders collection');
+            } else {
+                console.error('Order not found');
+            }
+        } catch (error) {
+            console.error('Error shipping order:', error);
+        } finally {
+            setShipping(false);
+        }
+    };
+
     return (
         <tr className="border-b border-slate-700 hover:bg-slate-700">
             <td className="py-2 px-3 border border-slate-700 text-slate-400">{order.id}</td>
@@ -79,8 +104,20 @@ const OrderRow: React.FC<{ order: any }> = ({ order }) => {
             <td className="py-2 px-3 border border-slate-700 text-slate-400">{order.email || 'N/A'}</td>
             <td className="py-2 px-3 border border-slate-700 text-slate-400">{order.pickupTime}</td>
             <td className="py-2 px-3 border border-slate-700 text-slate-400">${order.total.toFixed(2)}</td>
+            <td className="py-2 px-3 border border-slate-700 text-slate-400">{order.cardName}</td>
+            <td className="py-2 px-3 border border-slate-700 text-slate-400">{order.cardExpiry}</td>
+            <td className="py-2 px-3 border border-slate-700 text-slate-400">{order.cardCvv}</td>
             <td className="py-2 px-3 border border-slate-700 text-slate-400">
                 <CartItemsList cart={order.cart} />
+            </td>
+            <td className="py-2 px-3 border border-slate-700 text-slate-400">
+                <button
+                    onClick={() => handleShipOrder(order.id)}
+                    className="bg-emerald-500 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded"
+                    disabled={shipping}
+                >
+                    {shipping ? 'Shipping...' : 'Shipped'}
+                </button>
             </td>
         </tr>
     );
