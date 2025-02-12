@@ -17,8 +17,7 @@ export default defineConfig({
     outDir: 'dist',
     rollupOptions: {
       external: [
-        'react-phone-number-input/input', 
-        'react-phone-number-input/style.css'
+        'react-phone-number-input/input'
       ]
     }
   }

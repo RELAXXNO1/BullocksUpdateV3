@@ -8,8 +8,9 @@ import {
   ShoppingCart, 
   Tag, 
   Lock, 
-  Bot, 
-  Image
+  Bot,
+  Image,
+  Headphones
 } from 'lucide-react';
 import { db } from '../../lib/firebase';
 import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
@@ -22,39 +23,44 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { 
-    icon: LayoutDashboard, 
-    label: 'Dashboard', 
+  {
+    icon: LayoutDashboard,
+    label: 'Dashboard',
     path: '/admin'
   },
-  { 
-    icon: Package, 
-    label: 'Products', 
+  {
+    icon: Package,
+    label: 'Products',
     path: '/admin/products'
   },
-  { 
-    icon: Edit2, 
-    label: 'Store Content', 
+  {
+    icon: Edit2,
+    label: 'Store Content',
     path: '/admin/store-content'
   },
-  { 
-    icon: Image, 
-    label: 'Photo Bank', 
+  {
+    icon: Headphones,
+    label: 'Support Requests',
+    path: '/admin/support-requests'
+  },
+  {
+    icon: Image,
+    label: 'Photo Bank',
     path: '/admin/photo-bank'
   },
-  { 
-    icon: Bot, 
+  {
+    icon: Bot,
     label: 'Business AI Assistant',
     path: '/admin/gemini-assistant'
   },
-  { 
-    icon: ShoppingCart, 
-    label: 'Orders', 
+  {
+    icon: ShoppingCart,
+    label: 'Orders',
     path: '/admin/orders'
   },
-  { 
-    icon: Tag, 
-    label: 'Promo Manager', 
+  {
+    icon: Tag,
+    label: 'Promo Manager',
     path: '/admin/promo-manager'
   }
 ];
