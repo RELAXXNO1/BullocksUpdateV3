@@ -94,7 +94,7 @@ const Orders: React.FC = () => {
     );
 };
 
-const OrderCard: React.FC<{ order: any, fetchOrders?: () => Promise<void> }> = ({ order, fetchOrders }) => { // fetchOrders as prop
+const OrderCard: React.FC<{ order: any, fetchOrders?: () => Promise<void> }> = ({ order, fetchOrders }) => {
     const [shipping, setShipping] = useState(false);
     const [showDetails, setShowDetails] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
