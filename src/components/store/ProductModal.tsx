@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Product } from '../../types/product';
 import { Button } from '../ui/Button';
 import { useCart } from '../../contexts/CartContext';
-import { useState } from 'react';
+import { DEFAULT_CATEGORIES } from '../../constants/categories';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface ProductModalProps {
   product: Product;
@@ -12,6 +13,7 @@ interface ProductModalProps {
 const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
   const { addToCart } = useCart();
   const [isAnimating, setIsAnimating] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const handleAddToCart = (product: Product) => {
     addToCart(product);
@@ -20,19 +22,81 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
     onClose();
   };
 
+  const categoryConfig = DEFAULT_CATEGORIES.find(cat => cat.slug === product.category);
+  const attributes = categoryConfig?.attributes?.fields || [];
+
+  const handlePrevImage = () => {
+    setCurrentImageIndex((prevIndex) => (prevIndex > 0 ? prevIndex - 1 : product.images!.length - 1));
+  };
+
+  const handleNextImage = () => {
+    setCurrentImageIndex((prevIndex) => (prevIndex < product.images!.length - 1 ? prevIndex + 1 : 0));
+  };
+
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-      <div className="bg-white rounded-lg p-8 max-w-md w-full">
-        <h2 className="text-2xl font-bold mb-4">{product.name}</h2>
-        <p className="text-gray-700 mb-4">{product.description}</p>
-        <p className="text-gray-700 font-bold mb-4">${String(product.price)}</p>
-        <div className="flex justify-end">
-          <Button onClick={onClose} className="mr-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center product-modal-container">
+      <div className="relative overflow-hidden rounded-3xl border-2 bg-white dark:bg-dark-800 border-transparent shadow-2xl dark:shadow-dark-700/60 hover:shadow-3xl transition-shadow duration-500 p-8 max-w-md w-full text-white dark:text-gray-100 bg-white dark:bg-slate-900 focus-within:ring-4 focus-within:ring-teal-500">
+        {/* Teal Underglow Element */}
+        <div className="absolute inset-[-1rem] rounded-3xl pointer-events-none ring-8 ring-teal-500 opacity-0 focus-within:opacity-100 transition-opacity duration-300 focus-within:animate-pulse"></div>
+        <h2 className="text-3xl font-bold mb-6 text-gray-800 dark:text-gray-100 ">{product.name}</h2>
+        {product.images && product.images.length > 0 && (
+          <div className="relative mb-6">
+            <img
+              src={product.images[currentImageIndex]}
+              alt={product.name}
+              className="w-full h-72 object-cover rounded-xl shadow-md"
+            />
+            {product.images.length > 1 && (
+              <div className="absolute bottom-2 right-2 flex space-x-2">
+                <button onClick={handlePrevImage} className="bg-gray-700 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-gray-600 transition-colors">
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <button onClick={handleNextImage} className="bg-gray-700 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-gray-600 transition-colors">
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+        <p className="text-gray-600 dark:text-gray-300 mb-6 text-base leading-relaxed">{product.description}</p>
+        {typeof product.price === 'number' ? (
+          <p className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-6">
+            ${product.price.toFixed(2)}
+          </p>
+        ) : (
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-3">Price Options</h3>
+            <ul className="space-y-2">
+              {Object.entries(product.price).map(([key, price]) => (
+                <li key={key} className="text-sm">
+                  <span className="font-semibold text-gray-800 dark:text-gray-100">{key}:</span> <span className="text-gray-600 dark:text-gray-300">${price.toFixed(2)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {attributes.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-3">Product Details</h3>
+            <ul className="space-y-2">
+              {attributes.map(attr => (
+                <li key={attr.name} className="text-sm">
+                  <span className="font-semibold text-gray-800 dark:text-gray-100">{attr.label}:</span> <span className="text-gray-600 dark:text-gray-300">{product.attributes?.[attr.name] || 'N/A'}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div className="flex justify-end space-x-4">
+          <Button onClick={onClose} variant="secondary">
             Close
           </Button>
           <Button
             onClick={() => handleAddToCart(product)}
-            className={isAnimating ? 'button-animate' : ''}
+            className={`${isAnimating ? 'animate-pulse' : ''}`}
           >
             Add to Cart
           </Button>
