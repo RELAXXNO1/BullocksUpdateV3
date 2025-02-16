@@ -1,10 +1,16 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '../../components/ui/Button';
+import { useCart } from '../../contexts/CartContext';
 
 const OrderConfirmationPage: React.FC = () => {
     const navigate = useNavigate();
+    const { clearCart } = useCart();
+
+    useEffect(() => {
+        clearCart();
+    }, [clearCart]);
 
     return (
         <motion.div

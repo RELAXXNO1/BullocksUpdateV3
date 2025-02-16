@@ -4,6 +4,7 @@ import { Button } from '../ui/Button';
 import { useCart } from '../../contexts/CartContext';
 import { DEFAULT_CATEGORIES } from '../../constants/categories';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { applyKeywordStyling } from '../admin/ProductForm'; // Import the styling function
 
 interface ProductModalProps {
   product: Product;
@@ -26,11 +27,11 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
   const attributes = categoryConfig?.attributes?.fields || [];
 
   const handlePrevImage = () => {
-    setCurrentImageIndex((prevIndex) => (prevIndex > 0 ? prevIndex - 1 : product.images!.length - 1));
+    setCurrentImageIndex((prevIndex) => (prevIndex > 0 ? prevIndex - 1 : (product.images?.length || 1) - 1));
   };
 
   const handleNextImage = () => {
-    setCurrentImageIndex((prevIndex) => (prevIndex < product.images!.length - 1 ? prevIndex + 1 : 0));
+    setCurrentImageIndex((prevIndex) => (prevIndex < (product.images?.length || 0) - 1 ? prevIndex + 1 : 0));
   };
 
 
@@ -59,7 +60,11 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
             )}
           </div>
         )}
-        <p className="text-gray-600 dark:text-gray-300 mb-6 text-base leading-relaxed">{product.description}</p>
+        {/* Apply keyword styling to the description */}
+        <p
+          className="text-gray-600 dark:text-gray-300 mb-6 text-base leading-relaxed"
+          dangerouslySetInnerHTML={{ __html: applyKeywordStyling(product.description || '') }}
+        />
         {typeof product.price === 'number' ? (
           <p className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-6">
             ${product.price.toFixed(2)}
@@ -81,11 +86,24 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
           <div className="mb-6">
             <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-3">Product Details</h3>
             <ul className="space-y-2">
-              {attributes.map(attr => (
-                <li key={attr.name} className="text-sm">
-                  <span className="font-semibold text-gray-800 dark:text-gray-100">{attr.label}:</span> <span className="text-gray-600 dark:text-gray-300">{product.attributes?.[attr.name] || 'N/A'}</span>
-                </li>
-              ))}
+              {attributes.map(attr => {
+                // Handle boolean attributes correctly
+                const attributeValue = product.attributes?.[attr.name];
+                let displayValue;
+
+                if (attr.type === 'boolean') {
+                  displayValue = attributeValue === '1' ? 'Yes' : attributeValue === '0' ? 'No' : 'N/A';
+                } else {
+                  displayValue = attributeValue || 'N/A';
+                }
+
+
+                return (
+                  <li key={attr.name} className="text-sm">
+                    <span className="font-semibold text-gray-800 dark:text-gray-100">{attr.label}:</span> <span className="text-gray-600 dark:text-gray-300">{displayValue}</span>
+                  </li>
+                )
+              })}
             </ul>
           </div>
         )}

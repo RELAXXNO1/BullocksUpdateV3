@@ -62,6 +62,13 @@ export class ChatService {
     systemPrompt: string,
     onUpdate: (text: string) => void
   ): Promise<AIResponse> {
+    // --- Command Parsing and Action Execution ---
+    if (input.toLowerCase().includes('create promo')) {
+        return this.handleCreatePromo(input, onUpdate);
+    } else if (input.toLowerCase().includes('post product')) {
+        return this.handlePostProduct(input, onUpdate);
+    }
+
     if (!this.config.apiKey || !this.config.model) {
       throw new Error('API key or model not configured');
     }
@@ -159,6 +166,88 @@ export class ChatService {
         }
       };
     }
+  }
+
+  private parsePromoDetails(input: string): any {
+    // This is a placeholder. You'll need to implement the logic to parse the input
+    // and extract the promo code, discount percentage, start date, and end date.
+    return null;
+  }
+
+  private async handleCreatePromo(input: string, onUpdate: (text: string) => void): Promise<AIResponse> {
+    // Implement promo creation logic here
+    // Assuming the user provides the promo details in the input
+    // You'll need to parse the input to extract the promo code, discount, start date, and end date
+    // and then call the createPromo function from usePromos hook.
+    const promoDetails = this.parsePromoDetails(input);
+
+    if (!promoDetails) {
+      onUpdate("I need more information to create the promo. Please provide the promo code, discount percentage, start date, and end date.");
+      return {
+        text: "I need more information to create the promo.",
+        confidence: 0.8,
+        suggestions: [],
+        context: {
+          originalInput: input,
+          processedAt: Date.now(),
+          category: 'create_promo'
+        }
+      };
+    }
+
+    try {
+      // Call the createPromo function from usePromos hook
+      // Assuming you have access to the usePromos hook
+      // and the createPromo function is available.
+      // You'll need to import and use the hook here.
+      // For example:
+      // const { createPromo } = usePromos();
+      // const promoId = await createPromo(promoDetails); // TODO: Implement promo creation logic using usePromos hook
+
+      onUpdate("Promo created successfully!");
+      return {
+        text: "Promo created successfully!",
+        confidence: 0.8,
+        suggestions: [],
+        context: {
+          originalInput: input,
+          processedAt: Date.now(),
+          category: 'create_promo'
+        }
+      };
+    } catch (error: any) {
+      console.error("Error creating promo:", error);
+      onUpdate("There was an error creating the promo. Please try again.");
+      return {
+        text: "There was an error creating the promo. Please try again.",
+        confidence: 0,
+        suggestions: [],
+        context: {
+          originalInput: input,
+          processedAt: Date.now(),
+          category: 'create_promo'
+        }
+      };
+    }
+  }
+
+  private async handlePostProduct(input: string, onUpdate: (text: string) => void): Promise<AIResponse> {
+    // Implement product posting logic here
+    // Assuming the user provides the product details in the input
+    // You'll need to parse the input to extract the product name, description, price, image URL, and category
+    // and then call the appropriate backend service to post the product.
+    onUpdate("Posting product... // TODO: Implement product posting logic");
+    // Placeholder for product posting logic
+    return {
+      text: "Product posted successfully!",
+      confidence: 0.8,
+      suggestions: [],
+      context: {
+        originalInput: input,
+        processedAt: Date.now(),
+        category: 'post_product'
+      }
+    };
   }
 
   private async generateSuggestedQuestions(input: string, systemPrompt: string): Promise<string[]> {

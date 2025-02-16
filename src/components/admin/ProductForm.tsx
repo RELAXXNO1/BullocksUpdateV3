@@ -1,11 +1,10 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, ChevronLeft, X, PlusCircle, CheckCircle2 } from 'lucide-react';
 import { collection, addDoc, updateDoc, doc, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import type { Product, ProductFormData } from '../../types/product';
-import { DEFAULT_CATEGORIES } from '../../constants/categories';
-import type { CategoryConfig } from '../../constants/categories';
+import { DEFAULT_CATEGORIES, CategoryConfig } from '../../constants/categories';
 import type { FormStep } from '../../types/form';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/Button';
@@ -13,9 +12,9 @@ import { getPhotobankImages } from '../../lib/photobank';
 import { useAuth } from '../../hooks/useAuth';
 
 type ProductFormProps = {
-  onClose?: () => void;
-  initialProduct?: Product;
-  };
+    onClose?: () => void;
+    initialProduct?: Product;
+};
 
 const KEYWORDS = ["diamonds", "relaxed", "euphoric", "happy", "mood-boosting", "focus", "creativity", "sleep", "3.5g", "7.0g", "14.0g", "28.0g", "1/8", "1/4", "1/2", "1", "ounce", "o.z.", "infused", "sativa", "indica", "hybrid", "on sale!", "new arrival"];
 
@@ -37,11 +36,12 @@ export function ProductForm({ onClose, initialProduct }: ProductFormProps) {
     const navigate = useNavigate();
 
     const [currentStep, setCurrentStep] = useState<FormStep>('category');
+
     const [formData, setFormData] = useState<ProductFormData>(() => ({
         category: initialProduct?.category || '',
         name: initialProduct?.name || '',
         description: initialProduct?.description || '',
-        price: initialProduct?.price || 0,
+        price: initialProduct?.price || { '1.75g': 0, '3.5g': 0, '7g': 0, '14g': 0, '1oz': 0 }, // Initialize with default price structure
         attributes: initialProduct?.attributes || {},
         isVisible: initialProduct?.isVisible ?? true,
         images: initialProduct?.images || [],
@@ -62,27 +62,71 @@ export function ProductForm({ onClose, initialProduct }: ProductFormProps) {
         [formData.category]
     );
 
+    // Helper function to ensure consistent price structure
+    const normalizePrice = (price: number | { [key: string]: number } | undefined): { '1.75g': number; '3.5g': number; '7g': number; '14g': number; '1oz': number; } => {
+        const defaultPrice = { '1.75g': 0, '3.5g': 0, '7g': 0, '14g': 0, '1oz': 0 };
+        if (price === undefined) {
+            return defaultPrice;
+        }
+        if (typeof price === 'number') {
+            return { ...defaultPrice, '1.75g': price }; // Assign to a default key if it's a single number
+        }
+        // Ensure all values in the price object are numbers and merge with default
+        const normalizedPrice: { [key: string]: number } = { ...defaultPrice };
+        for (const key in price) {
+            if (Object.prototype.hasOwnProperty.call(price, key) && defaultPrice.hasOwnProperty(key)) {
+                normalizedPrice[key] = Number(price[key]) || 0;
+            }
+        }
+        const finalPrice: { '1.75g': number; '3.5g': number; '7g': number; '14g': number; '1oz': number; } = {
+            '1.75g': normalizedPrice['1.75g'] || 0,
+            '3.5g': normalizedPrice['3.5g'] || 0,
+            '7g': normalizedPrice['7g'] || 0,
+            '14g': normalizedPrice['14g'] || 0,
+            '1oz': normalizedPrice['1oz'] || 0,
+        };
+        return finalPrice;
+    };
+
     const updateFormData = useCallback((updates: Partial<ProductFormData>) => {
         setFormData(prev => {
-            const updatedAttributes = updates.attributes
-                ? Object.fromEntries(
-                    Object.entries(updates.attributes).map(([key, value]) => [
-                        key,
-                        typeof value === 'boolean'
+            const newAttributes = { ...prev.attributes };
+            if (updates.attributes) {
+                for (const key in updates.attributes) {
+                    if (Object.prototype.hasOwnProperty.call(updates.attributes, key)) {
+                        const value = updates.attributes[key];
+                        newAttributes[key] = typeof value === 'boolean'
                             ? (value ? '1' : '0')
-                            : (value !== undefined ? String(value) : '')
-                    ])
-                )
-                : prev.attributes;
+                            : (value !== undefined ? String(value) : '');
+                    }
+                }
+            }
+
+            let updatedPrice: { '1.75g': number; '3.5g': number; '7g': number; '14g': number; '1oz': number; } = { '1.75g': 0, '3.5g': 0, '7g': 0, '14g': 0, '1oz': 0 }; // Initialize with default
+            if (prev.price && typeof prev.price === 'object') {
+                updatedPrice = { ...updatedPrice, ...prev.price }; // Merge existing price if it's an object
+            }
+
+            if (updates.price !== undefined) {
+                if (typeof updates.price === 'number') {
+                    updatedPrice = { ...updatedPrice, '1.75g': updates.price }; // If number, update a default key
+                } else if (typeof updates.price === 'object' && updates.price !== null) {
+                    // Ensure that we only use keys from the defined structure
+                    for (const key in updates.price) {
+                        if (updatedPrice.hasOwnProperty(key)) {
+                            // Use type assertion here
+                            updatedPrice[key as keyof typeof updatedPrice] = Number(updates.price[key as keyof typeof updatedPrice]) || 0;  // Corrected line
+                        }
+                    }
+                }
+            }
 
             return {
                 ...prev,
                 ...updates,
-                attributes: {
-                    ...prev.attributes,
-                    ...updatedAttributes
-                },
-                updatedAt: new Date().toISOString()
+                price: updatedPrice,
+                attributes: newAttributes,
+                updatedAt: new Date().toISOString(),
             };
         });
     }, []);
@@ -98,7 +142,7 @@ export function ProductForm({ onClose, initialProduct }: ProductFormProps) {
                 const basicDetailsValid = !!(
                     formData.name.trim() &&
                     (formData.description || '').trim() &&
-                    (typeof formData.price === 'number' ? formData.price > 0 : Object.values(formData.price).some(price => price > 0))
+                    (typeof formData.price === 'number' ? formData.price > 0 : (typeof formData.price === 'object' && Object.values(formData.price).some(price => price > 0)))
                 );
 
                 const attributesValid = categoryAttributes.every(attr => {
@@ -176,11 +220,14 @@ export function ProductForm({ onClose, initialProduct }: ProductFormProps) {
             return;
         }
 
+        const normalizedPrice = normalizePrice(formData.price);
+
         const productData: ProductFormData = {
             ...formData,
             category: categoryId,
             description: formData.description || '',
             images: selectedImages,
+            price: normalizedPrice,
             attributes: Object.fromEntries(
                 Object.entries(formData.attributes || {}).map(([key, value]) => [
                     key,
@@ -321,6 +368,12 @@ export function ProductForm({ onClose, initialProduct }: ProductFormProps) {
     const renderDetailsStep = () => {
         const selectedCategory = DEFAULT_CATEGORIES.find(cat => cat.slug === formData.category);
         const categoryAttributes = selectedCategory?.attributes?.fields || [];
+        const priceObject: { '1.75g': number; '3.5g': number; '7g': number; '14g': number; '1oz': number; } =
+            typeof formData.price === 'object' && formData.price !== null
+                ? formData.price
+                : { '1.75g': 0, '3.5g': 0, '7g': 0, '14g': 0, '1oz': 0 };
+
+      const PriceKeys = ['1.75g', '3.5g', '7g', '14g', '1oz'] as const;
 
         return (
             <div className="space-y-6">
@@ -365,7 +418,13 @@ export function ProductForm({ onClose, initialProduct }: ProductFormProps) {
                                         type="number"
                                         value={formData.price}
                                         onChange={(e) => updateFormData({
-                                            price: e.target.value ? parseFloat(e.target.value) : 0
+                                            price: {
+                                                '1.75g': e.target.value ? parseFloat(e.target.value) : 0,
+                                                '3.5g': 0,
+                                                '7g': 0,
+                                                '14g': 0,
+                                                '1oz': 0
+                                            }
                                         })}
                                         placeholder="0.00"
                                         min="0"
@@ -378,15 +437,15 @@ export function ProductForm({ onClose, initialProduct }: ProductFormProps) {
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-2 gap-2">
-                                    {Object.entries(formData.price).map(([key, value]) => (
+                                     {PriceKeys.map((key) => (
                                         <div key={key} className="relative">
                                             <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-teal-400">$</span>
                                             <input
                                                 type="number"
-                                                value={value}
+                                                value={priceObject[key]}
                                                 onChange={(e) => updateFormData({
                                                     price: {
-                                                        ...formData.price,
+                                                        ...priceObject,
                                                         [key]: e.target.value ? parseFloat(e.target.value) : 0
                                                     }
                                                 })}
@@ -458,37 +517,44 @@ export function ProductForm({ onClose, initialProduct }: ProductFormProps) {
                                     const renderAttributeInput = (attr: any) => {
                                         const currentValue = formData.attributes?.[attr.name] || '';
 
-                                        const commonInputProps = {
-                                            id: attr.name,
-                                            name: attr.name,
-                                            className: "w-full px-3 py-2 bg-teal-800 border border-teal-700 rounded text-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-500",
-                                            value: currentValue,
-                                            onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-                                                updateFormData({
-                                                    attributes: {
-                                                        ...formData.attributes,
-                                                        [attr.name]: e.target.value
-                                                    }
-                                                });
-                                            },
-                                            required: attr.required
-                                        };
-
                                         switch (attr.type) {
                                             case 'text':
                                                 return (
                                                     <input
                                                         type="text"
-                                                        {...commonInputProps}
+                                                        id={attr.name}
+                                                        name={attr.name}
+                                                        className="w-full px-3 py-2 bg-teal-800 border border-teal-700 rounded text-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                                        value={String(currentValue)} // Ensure string
+                                                        onChange={(e) => {
+                                                            updateFormData({
+                                                                attributes: {
+                                                                    ...formData.attributes,
+                                                                    [attr.name]: e.target.value
+                                                                }
+                                                            });
+                                                        }}
+                                                        required={attr.required}
                                                         placeholder={`Enter ${attr.label}`}
                                                     />
                                                 );
-
                                             case 'number':
                                                 return (
                                                     <input
                                                         type="number"
-                                                        {...commonInputProps}
+                                                        id={attr.name}
+                                                        name={attr.name}
+                                                        className="w-full px-3 py-2 bg-teal-800 border border-teal-700 rounded text-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                                        value={currentValue}
+                                                        onChange={(e) => {
+                                                            updateFormData({
+                                                                attributes: {
+                                                                    ...formData.attributes,
+                                                                    [attr.name]: e.target.value,
+                                                                }
+                                                            });
+                                                        }}
+                                                        required={attr.required}
                                                         placeholder={`Enter ${attr.label}`}
                                                         min={attr.min}
                                                         max={attr.max}
@@ -497,7 +563,21 @@ export function ProductForm({ onClose, initialProduct }: ProductFormProps) {
 
                                             case 'select':
                                                 return (
-                                                    <select {...commonInputProps}>
+                                                    <select
+                                                        id={attr.name}
+                                                        name={attr.name}
+                                                        className="w-full px-3 py-2 bg-teal-800 border border-teal-700 rounded text-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                                        value={String(currentValue)}
+                                                        onChange={(e) => {
+                                                            updateFormData({
+                                                                attributes: {
+                                                                    ...formData.attributes,
+                                                                    [attr.name]: e.target.value,
+                                                                },
+                                                            });
+                                                        }}
+                                                        required={attr.required}
+                                                    >
                                                         <option value="">Select {attr.label}</option>
                                                         {attr.options?.map((option: string) => (
                                                             <option key={option} value={option}>
@@ -519,7 +599,7 @@ export function ProductForm({ onClose, initialProduct }: ProductFormProps) {
                                                                 onChange={() => updateFormData({
                                                                     attributes: {
                                                                         ...formData.attributes,
-                                                                        [attr.name]: '1'
+                                                                        [attr.name]: '1',
                                                                     }
                                                                 })}
                                                                 className="text-teal-500 focus:ring-teal-500"
@@ -535,7 +615,7 @@ export function ProductForm({ onClose, initialProduct }: ProductFormProps) {
                                                                 onChange={() => updateFormData({
                                                                     attributes: {
                                                                         ...formData.attributes,
-                                                                        [attr.name]: '0'
+                                                                        [attr.name]: '0',
                                                                     }
                                                                 })}
                                                                 className="text-teal-500 focus:ring-teal-500"
@@ -549,7 +629,19 @@ export function ProductForm({ onClose, initialProduct }: ProductFormProps) {
                                                 return (
                                                     <input
                                                         type="text"
-                                                        {...commonInputProps}
+                                                        id={attr.name}
+                                                        name={attr.name}
+                                                        className="w-full px-3 py-2 bg-teal-800 border border-teal-700 rounded text-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                                        value={String(currentValue)}
+                                                        onChange={(e) => {
+                                                            updateFormData({
+                                                                attributes: {
+                                                                    ...formData.attributes,
+                                                                    [attr.name]: e.target.value
+                                                                }
+                                                            });
+                                                        }}
+                                                        required={attr.required}
                                                         placeholder={`Enter ${attr.label}`}
                                                     />
                                                 );

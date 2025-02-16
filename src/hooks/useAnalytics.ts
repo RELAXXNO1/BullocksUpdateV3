@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, orderBy, limit, addDoc } from 'firebase/firestore';
+import { collection, query, getDocs, orderBy, limit, addDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 interface AnalyticsData {
@@ -11,6 +11,8 @@ interface AnalyticsData {
     name: string;
     views: number;
   }>;
+  totalOrders: number;
+  totalRevenue: number;
   recentActivity: Array<{
     type: string;
     productId?: string;
@@ -24,6 +26,8 @@ export function useAnalytics() {
     productViews: {},
     categoryViews: {},
     totalVisitors: 0,
+    totalOrders: 0, 
+    totalRevenue: 0,
     topProducts: [],
     recentActivity: []
   });
@@ -42,7 +46,9 @@ export function useAnalytics() {
         const snapshot = await getDocs(eventsQuery);
         const productViews: Record<string, number> = {};
         const categoryViews: Record<string, number> = {};
-        
+        let totalOrders = 0;
+        let totalRevenue = 0;
+
         snapshot.forEach(doc => {
           const data = doc.data();
           if (data.type === 'product_view') {
@@ -50,6 +56,9 @@ export function useAnalytics() {
             if (data.category) {
               categoryViews[data.category] = (categoryViews[data.category] || 0) + 1;
             }
+          } else if (data.type === 'order_placed') {
+            totalOrders += 1;
+            totalRevenue += data.orderTotal || 0;
           }
         });
 
@@ -81,7 +90,9 @@ export function useAnalytics() {
           categoryViews,
           totalVisitors: snapshot.size,
           topProducts,
-          recentActivity
+          recentActivity,
+          totalOrders,
+          totalRevenue
         });
       } catch (error) {
         console.error('Error fetching analytics:', error);
