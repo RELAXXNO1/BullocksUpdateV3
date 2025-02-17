@@ -11,7 +11,7 @@ import { FunctionComponent, ReactNode, JSX } from 'react';
 // Constants moved outside component to prevent recreating on each render
 const ANIMATION_INTERVAL = 4000;
 const ANIMATION_DURATION = 1500;
-const WORDS = ['Wellness', 'Mentality', 'Mood', 'Self'] as const;
+const WORDS = ['Wellness', 'Mentality', 'Mood', 'Self', 'Everything'] as const;
 const PARALLAX_FACTOR = 0.64;
 
 // Define the word type
@@ -142,12 +142,12 @@ export const StoreHeader = memo(({ className = '' }: HeaderProps) => {
       ref={headerRef}
       className={`relative bg-green-400/10 backdrop-blur-md border-b border-green-300/30 overflow-hidden transition-all duration-300 mb-4 z-50 ${className}`}
       role="banner"
-      style={{ height: '70px' }} // Slightly increased header height
+      style={{ height: '80px' }} // Increased header height to 80px
     >
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,theme(colors.teal.500/0.1),transparent_70%)]"
         aria-hidden="true"
       />
-      <div className="container relative mx-auto px-6 py-2 flex justify-between items-center z-10" style={{ height: '70px' }}> {/* Adjusted py to match */}
+      <div className="container relative mx-auto px-6 py-2 flex justify-between items-center z-10" style={{ height: '80px' }}> {/* Adjusted container height to match */}
         <Link
           to="/"
           className="flex items-center transform transition-transform hover:scale-105"

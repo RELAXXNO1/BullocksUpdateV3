@@ -8,6 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from '../../components/ui/Alert';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { useToast } from '../../components/ui/use-toast';
+import { BackButton } from '../../components/ui/BackButton';
 
 const AccountDetailsPage = () => {
   const { user, deleteAccount, logout } = useAuth();
@@ -67,8 +68,11 @@ const AccountDetailsPage = () => {
 
   return (
     <AccountLayout>
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 relative">
         <h1 className="text-3xl font-bold text-white mb-8">Account Details</h1>
+        <div className="absolute top-0 right-0">
+          <BackButton to="/store" />
+        </div>
 
         {error && (
           <Alert variant="destructive" className="mb-4">

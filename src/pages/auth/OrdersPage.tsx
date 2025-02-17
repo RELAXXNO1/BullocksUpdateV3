@@ -3,6 +3,7 @@ import AccountLayout from '../../components/layouts/AccountLayout';
 import { useAuth } from '../../hooks/useAuth';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+import { BackButton } from '../../components/ui/BackButton';
 
 interface Order {
   id: string;
@@ -73,8 +74,11 @@ const OrdersPage = () => {
 
   return (
     <AccountLayout>
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 relative">
         <h1 className="text-3xl font-bold text-white mb-8">Your Orders</h1>
+        <div className="absolute top-0 right-0">
+          <BackButton to="/store" />
+        </div>
         {orders.length === 0 ? (
           <p className="text-gray-400">No orders placed yet.</p>
         ) : (
