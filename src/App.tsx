@@ -36,7 +36,8 @@ const categoryPages: Record<string, React.LazyExoticComponent<React.ComponentTyp
 // Auth Pages
 const Login = lazy(() => import(/* webpackChunkName: "auth-login" */ './pages/auth/Login'));
 const Signup = lazy(() => import(/* webpackChunkName: "auth-signup" */ './pages/auth/Signup'));
-const AccountManagement = lazy(() => import(/* webpackChunkName: "auth-account" */ './pages/auth/AccountManagement'));
+const AccountDetailsPage = lazy(() => import(/* webpackChunkName: "auth-account-details" */ './pages/auth/AccountDetails'));
+const OrdersPage = lazy(() => import(/* webpackChunkName: "auth-orders" */ './pages/auth/OrdersPage'));
 
 
 // Legal Pages
@@ -63,10 +64,10 @@ export default function App() {
             <CartToggleProvider>
               <Suspense fallback={<LoadingSpinner />}>
                 <div className="dark drop-shadow-[0_0_8px_theme(colors.teal.500)]">
-                  <Routes>
-                    {/* Store Routes */}
-                    <Route path="/" element={<StoreLayout />}>
-                      <Route index element={<StorePage />} />
+                  <StoreLayout>
+                    <Routes>
+                      {/* Store Routes */}
+                      <Route path="/" element={<StorePage />} />
                       
                       {/* Dynamically generate category routes */}
                       {DEFAULT_CATEGORIES.map((category) => (
@@ -88,25 +89,26 @@ export default function App() {
                       <Route path="terms" element={<TermsOfService />} />
                       <Route path="order" element={React.createElement(lazy(() => import('./pages/store/OrderPage')))} />
                       <Route path="/order-confirmation" element={<OrderConfirmationPage />} />
-                    </Route>
                     
-                     {/* Auth Routes */}
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/signup" element={<Signup />} />
-                    <Route path="/account" element={<AccountManagement />} />
+                      {/* Auth Routes */}
+                      <Route path="/login" element={<Login />} />
+                      <Route path="/signup" element={<Signup />} />
+                      <Route path="/account" element={<AccountDetailsPage />} />
+                      <Route path="/account/orders" element={<OrdersPage />} />
 
-                    {/* Admin Routes */}
-                    {adminRoutes.map((route) => (
-                      <Route key={route.path} path={route.path} element={route.element}>
-                        {route.children?.map((childRoute) => (
-                          <Route key={childRoute.path} path={childRoute.path} element={childRoute.element} index={childRoute.index} />
-                        ))}
-                      </Route>
-                    ))}
+                      {/* Admin Routes */}
+                      {adminRoutes.map((route) => (
+                        <Route key={route.path} path={route.path} element={route.element}>
+                          {route.children?.map((childRoute) => (
+                            <Route key={childRoute.path} path={childRoute.path} element={childRoute.element} index={childRoute.index} />
+                          ))}
+                        </Route>
+                      ))}
 
-                    {/* Catch all route */}
-                    <Route path="*" element={<Navigate to="/" replace />} />
-                  </Routes>
+                      {/* Catch all route */}
+                      <Route path="*" element={<Navigate to="/" replace />} />
+                    </Routes>
+                  </StoreLayout>
                 </div>
                   {showModal && (
                     <Portal>

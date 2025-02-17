@@ -36,24 +36,24 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
 
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center product-modal-container">
-      <div className="relative overflow-hidden rounded-3xl border-2 bg-white dark:bg-dark-800 border-transparent shadow-2xl dark:shadow-dark-700/60 hover:shadow-3xl transition-shadow duration-500 p-8 max-w-md w-full text-white dark:text-gray-100 bg-white dark:bg-slate-900 focus-within:ring-4 focus-within:ring-teal-500">
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center product-modal-container backdrop-blur-md">
+      <div className="relative overflow-hidden rounded-3xl border-2 bg-white dark:bg-dark-800 border-dark-700 shadow-2xl dark:shadow-dark-700/60 hover:shadow-3xl transition-shadow duration-500 p-8 max-w-md w-full text-white dark:text-gray-100 bg-white dark:bg-slate-900 focus-within:ring-4 focus-within:ring-teal-500 transform hover:scale-105 transition-transform duration-300">
         {/* Teal Underglow Element */}
         <div className="absolute inset-[-1rem] rounded-3xl pointer-events-none ring-8 ring-teal-500 opacity-0 focus-within:opacity-100 transition-opacity duration-300 focus-within:animate-pulse"></div>
-        <h2 className="text-3xl font-bold mb-6 text-gray-800 dark:text-gray-100 ">{product.name}</h2>
+        <h2 className="text-5xl font-extrabold mb-4 text-teal-500 dark:text-teal-300 drop-shadow-md">{product.name}</h2>
         {product.images && product.images.length > 0 && (
-          <div className="relative mb-6">
+          <div className="relative mb-4 rounded-xl overflow-hidden shadow-lg">
             <img
               src={product.images[currentImageIndex]}
               alt={product.name}
-              className="w-full h-72 object-cover rounded-xl shadow-md"
+              className="w-full h-72 object-cover rounded-xl border-4 border-white dark:border-dark-900 rounded-xl"
             />
             {product.images.length > 1 && (
-              <div className="absolute bottom-2 right-2 flex space-x-2">
-                <button onClick={handlePrevImage} className="bg-gray-700 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-gray-600 transition-colors">
+              <div className="absolute bottom-2 right-2 flex space-x-2 z-10">
+                <button onClick={handlePrevImage} className="bg-gray-700 bg-opacity-75 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-gray-600 transition-colors">
                   <ChevronLeft className="w-5 h-5" />
                 </button>
-                <button onClick={handleNextImage} className="bg-gray-700 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-gray-600 transition-colors">
+                <button onClick={handleNextImage} className="bg-gray-700 bg-opacity-75 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-gray-600 transition-colors">
                   <ChevronRight className="w-5 h-5" />
                 </button>
               </div>
@@ -66,7 +66,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
           dangerouslySetInnerHTML={{ __html: applyKeywordStyling(product.description || '') }}
         />
         {typeof product.price === 'number' ? (
-          <p className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-6">
+          <p className="text-2xl font-extrabold text-teal-500 dark:text-teal-300 mb-6">
             ${product.price.toFixed(2)}
           </p>
         ) : (
@@ -102,7 +102,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
                   <li key={attr.name} className="text-sm">
                     <span className="font-semibold text-gray-800 dark:text-gray-100">{attr.label}:</span> <span className="text-gray-600 dark:text-gray-300">{displayValue}</span>
                   </li>
-                )
+                );
               })}
             </ul>
           </div>

@@ -40,12 +40,21 @@ export default function UserMenu({ isOpen, onClose, closeMenu, showAdminLink }: 
                                 <Link
                                     to="/account"
                                     className="block px-4 py-2 text-white hover:bg-dark-500 rounded-md"
+                                    onClick={closeMenu}
                                 >
                                     Account Details
+                                </Link>
+                                <Link
+                                    to="/account/orders"
+                                    className="block px-4 py-2 text-white hover:bg-dark-500 rounded-md mt-2"
+                                    onClick={closeMenu}
+                                >
+                                    View Past Orders
                                 </Link>
                                 {showAdminLink && user.isAdmin && (
                                     <Link
                                         to="/admin"
+                                        onClick={closeMenu}
                                         className="block px-4 py-2 text-white hover:bg-dark-500 rounded-md mt-2"
                                     >
                                         Admin Dashboard
