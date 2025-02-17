@@ -64,12 +64,9 @@ export default function App() {
             <CartToggleProvider>
               <Suspense fallback={<LoadingSpinner />}>
                 <div className="dark drop-shadow-[0_0_8px_theme(colors.teal.500)]">
-                  <StoreLayout>
-                    <Routes>
-                      {/* Store Routes */}
-                      <Route path="/" element={<StorePage />} />
-                      
-                      {/* Dynamically generate category routes */}
+                  <Routes>
+                    <Route path="/" element={<StoreLayout />}>
+                      <Route index element={<StorePage />} />
                       {DEFAULT_CATEGORIES.map((category) => (
                         <Route 
                           key={category.slug}
@@ -77,38 +74,28 @@ export default function App() {
                           element={React.createElement(categoryPages[category.slug] || StorePage)}
                         />
                       ))}
-                      
-                      {/* New category routes */}
                       <Route path="pre-rolls" element={<PreRollsPage />} />
                       <Route path="mushrooms" element={<MushroomsPage />} />
                       <Route path="lighters-torches" element={<LightersPage />} />
-                      
-                      {/* Legal Pages */}
                       <Route path="privacy" element={<PrivacyPolicy />} />
                       <Route path="thca-compliance" element={<THCACompliance />} />
                       <Route path="terms" element={<TermsOfService />} />
                       <Route path="order" element={React.createElement(lazy(() => import('./pages/store/OrderPage')))} />
                       <Route path="/order-confirmation" element={<OrderConfirmationPage />} />
-                    
-                      {/* Auth Routes */}
-                      <Route path="/login" element={<Login />} />
-                      <Route path="/signup" element={<Signup />} />
-                      <Route path="/account" element={<AccountDetailsPage />} />
-                      <Route path="/account/orders" element={<OrdersPage />} />
-
-                      {/* Admin Routes */}
-                      {adminRoutes.map((route) => (
-                        <Route key={route.path} path={route.path} element={route.element}>
-                          {route.children?.map((childRoute) => (
-                            <Route key={childRoute.path} path={childRoute.path} element={childRoute.element} index={childRoute.index} />
-                          ))}
-                        </Route>
-                      ))}
-
-                      {/* Catch all route */}
-                      <Route path="*" element={<Navigate to="/" replace />} />
-                    </Routes>
-                  </StoreLayout>
+                    </Route>
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/signup" element={<Signup />} />
+                    <Route path="/account" element={<AccountDetailsPage />} />
+                    <Route path="/account/orders" element={<OrdersPage />} />
+                    {adminRoutes.map((route) => (
+                      <Route key={route.path} path={route.path} element={route.element}>
+                        {route.children?.map((childRoute) => (
+                          <Route key={childRoute.path} path={childRoute.path} element={childRoute.element} index={childRoute.index} />
+                        ))}
+                      </Route>
+                    ))}
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Routes>
                 </div>
                   {showModal && (
                     <Portal>
