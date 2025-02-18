@@ -61,11 +61,20 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           
-          {/* Promo Badge */}
-          {promo && (
+          {/* Promo Sticker */}
+          {promo && promo.discount && (
+            <div className="absolute top-1 right-1 w-14 h-14 bg-blue-500 text-white font-extrabold text-sm rounded-full shadow-md flex items-center justify-center overflow-hidden" style={{
+              boxShadow: '0 0.1rem 0.3rem rgba(0, 0, 0, 0.5)', // More pronounced boxShadow
+              border: '1px solid rgba(0, 0, 0, 0.1)', // Add subtle border
+              textShadow: '0 0 0.2rem rgba(0, 0, 0, 0.3)' // Add textShadow for text pop
+            }}>
+              {promo.discount}%<br/>OFF!!!
+            </div>
+          )}
+          {promo && !promo.discount && (
             <div className="absolute top-0 right-0 bg-gradient-to-l from-primary-600 to-primary-700 text-white text-xs font-bold py-1 px-3 rounded-bl-lg shadow-lg transform transition-transform duration-300 group-hover:scale-105">
               <div className="relative">
-                {promo.product}
+                {promo.name}
                 <div className="absolute -bottom-1 left-0 w-full h-[1px] bg-white/30" />
               </div>
             </div>

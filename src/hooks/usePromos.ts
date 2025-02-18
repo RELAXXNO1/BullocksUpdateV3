@@ -11,8 +11,8 @@ export function usePromos() {
   useEffect(() => {
     const promoCollection = collection(db, 'promos');
     const q = query(promoCollection);
-    
-    const unsubscribe = onSnapshot(q, 
+
+    const unsubscribe = onSnapshot(q,
       (snapshot) => {
         const promoList = snapshot.docs.map(doc => ({
           id: doc.id,
@@ -40,11 +40,23 @@ export function usePromos() {
       const promoCollection = collection(db, 'promos');
       const docRef = await addDoc(promoCollection, {
         ...promoData,
-        startDate: Timestamp.fromDate(promoData.startDate),
-        endDate: Timestamp.fromDate(promoData.endDate),
+        productIds: promoData.productIds || [], // Ensure productIds is included, even if empty
+        startDate: Timestamp.fromDate(promoData.startDate as Date), // Explicitly cast to Date
+        endDate: Timestamp.fromDate(promoData.endDate as Date), // Explicitly cast to Date
         createdAt: Timestamp.fromDate(new Date()),
         updatedAt: Timestamp.fromDate(new Date())
       });
+      
+      // Update associated products with promoId
+      if (promoData.productIds && promoData.productIds.length > 0) {
+        promoData.productIds.forEach(async productId => {
+          const productRef = doc(db, 'products', productId);
+          await updateDoc(productRef, {
+            promoId: docRef.id // Add promoId to product document
+          });
+        });
+      }
+
       return docRef.id;
     } catch (err) {
       console.error('Error creating promo:', err);
@@ -57,16 +69,17 @@ export function usePromos() {
       const promoRef = doc(db, 'promos', id);
       const updateData = {
         ...updates,
+        productIds: updates.productIds || [], // Ensure productIds is included, even if empty
         updatedAt: Timestamp.fromDate(new Date())
       };
-      
+
       if (updates.startDate) {
-        updateData.startDate = Timestamp.fromDate(updates.startDate);
+        updateData.startDate = updates.startDate;
       }
       if (updates.endDate) {
-        updateData.endDate = Timestamp.fromDate(updates.endDate);
+        updateData.endDate = updates.endDate;
       }
-      
+
       await updateDoc(promoRef, updateData);
     } catch (err) {
       console.error('Error updating promo:', err);

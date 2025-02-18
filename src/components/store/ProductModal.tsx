@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Product } from '../../types/product';
 import { Button } from '../ui/Button';
 import { useCart } from '../../contexts/CartContext';
@@ -11,10 +11,27 @@ interface ProductModalProps {
   onClose: () => void;
 }
 
+import { db } from '../../lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+
 const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
   const { addToCart } = useCart();
   const [isAnimating, setIsAnimating] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [promo, setPromo] = useState<any>(null); // State to hold promo data
+
+  useEffect(() => {
+    const fetchPromo = async () => {
+      if (product.promoId) {
+        const promoRef = doc(db, 'promos', product.promoId);
+        const promoSnap = await getDoc(promoRef);
+        if (promoSnap.exists()) {
+          setPromo(promoSnap.data());
+        }
+      }
+    };
+    fetchPromo();
+  }, [product.promoId]);
 
   const handleAddToCart = (product: Product) => {
     addToCart(product);
@@ -78,20 +95,56 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
             className="text-gray-600 dark:text-gray-300 mb-6 text-base leading-relaxed"
             dangerouslySetInnerHTML={{ __html: applyKeywordStyling(product.description || '') }}
           />
-          {typeof product.price === 'number' ? (
-            <p className="text-2xl font-extrabold text-teal-500 dark:text-teal-300 mb-6">
-              ${product.price.toFixed(2)}
-            </p>
+          {promo?.discount ? (
+            <div className="mb-6">
+              {typeof product.price === 'number' ? (
+                <>
+                  <p className="text-gray-400 line-through text-xl opacity-75 mb-1">
+                    ${product.price.toFixed(2)}
+                  </p>
+                  <p className="text-3xl font-extrabold text-teal-500 dark:text-teal-300">
+                    ${(product.price * (1 - promo.discount / 100)).toFixed(2)} <span className="text-primary-500 text-base font-bold ml-2">({promo.discount}% OFF)</span>
+                  </p>
+                </>
+              ) : (
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-3">Price Options</h3>
+                  <ul className="space-y-2">
+                    {Object.entries(product.price).map(([key, price]) => (
+                      <li key={key} className="text-sm">
+                        <span className="font-semibold text-gray-800 dark:text-gray-100">{key}:</span> 
+                        <div className="flex items-center">
+                          <span className="text-gray-400 line-through text-sm opacity-75 mr-2">
+                            ${price.toFixed(2)}
+                          </span>
+                          <span className="text-teal-500 font-bold text-base">
+                            ${(price * (1 - promo.discount / 100)).toFixed(2)} <span className="text-primary-500 text-xs font-bold ml-1">({promo.discount}% OFF)</span>
+                          </span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
           ) : (
             <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-3">Price Options</h3>
-              <ul className="space-y-2">
-                {Object.entries(product.price).map(([key, price]) => (
-                  <li key={key} className="text-sm">
-                    <span className="font-semibold text-gray-800 dark:text-gray-100">{key}:</span> <span className="text-gray-600 dark:text-gray-300">${price.toFixed(2)}</span>
-                  </li>
-                ))}
-              </ul>
+              {typeof product.price === 'number' ? (
+                <p className="text-2xl font-extrabold text-teal-500 dark:text-teal-300 mb-6">
+                  ${product.price.toFixed(2)}
+                </p>
+              ) : (
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-3">Price Options</h3>
+                  <ul className="space-y-2">
+                    {Object.entries(product.price).map(([key, price]) => (
+                      <li key={key} className="text-sm">
+                        <span className="font-semibold text-gray-800 dark:text-gray-100">{key}:</span> <span className="text-gray-600 dark:text-gray-300">${price.toFixed(2)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           )}
 

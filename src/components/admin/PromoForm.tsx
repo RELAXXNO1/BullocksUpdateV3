@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import type { Promo } from '../../types/promo';
 import { PROMO_TYPES } from '../../types/promo';
 import { Button } from '../ui/Button';
+import { useProducts } from '../../hooks/useProducts';
+import { Timestamp } from 'firebase/firestore'; // Explicitly import Timestamp
 
 interface PromoFormProps {
   onSubmit: (data: Partial<Promo>) => Promise<void>;
@@ -15,7 +17,7 @@ export function PromoForm({ onSubmit, onClose, initialData }: PromoFormProps) {
   const [formData, setFormData] = useState<Partial<Promo>>(initialData || {
     name: '',
     description: '',
-    product: '', 
+    productIds: [],
     discount: 0,
     startDate: new Date(),
     endDate: new Date(),
@@ -26,14 +28,27 @@ export function PromoForm({ onSubmit, onClose, initialData }: PromoFormProps) {
     minPurchaseAmount: undefined
   });
 
+  const { products, loading, error } = useProducts();
+  const [productOptions, setProductOptions] = useState<{ value: string; label: string; }[]>([]);
+
+  useEffect(() => {
+    if (products) {
+      setProductOptions(products.map(product => ({
+        value: product.id as string, // Explicitly cast to string
+        label: product.name,
+      })));
+    }
+  }, [products]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("Form Data before submit:", formData); // Add console.log here
     await onSubmit(formData);
-    onClose();
+    setTimeout(onClose, 100); // Add a short delay before onClose
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -78,6 +93,31 @@ export function PromoForm({ onSubmit, onClose, initialData }: PromoFormProps) {
             />
           </div>
 
+          <div className="space-y-2">
+            <label className="block text-sm font-medium">Products</label>
+            {loading ? (
+              <div>Loading products...</div>
+            ) : error ? (
+              <div>Error loading products: {error.message}</div>
+            ) : (
+              <select
+                multiple
+                value={formData.productIds}
+                onChange={(e) => {
+                  const selectedValues = Array.from(e.target.selectedOptions, option => option.value);
+                  setFormData({ ...formData, productIds: selectedValues });
+                }}
+                className="w-full rounded-lg bg-dark-500 border-dark-400 p-2"
+              >
+                {productOptions.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="block text-sm font-medium">Type</label>
@@ -113,7 +153,7 @@ export function PromoForm({ onSubmit, onClose, initialData }: PromoFormProps) {
               <label className="block text-sm font-medium">Start Date</label>
               <input
                 type="date"
-                value={formData.startDate ? new Date(formData.startDate).toISOString().split('T')[0] : ''}
+                value={formData.startDate ? (formData.startDate instanceof Timestamp ? formData.startDate.toDate().toISOString().split('T')[0] : new Date(formData.startDate).toISOString().split('T')[0]) : ''}
                 onChange={(e) => setFormData({ ...formData, startDate: new Date(e.target.value) })}
                 className="w-full rounded-lg bg-dark-500 border-dark-400"
                 required
@@ -124,7 +164,7 @@ export function PromoForm({ onSubmit, onClose, initialData }: PromoFormProps) {
               <label className="block text-sm font-medium">End Date</label>
               <input
                 type="date"
-                value={formData.endDate ? new Date(formData.endDate).toISOString().split('T')[0] : ''}
+                value={formData.endDate ? (formData.endDate instanceof Timestamp ? formData.endDate.toDate().toISOString().split('T')[0] : new Date(formData.endDate).toISOString().split('T')[0]) : ''}
                 onChange={(e) => setFormData({ ...formData, endDate: new Date(e.target.value) })}
                 className="w-full rounded-lg bg-dark-500 border-dark-400"
                 required
@@ -149,7 +189,7 @@ export function PromoForm({ onSubmit, onClose, initialData }: PromoFormProps) {
               <input
                 type="number"
                 value={formData.maxUses || ''}
-                onChange={(e) => setFormData({ ...formData, maxUses: Number(e.target.value) || undefined })}
+                onChange={(e) => setFormData({ ...formData, maxUses: e.target.value === '' ? null : Number(e.target.value) })}
                 className="w-full rounded-lg bg-dark-500 border-dark-400"
                 min="0"
                 placeholder="Optional"
@@ -162,7 +202,7 @@ export function PromoForm({ onSubmit, onClose, initialData }: PromoFormProps) {
             <input
               type="number"
               value={formData.minPurchaseAmount || ''}
-              onChange={(e) => setFormData({ ...formData, minPurchaseAmount: Number(e.target.value) || undefined })}
+              onChange={(e) => setFormData({ ...formData, minPurchaseAmount: e.target.value === '' ? undefined : Number(e.target.value) || undefined })}
               className="w-full rounded-lg bg-dark-500 border-dark-400"
               min="0"
               step="0.01"

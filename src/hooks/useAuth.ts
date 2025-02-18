@@ -23,29 +23,32 @@ export function useAuth() {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       console.log('Auth State Changed', { firebaseUser });
       if (firebaseUser) {
+        let isAdmin = false;
         try {
-          // Check admin status
+          // Check admin status in Firestore
           const adminDocRef = doc(db, 'admins', firebaseUser.uid);
           const adminDocSnap = await getDoc(adminDocRef);
-          const isAdmin = adminDocSnap.exists() && adminDocSnap.data()?.active === true;
-
-          // Set user with admin status
-          setUser({
-            ...firebaseUser,
-            isAdmin
-          } as AuthUser);
-          console.log('User with admin status', {
-            uid: firebaseUser.uid,
-            email: firebaseUser.email,
-            isAdmin
-          });
+          isAdmin = adminDocSnap.exists() && adminDocSnap.data()?.active === true;
         } catch (error) {
           console.error('Error checking admin status:', error);
-          setUser({
-            ...firebaseUser,
-            isAdmin: false
-          } as AuthUser);
         }
+
+        // Check for isAdmin in local storage
+        const storedIsAdmin = localStorage.getItem('isAdmin');
+        if (storedIsAdmin) {
+          isAdmin = JSON.parse(storedIsAdmin);
+        }
+
+        // Set user with admin status
+        setUser({
+          ...firebaseUser,
+          isAdmin
+        } as AuthUser);
+        console.log('User with admin status', {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          isAdmin
+        });
       } else {
         setUser(null);
       }
@@ -87,6 +90,7 @@ export function useAuth() {
       } as AuthUser;
 
       setUser(authUser);
+      localStorage.setItem('isAdmin', JSON.stringify(isAdmin)); // Store isAdmin in local storage
       return authUser;
 
     } catch (error) {
