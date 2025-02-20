@@ -1,0 +1,53 @@
+## StoreHeader.tsx Outline
+
+**Aesthetic:**
+
+*   Relatively short height (80px).
+*   Background with a subtle radial gradient and blurred backdrop.
+*   Border at the bottom.
+*   Overall "clean" and modern look.
+*   Uses teal as a primary accent color.
+*   **Animated Words:** Includes animated words "Wellness", "Mentality", "Mood", "Self", "Everything" that cycle through.
+
+**Layout/Design:**
+
+*   `header` element containing everything.
+*   Absolute positioned radial gradient for background effect.
+*   `container` div to center content horizontally.
+*   `Link` to the homepage with the logo and brand name.
+    *   Logo is on the left (hidden on small screens).
+    *   Brand name "High10" with "High" in black and "10" in teal, followed by the animated word.
+*   `nav` for navigation links and user menu.
+*   Cart icon on the right.
+*   NewUserMenu (the component we're working on) on the right, conditionally rendered based on user login status.
+
+## UserMenu.tsx (and NewUserMenu.tsx) Outline
+
+**Aesthetic:**
+
+*   Menu appears as a modal/popup.
+*   Uses a dark background with blurred backdrop.
+*   Rounded corners and subtle shadows.
+*   Teal accents (shadows, gradients).
+*   Clean typography.
+
+**Layout/Design:**
+
+*   Conditionally rendered modal using `createPortal`.
+*   Fixed positioning to overlay the rest of the page.
+*   Contains links to:
+    *   Account Details
+    *   View Past Orders
+    *   Admin Dashboard (conditionally rendered based on admin status)
+    *   Log Out
+    *   (Potentially other links)
+*   PointsForJoints button
+*   Uses `lucide-react` for the menu icon.
+*   Uses `Badge` component for displaying points.
+
+**Key Differences between UserMenu and NewUserMenu:**
+
+*   Both seem to serve the same purpose.
+*   NewUserMenu is currently being used in StoreHeader.
+*   UserMenu is not currently used.
+*   Both use createPortal.

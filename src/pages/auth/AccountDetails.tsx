@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AccountLayout from '../../components/layouts/AccountLayout';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -9,6 +9,9 @@ import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { useToast } from '../../components/ui/use-toast';
 import { BackButton } from '../../components/ui/BackButton';
+import { Badge } from '../../components/ui/Badge';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 
 const AccountDetailsPage = () => {
   const { user, deleteAccount, logout } = useAuth();
@@ -19,10 +22,35 @@ const AccountDetailsPage = () => {
   const [isChangingEmail, setIsChangingEmail] = useState(false);
   const [newEmail, setNewEmail] = useState('');
   const [emailChangeError, setEmailChangeError] = useState('');
-  const [deleteLoading, setDeleteLoading] = useState(false); // Added loading state for delete button
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [points, setPoints] = useState<number | null>(null);
+  const [loadingPoints, setLoadingPoints] = useState(true);
+  const [pointsError, setPointsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchPoints = async () => {
+      if (!user?.uid) {
+        setLoadingPoints(false);
+        return;
+      }
+      setLoadingPoints(true);
+      setPointsError(null);
+      try {
+        const fetchedPoints = await getUserPoints(user.uid);
+        setPoints(fetchedPoints);
+      } catch (error: any) {
+        console.error("Error fetching points:", error);
+        setPointsError("Failed to load points.");
+      } finally {
+        setLoadingPoints(false);
+      }
+    };
+
+    fetchPoints();
+  }, [user?.uid]);
 
   const handleDeleteAccount = async () => {
-    setDeleteLoading(true); // Set loading to true when delete starts
+    setDeleteLoading(true);
     try {
       await deleteAccount();
       await logout();
@@ -30,7 +58,7 @@ const AccountDetailsPage = () => {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete account');
     } finally {
-      setDeleteLoading(false); // Set loading back to false when delete finishes (success or error)
+      setDeleteLoading(false);
     }
   };
 
@@ -50,9 +78,8 @@ const AccountDetailsPage = () => {
     }
 
     try {
-      await (user as any)?.updateEmail(newEmail); // casting user to any to avoid typescript error
+      await (user as any)?.updateEmail(newEmail);
       toast('Email updated successfully!', 'success');
-      // You might want to re-fetch user data or reload the page here
     } catch (err) {
       setEmailChangeError(err instanceof Error ? err.message : 'Failed to update email');
     } finally {
@@ -60,16 +87,44 @@ const AccountDetailsPage = () => {
     }
   };
 
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+    }
+  }, []);
 
   if (!user) {
-    navigate('/login');
     return null;
   }
+
+  const getUserPoints = async (userId: string): Promise<number> => {
+    try {
+      const userPointsDocRef = doc(db, 'userPoints', userId);
+      const userPointsDoc = await getDoc(userPointsDocRef);
+      if (userPointsDoc.exists()) {
+        return userPointsDoc.data().points || 0;
+      } else {
+        return 0;
+      }
+    } catch (error) {
+      console.error("Error fetching user points:", error);
+      throw error;
+    }
+  };
 
   return (
     <AccountLayout>
       <div className="container mx-auto px-4 py-8 relative">
-        <h1 className="text-3xl font-bold text-white mb-8">Account Details</h1>
+        <h1 className="text-3xl font-bold text-white mb-8">
+          Account Details
+          {points != null && !loadingPoints && (
+            <Badge className="ml-2 text-lg">
+              Points: {points}
+            </Badge>
+          )}
+          {loadingPoints && <Badge className="ml-2 text-lg">Loading Points...</Badge>}
+          {pointsError && <Badge className="ml-2 text-lg variant='destructive'">Error Loading Points</Badge>}
+        </h1>
         <div className="absolute top-0 right-0">
           <BackButton to="/store" />
         </div>
@@ -86,7 +141,7 @@ const AccountDetailsPage = () => {
           <h2 className="text-2xl font-semibold text-white mb-4 flex items-center gap-2">
             <Mail className="h-5 w-5" /> Email
           </h2>
-          <p className="text-gray-300 mb-4">{user.email}</p>
+          <p className="text-gray-300 mb-4">{user?.email}</p>
 
           {!isChangingEmail ? (
             <Button onClick={() => setIsChangingEmail(true)} variant="secondary">
@@ -94,12 +149,12 @@ const AccountDetailsPage = () => {
             </Button>
           ) : (
             <div className="space-y-4 mt-4">
-              <Input 
-                type="email" 
-                placeholder="New email address" 
-                value={newEmail} 
-                onChange={(e) => setNewEmail(e.target.value)} 
-                error={emailChangeError} // Corrected error prop
+              <Input
+                type="email"
+                placeholder="New email address"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                error={emailChangeError}
               />
               {emailChangeError && (
                 <p className="text-red-400 text-sm flex items-center gap-1">
@@ -119,7 +174,6 @@ const AccountDetailsPage = () => {
           )}
         </div>
 
-
         <div className="bg-slate-800/50 backdrop-blur-lg border border-slate-700/50 rounded-lg p-6 shadow-md mb-6">
           <Link to="/account/orders" className="inline-block w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-center">
             View Past Orders
@@ -136,12 +190,11 @@ const AccountDetailsPage = () => {
           <Button
             onClick={() => setShowDeleteConfirmation(true)}
             variant="destructive"
-            disabled={deleteLoading} // Use deleteLoading state to disable button
+            disabled={deleteLoading}
           >
             {deleteLoading ? 'Loading...' : 'Delete Account'}
           </Button>
         </div>
-
 
         {showDeleteConfirmation && (
           <motion.div
@@ -157,21 +210,21 @@ const AccountDetailsPage = () => {
                 Confirm Account Deletion
               </h3>
               <p className="text-center text-gray-300 mb-6">
-                Are you sure you want to permanently delete your account? 
+                Are you sure you want to permanently delete your account?
                 This action cannot be undone.
               </p>
               <div className="flex space-x-4">
                 <Button
                   variant="secondary"
                   onClick={() => setShowDeleteConfirmation(false)}
-                  disabled={deleteLoading} // Disable cancel button during deletion as well
+                  disabled={deleteLoading}
                 >
                   Cancel
                 </Button>
                 <Button
                   variant="destructive"
                   onClick={handleDeleteAccount}
-                  disabled={deleteLoading} // Disable delete button during deletion
+                  disabled={deleteLoading}
                 >
                   {deleteLoading ? 'Loading...' : 'Delete'}
                 </Button>

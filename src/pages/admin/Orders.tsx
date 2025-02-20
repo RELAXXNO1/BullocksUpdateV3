@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import ScrollWrapper from '../../components/store/ScrollWrapper';
 
@@ -195,6 +195,12 @@ const OrderCard: React.FC<{ order: any, fetchOrders?: () => Promise<void> }> = (
                             View Details
                         </button>
                         <button
+                            onClick={() => handlePointsForJoints(order)}
+                            className="block w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-colors duration-200 mt-2"
+                        >
+                            Points for Joints
+                        </button>
+                        <button
                             onClick={() => setIsModalOpen(false)}
                             className="block w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-colors duration-200 mt-2"
                         >
@@ -205,6 +211,62 @@ const OrderCard: React.FC<{ order: any, fetchOrders?: () => Promise<void> }> = (
             )}
         </div>
     );
+};
+
+const handlePointsForJoints = async (order: any) => {
+    const points = Math.floor(order.total / 5);
+    const userEmail = order.email;
+
+    if (!userEmail) {
+        alert("No email associated with this order to award points.");
+        return;
+    }
+
+    if (isNaN(points) || points <= 0) {
+        alert("Order total is not valid for awarding points.");
+        return;
+    }
+
+    const confirmAward = window.confirm(`Award ${points} points to ${userEmail} for this order?`);
+    if (!confirmAward) {
+        return;
+    }
+
+    try {
+        await awardPointsToUser(userEmail, points);
+        alert(`Successfully awarded ${points} points to ${userEmail}`);
+    } catch (error) {
+        console.error("Error awarding points:", error);
+        alert("Failed to award points. See console for details.");
+    }
+};
+
+const awardPointsToUser = async (email: string, points: number) => {
+    const usersCollection = collection(db, 'users');
+    const userDocs = await getDocs(usersCollection);
+    
+    let userId = null;
+    userDocs.forEach(doc => {
+        if (doc.data().email === email) {
+            userId = doc.id;
+        }
+    });
+
+    if (!userId) {
+        throw new Error("User not found with provided email.");
+    }
+
+    const userPointsDocRef = doc(db, 'userPoints', userId);
+    const userPointsDoc = await getDoc(userPointsDocRef);
+
+    if (userPointsDoc.exists()) {
+        // Update existing points
+        const currentPoints = userPointsDoc.data().points || 0;
+        await updateDoc(userPointsDocRef, { points: currentPoints + points });
+    } else {
+        // Create new points document
+        await setDoc(userPointsDocRef, { points: points, email: email });
+    }
 };
 
 const CartItemsList: React.FC<{ cart: any[] }> = ({ cart }) => {

@@ -8,25 +8,29 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ children, requiredRole = 'user' }: ProtectedRouteProps) {
-  const { user, loading } = useAuth();
+  const { user, loading, initialLoadingComplete, isLoggedIn } = useAuth();
 
-  console.log('🔒 Protected Route Check', { 
-    user, 
-    loading, 
+  console.log('🔒 Protected Route Check', {
+    user,
+    loading,
     isAdmin: user?.isAdmin,
-    requiredRole
+    requiredRole,
+    initialLoadingComplete,
+    isLoggedIn
   });
 
   if (loading) {
     return <LoadingSpinner />;
   }
 
-  if (!user) {
+  console.log('🔒 Protected Route - Before user check', { user, loading, initialLoadingComplete, isLoggedIn });
+
+  if (!isLoggedIn) {
     return <Navigate to="/login" replace />;
   }
 
-  if (!loading && requiredRole === 'admin' && !user.isAdmin) {
-      return <Navigate to="/" replace />;
+  if (!loading && requiredRole === 'admin' && !user?.isAdmin) {
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;

@@ -18,10 +18,16 @@ interface AuthUser extends FirebaseUser {
 export function useAuth() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialLoadingComplete, setInitialLoadingComplete] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false); // Explicit login state
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       console.log('Auth State Changed', { firebaseUser });
+      console.log('useAuth useEffect - Auth state initialized');
+      if (!initialLoadingComplete) {
+        setInitialLoadingComplete(true); // Set initial loading complete on first auth state change
+      }
       if (firebaseUser) {
         let isAdmin = false;
         try {
@@ -33,13 +39,6 @@ export function useAuth() {
           console.error('Error checking admin status:', error);
         }
 
-        // Check for isAdmin in local storage
-        const storedIsAdmin = localStorage.getItem('isAdmin');
-        if (storedIsAdmin) {
-          isAdmin = JSON.parse(storedIsAdmin);
-        }
-
-        // Set user with admin status
         setUser({
           ...firebaseUser,
           isAdmin
@@ -49,8 +48,10 @@ export function useAuth() {
           email: firebaseUser.email,
           isAdmin
         });
+        setIsLoggedIn(true); // Set isLoggedIn to true on successful auth
       } else {
         setUser(null);
+        setIsLoggedIn(false); // Set isLoggedIn to false when not authenticated
       }
       setLoading(false);
     });
@@ -90,11 +91,12 @@ export function useAuth() {
       } as AuthUser;
 
       setUser(authUser);
-      localStorage.setItem('isAdmin', JSON.stringify(isAdmin)); // Store isAdmin in local storage
+      setIsLoggedIn(true); // Set isLoggedIn to true on successful login
       return authUser;
 
     } catch (error) {
       console.error('Login Error:', error);
+      setIsLoggedIn(false); // Set to false on login error
       throw error;
     }
   };
@@ -108,7 +110,8 @@ export function useAuth() {
         email: firebaseUser.email,
         role: 'user',
         active: true,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        points: 10, // Add initial points
       });
 
       setUser({
@@ -127,6 +130,7 @@ export function useAuth() {
     try {
       await signOut(auth);
       setUser(null);
+      setIsLoggedIn(false); // Set isLoggedIn to false on logout
     } catch (error) {
       console.error('Logout error:', error);
       throw error;
@@ -153,12 +157,14 @@ export function useAuth() {
     }
   };
 
-  return { 
-    user, 
-    loading, 
+  return {
+    user,
+    loading,
+    initialLoadingComplete,
+    isLoggedIn, // Include isLoggedIn in the return value
     login,
-    logout, 
+    logout,
     signup,
-    deleteAccount
+    deleteAccount,
   };
 }

@@ -30,6 +30,9 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ closeCart }) => {
     const modalRef = React.useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
 
+    // Ohio sales tax rate (replace with dynamic fetch in a real application)
+    const OHIO_TAX_RATE = 0.0575; // 5.75%
+
     const calculateTotal = useCallback(() => {
         return cart.reduce((sum, item) => {
             const price = typeof item.product?.price === 'number' ? item.product.price : Math.min(...Object.values(item.product?.price || {}));
@@ -65,7 +68,10 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ closeCart }) => {
     };
 
     const handleCheckout = () => {
-        navigate('/order', { state: { total, items: cart }});
+        const subtotal = calculateTotal();
+        const tax = subtotal * OHIO_TAX_RATE;
+        const totalWithTax = subtotal + tax;
+        navigate('/order', { state: { total: totalWithTax, items: cart }});
     };
 
     const handleCloseCart = () => {

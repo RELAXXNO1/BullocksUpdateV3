@@ -16,6 +16,7 @@ import { useState, useEffect } from 'react';
 import THCAPopupModal from './components/store/THCAPopupModal';
 import Portal from './components/Portal';
 import OrderConfirmationPage from './pages/store/OrderConfirmationPage';
+import PointsForJointsPage from './pages/store/PointsForJointsPage';
 
 // Lazy load components with descriptive chunk names
 const StoreLayout = lazy(() => import(/* webpackChunkName: "store-layout" */ './components/layouts/StoreLayout'));
@@ -82,6 +83,7 @@ export default function App() {
                       <Route path="terms" element={<TermsOfService />} />
                       <Route path="order" element={React.createElement(lazy(() => import('./pages/store/OrderPage')))} />
                       <Route path="/order-confirmation" element={<OrderConfirmationPage />} />
+                      <Route path="/points-for-joints" element={<PointsForJointsPage />} />
                     </Route>
                     <Route path="/login" element={<Login />} />
                     <Route path="/signup" element={<Signup />} />

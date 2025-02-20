@@ -8,7 +8,11 @@ import { createPortal } from 'react-dom';
 import { Menu } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export default function StoreLayout() {
+interface StoreLayoutProps {
+    points?: number;
+}
+
+export default function StoreLayout({ points }: StoreLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const portalRef = useRef(document.createElement('div'));
 
@@ -27,7 +31,7 @@ export default function StoreLayout() {
   return (
     <div className="min-h-screen flex flex-col">
       <AgeVerification />
-      <StoreHeader />
+      <StoreHeader points={points} />
       <div className="flex-grow flex relative">
         <AnimatePresence>
           <motion.button

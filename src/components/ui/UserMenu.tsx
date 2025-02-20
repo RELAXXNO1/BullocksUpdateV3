@@ -2,6 +2,8 @@ import { Menu } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import ReactDOM from 'react-dom';
+import { useUserPoints } from '../../hooks/useUserPoints';
+import { useRef, useEffect, useState } from 'react';
 
 interface UserMenuProps {
     isOpen: boolean;
@@ -11,32 +13,77 @@ interface UserMenuProps {
 }
 
 export default function UserMenu({ isOpen, onClose, closeMenu, showAdminLink }: UserMenuProps) {
-  const { user, logout } = useAuth();
+    const { user, logout } = useAuth();
+    const { points } = useUserPoints();
+    const [showModal, setShowModal] = useState(false);
+    const modalContentRef = useRef<HTMLDivElement>(null);
 
-  const handleLogout = () => {
-    logout();
-  };
+    const handleLogout = () => {
+        logout();
+    };
 
-  if (!user) {
-    return null;
-  }
+    const PointsModal = () => {
+        return (
+            <div className="fixed top-0 left-0 w-full h-full flex items-center justify-center z-[5000] bg-black bg-opacity-50" >
+                <div className="bg-dark-600/50 backdrop-blur-xl rounded-super-elegant shadow-super-elegant border border-dark-400/30 p-6 relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-r from-teal-500/5 via-transparent to-teal-500/5" />
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,theme(colors.teal.500/0.1),transparent_70%)]" />
+                    <div className="relative z-10">
+                        <h2 className="text-lg font-bold mb-4 text-white">Points for Joints</h2>
+                        <p className="text-gray-300 mb-4 text-sm">
+                            Earn <span className="font-bold">1 point</span> for every <span className="font-bold">$5</span> spent. Redeem{' '}
+                            <span className="font-bold">5 points</span> for a free 2g pre-roll (random strain) with free shipping.
+                            Must be 21+ to purchase or receive any products.
+                        </p>
+                        <button
+                            onClick={() => setShowModal(false)}
+                            className="px-4 py-2 bg-teal-500 text-white rounded-md hover:bg-teal-600 transition-colors duration-200"
+                        >
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
 
     const ModalContent = () => {
         return (
-            <div className="fixed top-0 mt-2 z-[3000]" style={{left: 'calc(100vw - 256px - 1rem)'}}>
+            <div className="fixed top-0 mt-2 z-[3000] " style={{ left: 'calc(100vw - 256px - 1rem)', display: isOpen ? 'block' : 'none' }} ref={modalContentRef}>
                 <div className="bg-dark-600/50 backdrop-blur-xl rounded-super-elegant shadow-super-elegant border border-dark-400/30 p-4 relative overflow-hidden shadow-[0_0_20px_theme(colors.teal.500)]">
                     <div className="absolute inset-0 bg-gradient-to-r from-teal-500/5 via-transparent to-teal-500/5" />
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,theme(colors.teal.500/0.1),transparent_70%)]" />
                     <div className="relative z-10">
-                        <button onClick={() => {
-                            closeMenu();
-                        }} className="absolute top-2 right-2 text-gray-400 hover:text-gray-300 focus:outline-none" aria-label="Close modal">
-                            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
+                        {/* Removed close button */}
                         {user && (
                             <>
+                                <div className="relative">
+                                <Link
+                                    to="/points-for-joints"
+                                  className={`group block px-3 py-2 rounded-full relative overflow-hidden transition-all duration-200 
+                                    ${points !== undefined && points >= 5
+                                      ? 'text-green-500 hover:text-white hover:bg-green-500  cursor-pointer'
+                                      : 'text-white hover:bg-dark-500  cursor-not-allowed'}`}
+                                    onClick={(e) => {
+                                        if (points !== undefined && points >= 5) {
+                                            closeMenu();
+                                        } else {
+                                            e.preventDefault();
+                                            setShowModal(true);
+                                        }
+                                    }}
+
+                                >
+                                    Points for Joints ({points === undefined ? '0' : points})
+                                     <span className={`absolute inset-0 w-full h-full border border-teal-500 rounded-full transform origin-left transition-transform duration-200 ease-in-out
+                                        ${points !== undefined && points >= 5 ? 'group-hover:scale-100' : 'group-hover:scale-100'}
+                                        scale-0
+                                    `}
+        aria-hidden="true"
+      />
+                                </Link>
+                                </div>
                                 <Link
                                     to="/account"
                                     className="block px-4 py-2 text-white hover:bg-dark-500 rounded-md"
@@ -66,11 +113,6 @@ export default function UserMenu({ isOpen, onClose, closeMenu, showAdminLink }: 
                                 >
                                     Log Out
                                 </button>
-                                <a
-                                    href="mailto:high10.verify@gmail.com"
-                                    className="block px-4 py-2 text-white hover:bg-dark-500 rounded-md mt-2"
-                                >
-                                </a>
                             </>
                         )}
                     </div>
@@ -79,8 +121,27 @@ export default function UserMenu({ isOpen, onClose, closeMenu, showAdminLink }: 
         );
     };
 
+  useEffect(() => {
+      const handleClickOutside = (event: MouseEvent) => {
+        if (isOpen && menuRef.current && !menuRef.current.contains(event.target as Node) && !(modalContentRef.current && modalContentRef.current.contains(event.target as Node))) {
+          console.log("Closing menu");
+          onClose();
+        }
+      };
+
+      if (isOpen) {
+        document.addEventListener('mousedown', handleClickOutside);
+      }
+
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }, [isOpen, onClose]);
+
+  const menuRef = useRef<HTMLDivElement>(null);
+
   return (
-    <div className="relative">
+    <div className="relative" ref={menuRef}>
       <button
         onClick={onClose}
         className="group relative flex items-center justify-center text-secondary-400 hover:text-primary-400 transition-all duration-200 px-3 py-2 -m-2 hover:bg-dark-600/20 rounded-lg cursor-pointer 
@@ -90,7 +151,8 @@ export default function UserMenu({ isOpen, onClose, closeMenu, showAdminLink }: 
       >
         <Menu className="h-6 w-6 group-hover:scale-110 transition-transform duration-200" />
       </button>
-        {isOpen && ReactDOM.createPortal(<ModalContent />, document.body)}
+      {user ? ReactDOM.createPortal(<ModalContent />, document.body) : null}
+      {showModal && ReactDOM.createPortal(<PointsModal />, document.body)}
     </div>
   );
 }
