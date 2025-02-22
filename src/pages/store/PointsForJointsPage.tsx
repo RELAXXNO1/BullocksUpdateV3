@@ -9,11 +9,10 @@ import { useUserPoints } from '../../hooks/useUserPoints';
 
 const PointsForJointsPage: React.FC = () => {
   const { user } = useAuth();
-  const { points, updateUserPoints } = useUserPoints();
+  const { points, tier, expiresAt } = useUserPoints();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { trackEvent } = useAnalytics();
-  const pointsCost = 5;
 
   const handleOrderSubmit = async (orderData: any) => {
     try {
@@ -21,13 +20,6 @@ const PointsForJointsPage: React.FC = () => {
         total_amount: 0, // Points for Joints is always free
         items: orderData.cart,
       });
-
-      // Deduct points
-      if (points !== undefined) {
-        const newPoints = points - pointsCost;
-        await updateUserPoints(newPoints);
-      }
-
 
       await addOrder({
         ...orderData,
@@ -54,19 +46,74 @@ const PointsForJointsPage: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto py-8">
-      <h1 className="text-2xl font-bold mb-4 text-white">Redeem Points for a Joint</h1>
+    <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      <h1 className="text-3xl sm:text-4xl font-bold text-white text-center mb-6">
+        Points for Joints Loyalty Program
+      </h1>
+
+      <div className="bg-gray-800/75 p-6 rounded-lg shadow-lg mb-8">
+        <h2 className="text-2xl font-semibold text-white mb-4">How it Works</h2>
+        <p className="text-gray-300 mb-4">
+          Earn <span className="font-bold">1 point</span> for every <span className="font-bold">$1</span> you spend
+          on products (excluding items in the "Special" category).  Redeem your points for free joints!
+        </p>
+        <p className="text-gray-300">
+          Your points expire <span className="font-bold">30 days</span> after they are earned.
+        </p>
+
+        <h2 className="text-2xl font-semibold text-white mt-6 mb-4">Tier Benefits</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full table-auto border-collapse border border-gray-700">
+            <thead>
+              <tr className="bg-gray-700 text-white">
+                <th className="px-4 py-2 text-left">Tier</th>
+                <th className="px-4 py-2 text-left">Points Required</th>
+                <th className="px-4 py-2 text-left">Redemption</th>
+              </tr>
+            </thead>
+            <tbody className="text-gray-300">
+              <tr className="bg-gray-800">
+                <td className="border border-gray-700 px-4 py-2">Basic</td>
+                <td className="border border-gray-700 px-4 py-2">0+</td>
+                <td className="border border-gray-700 px-4 py-2">5 points for a free joint</td>
+              </tr>
+              <tr className="bg-gray-900">
+                <td className="border border-gray-700 px-4 py-2">Silver</td>
+                <td className="border border-gray-700 px-4 py-2">250+</td>
+                <td className="border border-gray-700 px-4 py-2">4 points for a free joint</td>
+              </tr>
+              <tr className="bg-gray-800">
+                <td className="border border-gray-700 px-4 py-2">Gold</td>
+                <td className="border border-gray-700 px-4 py-2">500+</td>
+                <td className="border border-gray-700 px-4 py-2">4 points for a free joint</td>
+              </tr>
+              <tr className="bg-gray-900">
+                <td className="border border-gray-700 px-4 py-2">Platinum</td>
+                <td className="border border-gray-700 px-4 py-2">1000+</td>
+                <td className="border border-gray-700 px-4 py-2">3 points for a free <span className="italic">premium</span> joint</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       {user ? (
-        <>
-          <p className="text-gray-300 mb-4">Your Points: {points !== undefined ? points : 'Loading...'}</p>
+        <div className="bg-gray-800/75 p-6 rounded-lg shadow-lg">
+          <h2 className="text-xl font-semibold text-white mb-3">Redeem Points</h2>
+          <p className="text-gray-300 mb-4">
+            Your Points: {points !== undefined ? points : 'Loading...'} |  Tier: {tier}  {expiresAt && (
+              <span className="ml-2 text-sm text-gray-400">
+                (Expires: {expiresAt.toLocaleDateString()})
+              </span>
+            )}
+          </p>
           <PointsForJointsOrderForm
             onOrderSubmit={handleOrderSubmit}
             userEmail={user.email}
-            userPoints={points}
           />
-        </>
+        </div>
       ) : (
-        <p className="text-red-400">You must be logged in to redeem points.</p>
+        <p className="text-red-400 bg-gray-800/75 p-6 rounded-lg shadow-lg">You must be logged in to redeem points.</p>
       )}
     </div>
   );

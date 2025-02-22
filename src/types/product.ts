@@ -31,6 +31,7 @@ export type Product = z.infer<typeof ProductSchema> & {
   isFeatured?: boolean;
   cartImage?: string;
   quantity?: number;
+  pointsRequired?: number;
     price: number | {
         '1.75g': number;
         '3.5g': number;

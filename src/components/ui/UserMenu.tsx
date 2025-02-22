@@ -1,4 +1,4 @@
-import { Menu } from 'lucide-react';
+import { Menu, Clock, Award } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import ReactDOM from 'react-dom';
@@ -14,13 +14,26 @@ interface UserMenuProps {
 
 export default function UserMenu({ isOpen, onClose, closeMenu, showAdminLink }: UserMenuProps) {
     const { user, logout } = useAuth();
-    const { points } = useUserPoints();
+    const { points, expiresAt, tier } = useUserPoints();
     const [showModal, setShowModal] = useState(false);
     const modalContentRef = useRef<HTMLDivElement>(null);
 
     const handleLogout = () => {
         logout();
     };
+
+  const getTierColor = (tier: string) => {
+    switch (tier) {
+      case 'platinum':
+        return 'text-gray-400'; // Platinum color
+      case 'gold':
+        return 'text-yellow-400'; // Gold color
+      case 'silver':
+        return 'text-gray-300'; // Silver color
+      default:
+        return 'text-amber-700'; // Default to amber/bronze
+    }
+  };
 
     const PointsModal = () => {
         return (
@@ -31,13 +44,21 @@ export default function UserMenu({ isOpen, onClose, closeMenu, showAdminLink }: 
                     <div className="relative z-10">
                         <h2 className="text-lg font-bold mb-4 text-white">Points for Joints</h2>
                         <p className="text-gray-300 mb-4 text-sm">
-                            Earn <span className="font-bold">1 point</span> for every <span className="font-bold">$5</span> spent. Redeem{' '}
-                            <span className="font-bold">5 points</span> for a free 2g pre-roll (random strain) with free shipping.
+                            Earn <span className="font-bold">1 point</span> for every <span className="font-bold">$1</span> spent.
+                            Redemption rates:
+                        </p>
+                        <ul className="list-disc list-inside text-gray-300 mb-4 text-sm">
+              <li>Basic: 5 points for a free joint</li>
+              <li>Silver: 4 points for a free joint</li>
+              <li>Gold: 4 points for a free joint</li>
+              <li>Platinum: 3 points for a free premium joint</li>
+            </ul>
+                        <p className="text-gray-300 text-sm">
                             Must be 21+ to purchase or receive any products.
                         </p>
                         <button
                             onClick={() => setShowModal(false)}
-                            className="px-4 py-2 bg-teal-500 text-white rounded-md hover:bg-teal-600 transition-colors duration-200"
+                            className="px-4 py-2 bg-teal-500 text-white rounded-md hover:bg-teal-600 transition-colors duration-200 mt-4"
                         >
                             Close
                         </button>
@@ -75,7 +96,17 @@ export default function UserMenu({ isOpen, onClose, closeMenu, showAdminLink }: 
                                     }}
 
                                 >
-                                    Points for Joints ({points === undefined ? '0' : points})
+                    Points for Joints ({points === undefined ? '0' : points})
+                    {expiresAt && (
+                      <span className="ml-1 text-xs text-gray-400">
+                        <Clock className="inline-block w-3 h-3 mr-1" />
+                        {expiresAt.toLocaleDateString()}
+                      </span>
+                    )}
+                    <span className={`ml-1 ${getTierColor(tier || 'basic')}`}>
+                      <Award className="inline-block w-4 h-4" />
+                      {tier}
+                    </span>
                                      <span className={`absolute inset-0 w-full h-full border border-teal-500 rounded-full transform origin-left transition-transform duration-200 ease-in-out
                                         ${points !== undefined && points >= 5 ? 'group-hover:scale-100' : 'group-hover:scale-100'}
                                         scale-0

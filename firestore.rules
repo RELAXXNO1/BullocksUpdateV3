@@ -110,9 +110,15 @@ service cloud.firestore {
       allow read: if false;
     }
 
-    // Users collection rules
+   // Users collection rules
     match /users/{userId} {
-      allow read, write: if isAdmin() || request.auth.uid == userId;
+      allow read, write: if isAdmin() || (request.auth.uid == userId && validateUserData(request.resource.data));
+    }
+
+    function validateUserData(data) {
+      return (data.points is number || data.points == null) &&
+             (data.tier == 'basic' || data.tier == 'silver' || data.tier == 'gold' || data.tier == 'platinum' || data.tier == null) &&
+             (data.pointsExpiresAt is timestamp || data.pointsExpiresAt == null);
     }
 
     // Analytics events collection

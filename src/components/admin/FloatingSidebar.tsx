@@ -10,7 +10,8 @@ import {
   Lock, 
   Bot,
   Image,
-  Headphones
+  Headphones,
+  Award
 } from 'lucide-react';
 import { db } from '../../lib/firebase';
 import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
@@ -62,12 +63,17 @@ const NAV_ITEMS: NavItem[] = [
     icon: Tag,
     label: 'Promo Manager',
     path: '/admin/promo-manager'
-  }
+  },
+    {
+        icon: Award,
+        label: 'Points Panel',
+        path: '/admin/points-panel'
+    }
 ];
 
 export default function FloatingSidebar() {
-  const [activeModal, setActiveModal] = useState<string | null>(null);
-  const [unseenOrderCount, setUnseenOrderCount] = useState(0);
+    const [activeModal, setActiveModal] = useState<string | null>(null);
+    const [unseenOrderCount, setUnseenOrderCount] = useState(0);
 
   useEffect(() => {
     const fetchUnseenOrders = async () => {

@@ -5,6 +5,7 @@ import { Clock, User, Phone, Mail, X, ShoppingBag } from 'lucide-react';
 import 'react-phone-number-input/style.css';
 import { useCart } from '../../contexts/CartContext';
 import { useNavigate } from 'react-router-dom';
+import { useEarnPoints } from '../../hooks/useEarnPoints';
 
 interface OrderFormProps {
     onClose: () => void;
@@ -38,6 +39,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ onClose, onSubmit, total }) => {
     const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+    const { handlePurchase } = useEarnPoints();
 
     // Generate available time slots for the next 7 days
     useEffect(() => {
@@ -45,16 +47,16 @@ const OrderForm: React.FC<OrderFormProps> = ({ onClose, onSubmit, total }) => {
         const now = new Date();
         const storeOpenHour = 10; // 10 AM
         const storeCloseHour = 21; // 9 PM
-        
+
         for (let day = 0; day < 7; day++) {
             const date = new Date(now);
             date.setDate(now.getDate() + day);
-            
+
             for (let hour = storeOpenHour; hour <= storeCloseHour; hour++) {
                 for (let minute of [0, 30]) {
                     const timeSlot = new Date(date);
                     timeSlot.setHours(hour, minute, 0);
-                    
+
                     // Only include future time slots
                     if (timeSlot > now) {
                         slots.push(timeSlot.toISOString().slice(0, 16));
@@ -67,21 +69,21 @@ const OrderForm: React.FC<OrderFormProps> = ({ onClose, onSubmit, total }) => {
 
     const validateForm = (): boolean => {
         const newErrors: Partial<Record<keyof OrderData, string>> = {};
-        
+
         if (!formData.name.trim()) {
             newErrors.name = 'Name is required';
         }
-        
+
         if (formData.phone && formData.phone.length < 10) {
             newErrors.phone = 'Please enter a valid phone number';
         }
-        
+
         if (!formData.email) {
             newErrors.email = 'Email is required';
         } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
             newErrors.email = 'Please enter a valid email address';
         }
-        
+
         if (!formData.pickupTime) {
             newErrors.pickupTime = 'Please select a pickup time';
         }
@@ -103,7 +105,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ onClose, onSubmit, total }) => {
         if (!formData.cardCvv?.trim()) {
             newErrors.cardCvv = 'Card CVV is required';
         }
-        
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -120,8 +122,9 @@ const OrderForm: React.FC<OrderFormProps> = ({ onClose, onSubmit, total }) => {
                 // In a real application, you would use a service like SendGrid or Nodemailer
                 // to send the email.
             }
-             onClose();
-             navigate('/store', { replace: true });
+            await handlePurchase();
+            onClose();
+            navigate('/store', { replace: true });
             setLoading(false);
         }
     };
@@ -280,9 +283,6 @@ const OrderForm: React.FC<OrderFormProps> = ({ onClose, onSubmit, total }) => {
                             <Clock className="w-4 h-4" />
                             Card Number
                         </label>
-                        <input
-                            type="text"
-                            value={formData.cardNumber}
                             onChange={(e) => handleInputChange('cardNumber', e.target.value)}
                             className="w-full bg-white/5 text-white rounded-lg p-3 
                                      border border-white/10 focus:border-emerald-500/50 
