@@ -4,12 +4,15 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, UserX } from 'lucide-react';
+import AccountDetailsModal from '../../components/auth/AccountDetailsModal';
+import { Button } from '../../components/ui/Button';
 
 export default function AccountManagement() {
   const { user, deleteAccount, logout } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState('');
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleDeleteAccount = async () => {
     try {
@@ -50,6 +53,10 @@ export default function AccountManagement() {
             <h3 className="text-lg font-semibold mb-2">Email</h3>
             <p className="text-gray-300">{user.email}</p>
           </div>
+
+          <Button onClick={() => setIsModalOpen(true)} variant="secondary" className="w-full mb-4">
+            View Account Details
+          </Button>
 
           <div className="border-t border-slate-700 pt-6">
             <h3 className="text-lg font-semibold mb-2 text-red-500 flex items-center gap-2">
@@ -101,6 +108,7 @@ export default function AccountManagement() {
             </motion.div>
           )}
         </div>
+        <AccountDetailsModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
       </motion.div>
     </div>
   );

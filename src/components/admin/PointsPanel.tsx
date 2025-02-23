@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc } from 'firebase/firestore'; // Added doc, getDoc imports
 import { db } from '../../lib/firebase';
 import { Users, Award, ShoppingBag, AlertCircle } from 'lucide-react'; // Import icons
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { Alert, AlertTitle, AlertDescription } from '../../components/ui/Alert';
-
 
 interface UserData {
   email: string;
@@ -31,15 +30,26 @@ const PointsPanel: React.FC = () => {
       try {
         const usersCollection = collection(db, 'users');
         const usersSnapshot = await getDocs(usersCollection);
-        const usersData = usersSnapshot.docs.map(doc => {
-          const data = doc.data();
+        const usersData = await Promise.all(usersSnapshot.docs.map(async (userDoc) => { // Changed doc to userDoc
+          const userData = userDoc.data();
+          const userPointsDocRef = doc(db, 'userPoints', userDoc.id); // Changed to fetch from userPoints collection using userDoc.id
+          const userPointsSnapshot = await getDoc(userPointsDocRef); // Changed to getDoc for single doc fetch
+          let points = 0;
+          let pointsExpiresAt: Date | undefined = undefined;
+
+          if (userPointsSnapshot.exists()) { // Check if userPointsDoc exists
+            const pointsData = userPointsSnapshot.data();
+            points = pointsData.points || 0;
+            pointsExpiresAt = pointsData.pointsExpiresAt?.toDate();
+          }
+
           return {
-            email: data.email,
-            points: data.points || 0,
-            tier: data.tier || 'basic',
-            expiresAt: data.pointsExpiresAt?.toDate(),
+            email: userData.email,
+            points: points, // Points from 'userPoints' collection
+            tier: userData.tier || 'basic',
+            expiresAt: pointsExpiresAt,
           } as UserData;
-        });
+        }));
         setUsers(usersData);
 
         // Calculate analytics

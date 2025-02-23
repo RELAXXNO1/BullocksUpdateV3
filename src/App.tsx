@@ -5,18 +5,18 @@ import { ChatProvider } from './contexts/ChatContext';
 import LoadingSpinner from './components/LoadingSpinner';
 import ErrorBoundary from './components/ErrorBoundary';
 import { DEFAULT_CATEGORIES } from './constants/categories';
-import React from 'react';
+import React, { useState, useEffect } from 'react'; // Import useState and useEffect
 import PreRollsPage from './pages/store/PreRollsPage';
 import MushroomsPage from './pages/store/MushroomsPage';
 import LightersPage from './pages/store/LightersPage';
 import { CartProvider } from './contexts/CartContext';
 import { CartToggleProvider } from './contexts/CartToggleContext';
 import adminRoutes from './config/adminRoutes';
-import { useState, useEffect } from 'react';
 import THCAPopupModal from './components/store/THCAPopupModal';
 import Portal from './components/Portal';
 import OrderConfirmationPage from './pages/store/OrderConfirmationPage';
 import PointsForJointsPage from './pages/store/PointsForJointsPage';
+import { useAuth, AuthContext } from './hooks/useAuth'; // Import AuthContext and useAuth
 
 // Lazy load components with descriptive chunk names
 const StoreLayout = lazy(() => import(/* webpackChunkName: "store-layout" */ './components/layouts/StoreLayout'));
@@ -48,6 +48,7 @@ const TermsOfService = lazy(() => import(/* webpackChunkName: "terms-of-service"
 
 export default function App() {
   const [showModal, setShowModal] = useState(false);
+  const auth = useAuth(); // Get auth values
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -65,39 +66,41 @@ export default function App() {
             <CartToggleProvider>
               <Suspense fallback={<LoadingSpinner />}>
                 <div className="dark drop-shadow-[0_0_8px_theme(colors.teal.500)]">
-                  <Routes>
-                    <Route path="/" element={<StoreLayout />}>
-                      <Route index element={<StorePage />} />
-                      {DEFAULT_CATEGORIES.map((category) => (
-                        <Route 
-                          key={category.slug}
-                          path={category.slug} 
-                          element={React.createElement(categoryPages[category.slug] || StorePage)}
-                        />
-                      ))}
-                      <Route path="pre-rolls" element={<PreRollsPage />} />
-                      <Route path="mushrooms" element={<MushroomsPage />} />
-                      <Route path="lighters-torches" element={<LightersPage />} />
-                      <Route path="privacy" element={<PrivacyPolicy />} />
-                      <Route path="thca-compliance" element={<THCACompliance />} />
-                      <Route path="terms" element={<TermsOfService />} />
-                      <Route path="order" element={React.createElement(lazy(() => import('./pages/store/OrderPage')))} />
-                      <Route path="/order-confirmation" element={<OrderConfirmationPage />} />
-                      <Route path="/points-for-joints" element={<PointsForJointsPage />} />
-                    </Route>
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/signup" element={<Signup />} />
-                    <Route path="/account" element={<AccountDetailsPage />} />
-                    <Route path="/account/orders" element={<OrdersPage />} />
-                    {adminRoutes.map((route) => (
-                      <Route key={route.path} path={route.path} element={route.element}>
-                        {route.children?.map((childRoute) => (
-                          <Route key={childRoute.path} path={childRoute.path} element={childRoute.element} index={childRoute.index} />
+                  <AuthContext.Provider value={auth}> {/* Provide AuthContext value */}
+                    <Routes>
+                      <Route path="/" element={<StoreLayout />}>
+                        <Route index element={<StorePage />} />
+                        {DEFAULT_CATEGORIES.map((category) => (
+                          <Route 
+                            key={category.slug}
+                            path={category.slug} 
+                            element={React.createElement(categoryPages[category.slug] || StorePage)}
+                          />
                         ))}
+                        <Route path="pre-rolls" element={<PreRollsPage />} />
+                        <Route path="mushrooms" element={<MushroomsPage />} />
+                        <Route path="lighters-torches" element={<LightersPage />} />
+                        <Route path="privacy" element={<PrivacyPolicy />} />
+                        <Route path="thca-compliance" element={<THCACompliance />} />
+                        <Route path="terms" element={<TermsOfService />} />
+                        <Route path="order" element={React.createElement(lazy(() => import('./pages/store/OrderPage')))} />
+                        <Route path="/order-confirmation" element={<OrderConfirmationPage />} />
+                        <Route path="/points-for-joints" element={<PointsForJointsPage />} />
                       </Route>
-                    ))}
-                    <Route path="*" element={<Navigate to="/" replace />} />
-                  </Routes>
+                      <Route path="/login" element={<Login />} />
+                      <Route path="/signup" element={<Signup />} />
+                      <Route path="/account" element={<AccountDetailsPage />} />
+                      <Route path="/account/orders" element={<OrdersPage />} />
+                      {adminRoutes.map((route) => (
+                        <Route key={route.path} path={route.path} element={route.element}>
+                          {route.children?.map((childRoute) => (
+                            <Route key={childRoute.path} path={childRoute.path} element={childRoute.element} index={childRoute.index} />
+                          ))}
+                        </Route>
+                      ))}
+                      <Route path="*" element={<Navigate to="/" replace />} />
+                    </Routes>
+                  </AuthContext.Provider>
                 </div>
                   {showModal && (
                     <Portal>

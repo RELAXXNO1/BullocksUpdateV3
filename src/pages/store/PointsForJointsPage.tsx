@@ -27,7 +27,7 @@ const PointsForJointsPage: React.FC = () => {
         timestamp: new Date().toISOString(),
       });
 
-      toast('Order Confirmed!', 'success');
+      toast('Thanks for your loyalty to High10Everything!! Your free Joints will be shipped free of charge!!!', 'success');
       navigate('/order-confirmation');
     } catch (err: any) {
       const errorMessage = err.message || 'Failed to submit order';

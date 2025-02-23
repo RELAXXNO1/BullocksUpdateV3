@@ -24,7 +24,7 @@ const OrderConfirmationPage: React.FC = () => {
                     Your order has been placed!
                 </h2>
                 <p className="text-gray-300 mb-8">
-                    Thank you for trying High10 Everything! Your card won't be charged until the order is shipped! For questions and concerns, please contact us.
+                    Thank you for trying High10 Everything! Your card won't be charged until the order is shipped! You will not be charged for redeeming Point for Joints, For questions and concerns, please contact us.
                 </p>
                 <Button onClick={() => navigate('/store')} variant="secondary">
                     Back to Store

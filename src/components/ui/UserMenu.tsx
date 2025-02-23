@@ -1,9 +1,12 @@
 import { Menu, Clock, Award } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import ReactDOM from 'react-dom';
 import { useUserPoints } from '../../hooks/useUserPoints';
 import { useRef, useEffect, useState } from 'react';
+import AccountDetailsModal from '../auth/AccountDetailsModal';
+import { Link } from 'react-router-dom';
+import { AuthContext } from '../../hooks/useAuth'; // Import AuthContext
+import { useContext } from 'react'; // Import useContext
 
 interface UserMenuProps {
     isOpen: boolean;
@@ -13,9 +16,12 @@ interface UserMenuProps {
 }
 
 export default function UserMenu({ isOpen, onClose, closeMenu, showAdminLink }: UserMenuProps) {
-    const { user, logout } = useAuth();
+    const authContext = useContext(AuthContext); // Use useContext to get auth context
+    console.log("UserMenu AuthContext:", authContext); // Debug log context value
+    const { user, logout } = authContext || useAuth(); // Use context, fallback to hook if context is not available
     const { points, expiresAt, tier } = useUserPoints();
     const [showModal, setShowModal] = useState(false);
+    const [showAccountDetailsModal, setShowAccountDetailsModal] = useState(false);
     const modalContentRef = useRef<HTMLDivElement>(null);
 
     const handleLogout = () => {
@@ -96,7 +102,7 @@ export default function UserMenu({ isOpen, onClose, closeMenu, showAdminLink }: 
                                     }}
 
                                 >
-                    Points for Joints ({points === undefined ? '0' : points})
+                    Points for Joints ({points === undefined ? 'Loading...' : points})
                     {expiresAt && (
                       <span className="ml-1 text-xs text-gray-400">
                         <Clock className="inline-block w-3 h-3 mr-1" />
@@ -115,13 +121,16 @@ export default function UserMenu({ isOpen, onClose, closeMenu, showAdminLink }: 
       />
                                 </Link>
                                 </div>
-                                <Link
-                                    to="/account"
+                                <button
                                     className="block px-4 py-2 text-white hover:bg-dark-500 rounded-md"
-                                    onClick={closeMenu}
+                                    onClick={() => {
+                                        console.log("Account Details button clicked");
+                                        setShowAccountDetailsModal(true);
+                                        closeMenu();
+                                    }}
                                 >
                                     Account Details
-                                </Link>
+                                </button>
                                 <Link
                                     to="/account/orders"
                                     className="block px-4 py-2 text-white hover:bg-dark-500 rounded-md mt-2"
@@ -182,8 +191,18 @@ export default function UserMenu({ isOpen, onClose, closeMenu, showAdminLink }: 
       >
         <Menu className="h-6 w-6 group-hover:scale-110 transition-transform duration-200" />
       </button>
-      {user ? ReactDOM.createPortal(<ModalContent />, document.body) : null}
-      {showModal && ReactDOM.createPortal(<PointsModal />, document.body)}
+      {user ? ReactDOM.createPortal(
+        <ModalContent />, 
+        document.body
+      ) : null}
+      {showModal && ReactDOM.createPortal(
+        <PointsModal />, 
+        document.body
+      )}
+      {showAccountDetailsModal && ReactDOM.createPortal(
+        <AccountDetailsModal isOpen={showAccountDetailsModal} onClose={() => setShowAccountDetailsModal(false)} />,
+        document.body
+      )}
     </div>
   );
 }

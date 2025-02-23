@@ -2,22 +2,50 @@ import React, { useState, useEffect } from 'react';
 import { collection, getDocs, doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import ScrollWrapper from '../../components/store/ScrollWrapper';
+import PointsOrderCard from '../../components/admin/PointsOrderCard';
+import { Order } from '../../types/order'; // Import Order type
 
 const Orders: React.FC = () => {
-    const [activeOrders, setActiveOrders] = useState<any[]>([]);
-    const [previousOrders, setPreviousOrders] = useState<any[]>([]);
+    const [activeOrders, setActiveOrders] = useState<Order[]>([]); // Use Order type
+    const [previousOrders, setPreviousOrders] = useState<Order[]>([]);
+    const [pointsOrders, setPointsOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeOrdersVisible, setActiveOrdersVisible] = useState(true);
+    const [pointsOrdersVisible, setPointsOrdersVisible] = useState(false);
 
     const fetchOrders = async () => { // Extracted fetchOrders function
         try {
             const ordersCollection = collection(db, 'orders');
             const ordersSnapshot = await getDocs(ordersCollection);
-            const ordersList = ordersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const ordersList = ordersSnapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    userId: data.userId,
+                    items: data.items,
+                    total: data.total,
+                    status: data.status,
+                    createdAt: data.createdAt,
+                    isShipped: data.isShipped,
+                    isPointsForJointsOrder: data.isPointsForJointsOrder,
+                    name: data.name,
+                    phone: data.phone,
+                    email: data.email,
+                    pickupTime: data.pickupTime,
+                    cardName: data.cardName,
+                    cardExpiry: data.cardExpiry,
+                    cardCvv: data.cardCvv,
+                    pointsRedeemed: data.pointsRedeemed,
+                    address: data.address,
+                    cart: data.cart,
+                } as Order;
+            });
 
-            // Separate active and previous orders
-            setActiveOrders(ordersList.filter(order => !('isShipped' in order) || order.isShipped !== true));
-            setPreviousOrders(ordersList.filter(order => ('isShipped' in order) && order.isShipped === true));
+
+            // Separate active, previous, and points for joints orders
+            setActiveOrders(ordersList.filter(order => !order.isShipped && !order.isPointsForJointsOrder));
+            setPreviousOrders(ordersList.filter(order => order.isShipped && !order.isPointsForJointsOrder));
+            setPointsOrders(ordersList.filter(order => order.isPointsForJointsOrder));
 
         } catch (error: any) {
             console.error('Error fetching orders:', error);
@@ -54,10 +82,20 @@ const Orders: React.FC = () => {
                 </button>
                 <button
                     onClick={() => setActiveOrdersVisible(false)}
-                    className={`${!activeOrdersVisible ? 'text-white bg-emerald-600' : 'text-gray-300 hover:text-white'}
+                    className={`${!activeOrdersVisible && !pointsOrdersVisible ? 'text-white bg-emerald-600' : 'text-gray-300 hover:text-white'}
                         rounded-full px-4 py-2 font-medium text-sm focus:outline-none`}
                 >
                     Previous Orders
+                </button>
+                 <button
+                    onClick={() => {
+                        setActiveOrdersVisible(false);
+                        setPointsOrdersVisible(true);
+                    }}
+                    className={`${pointsOrdersVisible ? 'text-white bg-emerald-600' : 'text-gray-300 hover:text-white'}
+                        rounded-full px-4 py-2 font-medium text-sm focus:outline-none`}
+                >
+                    Points for Joints Orders
                 </button>
             </div>
 
@@ -75,7 +113,7 @@ const Orders: React.FC = () => {
                             </div>
                         )}
                     </div>
-                ) : (
+                ) : !pointsOrdersVisible ? (
                     <div>
                         <h3 className="text-xl font-semibold text-white mb-4">Previous Orders</h3>
                         {previousOrders.length === 0 ? (
@@ -88,9 +126,22 @@ const Orders: React.FC = () => {
                             </div>
                         )}
                     </div>
+                ) : (
+                    <div>
+                        <h3 className="text-xl font-semibold text-white mb-4">Points for Joints Orders</h3>
+                        {pointsOrders.length === 0 ? (
+                            <div className="text-slate-400 p-4 text-center">No points for joints orders available.</div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {pointsOrders.map(order => (
+                                    <PointsOrderCard key={order.id} order={order} fetchOrders={fetchOrders} />
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 )}
             </ScrollWrapper>
-        </div>
+        </div >
     );
 };
 
@@ -145,7 +196,9 @@ const OrderCard: React.FC<{ order: any, fetchOrders?: () => Promise<void> }> = (
                 <p>Phone: <span className="text-white">{order.phone}</span></p>
                 <p>Email: <span className="text-white">{order.email || 'N/A'}</span></p>
                 <p>Pickup Time: <span className="text-white">{order.pickupTime}</span></p>
-                <p>Total: <span className="text-white">${order.total.toFixed(2)}</span></p>
+                {order.total !== undefined && !order.isPointsForJointsOrder && (
+                    <p>Total: <span className="text-white">${order.total.toFixed(2)}</span></p>
+                )}
             </div>
             <div className="mt-5 flex items-center justify-between relative">
                 <button

@@ -5,4 +5,6 @@ export type Order = {
   total: number;
   status: 'pending' | 'processing' | 'shipped' | 'delivered';
   createdAt: string;
+  isPointsForJointsOrder?: boolean;
+  isShipped?: boolean;
 };
