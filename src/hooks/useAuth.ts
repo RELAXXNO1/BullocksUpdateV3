@@ -92,6 +92,105 @@ export function useAuth() {
         ...firebaseUser,
         isAdmin
       } as AuthUser;
+import { useState, useEffect } from 'react';
+import { 
+  onAuthStateChanged, 
+  signInWithEmailAndPassword, 
+  signOut, 
+  User as FirebaseUser,
+  createUserWithEmailAndPassword,
+  setPersistence,
+  browserLocalPersistence
+} from 'firebase/auth';
+import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
+import { auth, db } from '../lib/firebase';
+
+interface AuthUser extends FirebaseUser {
+  isAdmin: boolean;
+}
+
+export function useAuth() {
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [initialLoadingComplete, setInitialLoadingComplete] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false); // Explicit login state
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      console.log('Auth State Changed', { firebaseUser });
+      console.log('useAuth useEffect - Auth state initialized');
+      if (!initialLoadingComplete) {
+        setInitialLoadingComplete(true); // Set initial loading complete on first auth state change
+      }
+      if (firebaseUser) {
+        let isAdmin = false;
+        try {
+          // Check admin status in Firestore
+          const adminDocRef = doc(db, 'admins', firebaseUser.uid);
+          const adminDocSnap = await getDoc(adminDocRef);
+          isAdmin = adminDocSnap.exists() && adminDocSnap.data()?.active === true;
+        } catch (error) {
+          console.error('Error checking admin status:', error);
+        }
+
+        setUser({
+          ...firebaseUser,
+          isAdmin
+        } as AuthUser);
+        console.log('User with admin status', {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          isAdmin
+        });
+        setIsLoggedIn(true); // Set isLoggedIn to true on successful auth
+      } else {
+        setUser(null);
+        setIsLoggedIn(false); // Set isLoggedIn to false when not authenticated
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const login = async (email: string, password: string) => {
+    try {
+      await setPersistence(auth, browserLocalPersistence);
+      const { user: firebaseUser } = await signInWithEmailAndPassword(auth, email, password);
+      
+      // Check admin status
+      const adminDocRef = doc(db, 'admins', firebaseUser.uid);
+      const adminDocSnap = await getDoc(adminDocRef);
+      const isAdmin = adminDocSnap.exists() && adminDocSnap.data()?.active === true;
+
+      console.log('Login Status:', {
+        uid: firebaseUser.uid,
+        email: firebaseUser.email,
+        isAdmin,
+        adminDoc: adminDocSnap.exists() ? 'exists' : 'not found'
+      });
+
+      // Create or update user document
+      await setDoc(doc(db, 'users', firebaseUser.uid), {
+        email: firebaseUser.email,
+        role: isAdmin ? 'admin' : 'user',
+        active: true,
+        lastLogin: new Date().toISOString(),
+        points: 0,
+        tier: 'basic',
+        pointsExpiresAt: null
+      }, { merge: true });
+
+      // Update local user state
+      const authUser = {
+        ...firebaseUser,
+        isAdmin
+      } as AuthUser;
+
+      // Temporary: Set admin status for a specific email
+      if (firebaseUser.email === 'travisbishopmackie@gmail.com') {
+        await setDoc(doc(db, 'admins', firebaseUser.uid), { active: true });
+      }
 
       setUser(authUser);
       setIsLoggedIn(true); // Set isLoggedIn to true on successful login
