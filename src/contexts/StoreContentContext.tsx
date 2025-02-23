@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { StoreContent, StoreContentUpdateDTO } from '../models/StoreContent';
 import { v4 as uuidv4 } from 'uuid';
+import { useAuth } from '../hooks/useAuth';
 
 interface StoreContentContextType {
   storeContents: StoreContent[];
@@ -18,6 +19,7 @@ import fetchDefaultStoreContent from '../lib/defaultStoreContent';
 export const StoreContentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [storeContents, setStoreContents] = useState<StoreContent[]>([]);
   const storeContentCollection = collection(db, 'storeContent');
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchStoreContent = async () => {
@@ -49,8 +51,10 @@ export const StoreContentProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
     };
 
-    createDefaultStoreContent();
-  }, []);
+    if (user?.isAdmin) {
+      createDefaultStoreContent();
+    }
+  }, [user]);
 
   const getContentBySection = (section: string) => {
     return storeContents.find(content => content.section === section);

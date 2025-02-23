@@ -81,7 +81,10 @@ export function useAuth() {
         email: firebaseUser.email,
         role: isAdmin ? 'admin' : 'user',
         active: true,
-        lastLogin: new Date().toISOString()
+        lastLogin: new Date().toISOString(),
+        points: 0,
+        tier: 'basic',
+        pointsExpiresAt: null
       }, { merge: true });
 
       // Update local user state
