@@ -54,7 +54,7 @@ const PointsForJointsPage: React.FC = () => {
       <div className="bg-gray-800/75 p-6 rounded-lg shadow-lg mb-8">
         <h2 className="text-2xl font-semibold text-white mb-4">How it Works</h2>
         <p className="text-gray-300 mb-4">
-          Earn <span className="font-bold">1 point</span> for every <span className="font-bold">$1</span> you spend
+          Earn <span className="font-bold">1 point</span> for every <span className="font-bold">$5</span> you spend
           on products (excluding items in the "Special" category).  Redeem your points for free joints!
         </p>
         <p className="text-gray-300">
@@ -75,22 +75,22 @@ const PointsForJointsPage: React.FC = () => {
               <tr className="bg-gray-800">
                 <td className="border border-gray-700 px-4 py-2">Basic</td>
                 <td className="border border-gray-700 px-4 py-2">0+</td>
-                <td className="border border-gray-700 px-4 py-2">5 points for a free joint</td>
+                <td className="border border-gray-700 px-4 py-2">8 points for a pre-roll</td>
               </tr>
               <tr className="bg-gray-900">
                 <td className="border border-gray-700 px-4 py-2">Silver</td>
                 <td className="border border-gray-700 px-4 py-2">250+</td>
-                <td className="border border-gray-700 px-4 py-2">4 points for a free joint</td>
+                <td className="border border-gray-700 px-4 py-2">7 points to redeem</td>
               </tr>
               <tr className="bg-gray-800">
                 <td className="border border-gray-700 px-4 py-2">Gold</td>
                 <td className="border border-gray-700 px-4 py-2">500+</td>
-                <td className="border border-gray-700 px-4 py-2">4 points for a free joint</td>
+                <td className="border border-gray-700 px-4 py-2">6 points to redeem</td>
               </tr>
               <tr className="bg-gray-900">
                 <td className="border border-gray-700 px-4 py-2">Platinum</td>
                 <td className="border border-gray-700 px-4 py-2">1000+</td>
-                <td className="border border-gray-700 px-4 py-2">3 points for a free <span className="italic">premium</span> joint</td>
+                <td className="border border-gray-700 px-4 py-2">5 points to redeem</td>
               </tr>
             </tbody>
           </table>

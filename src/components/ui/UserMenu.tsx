@@ -44,14 +44,14 @@ export default function UserMenu({ isOpen, onClose, closeMenu, showAdminLink }: 
                     <div className="relative z-10">
                         <h2 className="text-lg font-bold mb-4 text-white">Points for Joints</h2>
                         <p className="text-gray-300 mb-4 text-sm">
-                            Earn <span className="font-bold">1 point</span> for every <span className="font-bold">$1</span> spent.
+                            Earn <span className="font-bold">1 point</span> for every <span className="font-bold">$5</span> spent.
                             Redemption rates:
                         </p>
                         <ul className="list-disc list-inside text-gray-300 mb-4 text-sm">
-              <li>Basic: 5 points for a free joint</li>
-              <li>Silver: 4 points for a free joint</li>
-              <li>Gold: 4 points for a free joint</li>
-              <li>Platinum: 3 points for a free premium joint</li>
+              <li>Basic: 8 points for a free joint</li>
+              <li>Silver: 7 points for a free joint</li>
+              <li>Gold: 6 points for a free joint</li>
+              <li>Platinum: 5 points for a free premium joint</li>
             </ul>
                         <p className="text-gray-300 text-sm">
                             Must be 21+ to purchase or receive any products.

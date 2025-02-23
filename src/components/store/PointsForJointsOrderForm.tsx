@@ -16,25 +16,25 @@ const PointsForJointsOrderForm: React.FC<PointsForJointsOrderFormProps> = ({ onO
     const { points, tier, updateUserPoints } = useUserPoints();
 
     const generatePointsForJointsProduct = (tier: string): Product => {
-        let pointsRequired = 5; // Default for basic tier
+        let pointsRequired = 8; // Default for basic tier
         let description = 'Redeem points for a free joint';
 
         switch (tier) {
             case 'platinum':
-                pointsRequired = 3;
+                pointsRequired = 5;
                 description = 'Redeem points for a free premium joint (Platinum Tier)';
                 break;
             case 'gold':
-                pointsRequired = 4;
+                pointsRequired = 6;
                 description = 'Redeem points for a free joint (Gold Tier)';
                 break;
             case 'silver':
-                pointsRequired = 4;
+                pointsRequired = 7;
                 description = 'Redeem points for a free joint (Silver Tier)';
                 break;
             default:
-                pointsRequired = 5;
-                description = "Redeem 5 points for a free joint"
+                pointsRequired = 8;
+                description = "Redeem 8 points for a free joint"
         }
 
         return {
