@@ -3,10 +3,9 @@ service firebase.storage {
   match /b/{bucket}/o {
     // Enhanced admin validation function
     function isAdmin() {
-      return request.auth != null &&
-        (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
-        request.auth.token.email == "travisbishopmackie@gmail.com" ||
-        request.auth.token.email == "harbosamah@gmail.com");
+      return request.auth != null && 
+             (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
     }
 
     // Enhanced user validation function
