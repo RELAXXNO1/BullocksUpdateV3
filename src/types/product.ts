@@ -42,6 +42,7 @@ export type Product = z.infer<typeof ProductSchema> & {
 };
 
 export type ProductFormData = Omit<Product, 'price'> & {
+  description?: string;
   price: number | {
         '1.75g': number;
         '3.5g': number;
@@ -59,6 +60,8 @@ export interface CategoryAttribute {
   options?: string[];
   required?: boolean;
   displayOnCard?: boolean;
+  min?: number;
+  max?: number;
 }
 
 export type CategoryConfig = {
