@@ -1,20 +1,18 @@
-import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, ChevronLeft, X, PlusCircle, CheckCircle2, Mic, StopCircle, Volume2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
+import { Mic, StopCircle, Volume2, X, PlusCircle, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { DEFAULT_CATEGORIES, CategoryConfig } from '../../constants/categories';
+import type { FormStep } from '../../types/form';
+import { Button } from '../ui/Button';
+import { useAuth } from '../../hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
+import { getPhotobankImages } from '../../lib/photobank';
 import { collection, addDoc, updateDoc, doc, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import type { Product, ProductFormData } from '../../types/product';
-import { DEFAULT_CATEGORIES, CategoryConfig } from '../../constants/categories';
-import type { FormStep } from '../../types/form';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '../ui/Button';
-import { getPhotobankImages } from '../../lib/photobank';
-import { useAuth } from '../../hooks/useAuth';
 
-//
-// Gemini 2.0 API Integration for Voice (replace with your actual API key/endpoint)
-//
-const GEMINI_API_KEY = "AIzaSyD5P9YNGVe8UydYJdSARhBY2pOdTquqq34";
+// Gemini API Integration
+const GEMINI_API_KEY = "AIzaSyDqsbCjE9_n8mSlfPqgBDv8SgBe5x0f38E";
 const GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2:streamGenerateContent";
 
 async function getGeminiVoiceResponse(userInput: string, sessionHistory: string[]): Promise<string | null> {
@@ -35,7 +33,6 @@ async function getGeminiVoiceResponse(userInput: string, sessionHistory: string[
     });
     if (!response.ok) throw new Error(`Gemini API Error: ${response.status}`);
     const data = await response.json();
-    // Assume the audio response URL is in data.responses[0].audio
     return data.responses?.[0]?.audio || null;
   } catch (error) {
     console.error("Gemini API error:", error);
@@ -43,13 +40,32 @@ async function getGeminiVoiceResponse(userInput: string, sessionHistory: string[
   }
 }
 
-//
-// Simulated Web Search Function: In production, replace with an actual API call.
-// This function returns a summary string based on the query provided.
-//
+async function getGeminiTextResponse(userInput: string, sessionHistory: string[]): Promise<string | null> {
+  try {
+    const payload = {
+      contents: [{ role: "user", parts: [{ text: userInput }] }],
+      sessionHistory,
+      responseModalities: ["TEXT"],
+    };
+    const response = await fetch(GEMINI_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": GEMINI_API_KEY
+      },
+      body: JSON.stringify(payload)
+    });
+    if (!response.ok) throw new Error(`Gemini API Error: ${response.status}`);
+    const data = await response.json();
+    return data.responses?.[0]?.text || null;
+  } catch (error) {
+    console.error("Gemini API error:", error);
+    return null;
+  }
+}
+
 async function performWebSearch(query: string): Promise<string> {
   try {
-    // Simulated delay and result
     await new Promise(resolve => setTimeout(resolve, 500));
     return `Summary: Found key details and features about "${query}" from reputable sources.`;
   } catch (error) {
@@ -58,9 +74,6 @@ async function performWebSearch(query: string): Promise<string> {
   }
 }
 
-//
-// Utility function to extract a search query if the voice command indicates a lookup.
-//
 function extractSearchQuery(voiceText: string): string | null {
   const lower = voiceText.toLowerCase();
   let query: string | null = null;
@@ -78,9 +91,22 @@ function extractSearchQuery(voiceText: string): string | null {
   return query;
 }
 
-//
-// VoiceChatOrb Component – Handles voice input and triggers the onVoiceInput callback.
-//
+const navigationCommands = {
+  next: ['next', 'go to details', 'proceed'],
+  previous: ['previous', 'go back', 'back to category'],
+  submit: ['submit', 'finish', 'done'],
+};
+
+function isNavigationCommand(text: string): { command: string; type: 'next' | 'previous' | 'submit' } | null {
+  const lowerText = text.toLowerCase();
+  for (const [type, phrases] of Object.entries(navigationCommands)) {
+    if (phrases.some(phrase => lowerText.includes(phrase))) {
+      return { command: phrases[0], type: type as 'next' | 'previous' | 'submit' };
+    }
+  }
+  return null;
+}
+
 const VoiceChatOrb: React.FC<{ onVoiceInput: (text: string) => void }> = ({ onVoiceInput }) => {
   const [listening, setListening] = useState(false);
   const [transcript, setTranscript] = useState("");
@@ -102,6 +128,7 @@ const VoiceChatOrb: React.FC<{ onVoiceInput: (text: string) => void }> = ({ onVo
       recognition.onerror = (event: any) => {
         console.error("Speech recognition error:", event);
         setListening(false);
+        alert("Speech recognition error. Please try again.");
       };
       recognitionRef.current = recognition;
     }
@@ -142,6 +169,8 @@ const VoiceChatOrb: React.FC<{ onVoiceInput: (text: string) => void }> = ({ onVo
         variants={pulseVariants}
         animate={listening ? "listening" : "idle"}
         onClick={() => (listening ? stopListening() : startListening())}
+        role="button"
+        aria-label={listening ? "Stop listening" : "Start listening"}
       >
         {listening ? <StopCircle className="w-8 h-8 text-white" /> : <Mic className="w-8 h-8 text-white" />}
       </motion.div>
@@ -150,32 +179,23 @@ const VoiceChatOrb: React.FC<{ onVoiceInput: (text: string) => void }> = ({ onVo
   );
 };
 
-//
-// Utility: Apply Keyword Styling to product description preview.
-//
 export const applyKeywordStyling = (description: string) => {
   if (!description) return "";
   const KEYWORDS = ["diamonds", "relaxed", "euphoric", "happy", "mood-boosting", "focus", "creativity", "sleep", "3.5g", "7.0g", "14.0g", "28.0g", "1/8", "1/4", "1/2", "1", "ounce", "o.z.", "infused", "sativa", "indica", "hybrid", "on sale!", "new arrival"];
   const styledDescription = description.split(" ").map(word => {
-      if (KEYWORDS.includes(word.toLowerCase())) {
-          return `<span style="font-weight: bold; font-style: italic; color: teal; text-shadow: 0 0 5px rgb(14, 15, 4);">${word}</span>`;
-      }
-      return word;
+    if (KEYWORDS.includes(word.toLowerCase())) {
+      return `<span style="font-weight: bold; font-style: italic; color: teal; text-shadow: 0 0 5px rgb(14, 15, 4);">${word}</span>`;
+    }
+    return word;
   }).join(" ");
   return styledDescription;
 };
 
-//
-// Main ProductForm Component – Combines multi-step product creation with enhanced voice-to-voice AI integration.
-//
 export function ProductForm({ onClose, initialProduct }: { onClose?: () => void; initialProduct?: Product }) {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  // Multi-step state
   const [currentStep, setCurrentStep] = useState<FormStep>('category');
-
-  // Form data state with default structure
   const [formData, setFormData] = useState<ProductFormData>(() => ({
     category: initialProduct?.category || '',
     name: initialProduct?.name || '',
@@ -188,39 +208,30 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
     updatedAt: new Date().toISOString()
   }));
 
-  // AI and voice integration state
   const [sessionHistory, setSessionHistory] = useState<string[]>([]);
   const [aiAudio, setAiAudio] = useState<string | null>(null);
   const [voiceInputEnabled, setVoiceInputEnabled] = useState(true);
   const [autoPlayVoiceResponse, setAutoPlayVoiceResponse] = useState(false);
-
-  // Category and photobank states
   const [photobankImages, setPhotobankImages] = useState<any[]>([]);
   const [selectedImages, setSelectedImages] = useState<string[]>(initialProduct?.images || []);
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   const [newCategory, setNewCategory] = useState('');
+  const [isLoadingPhotobank, setIsLoadingPhotobank] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
-  const handlePreviousStep = () => {
-    if (currentStep === 'details') {
-      setCurrentStep('category');
-    }
-  };
+  const selectedCategory = DEFAULT_CATEGORIES.find(cat => cat.slug === formData.category);
 
-  const selectedCategory = useMemo(() =>
-    DEFAULT_CATEGORIES.find(cat => cat.slug === formData.category),
-    [formData.category]
-  );
-
-  // Helper to update form data consistently.
-  const updateFormData = useCallback((updates: Partial<ProductFormData>) => {
+  const updateFormData = (updates: Partial<ProductFormData>) => {
     setFormData(prev => ({
       ...prev,
       ...updates,
       updatedAt: new Date().toISOString()
     }));
-  }, []);
+  };
 
-  // Normalize price structure.
   const normalizePrice = (price: number | { [key: string]: number } | undefined): { '1.75g': number; '3.5g': number; '7g': number; '14g': number; '1oz': number } => {
     const defaultPrice = { '1.75g': 0, '3.5g': 0, '7g': 0, '14g': 0, '1oz': 0 };
     if (price === undefined) return defaultPrice;
@@ -235,35 +246,15 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
     };
   };
 
-  // Enhanced voice input handler: if the input indicates a search/lookup, execute a web search
-  // and combine the results with the original prompt.
-  const handleVoiceInput = async (voiceText: string) => {
-    let finalPrompt = voiceText;
-    const searchQuery = extractSearchQuery(voiceText);
-    if (searchQuery) {
-      const searchResults = await performWebSearch(searchQuery);
-      finalPrompt += `\nWeb search results: ${searchResults}`;
-    }
-    // Update description with the spoken text
-    updateFormData({ description: formData.description + " " + voiceText });
-    setSessionHistory(prev => [...prev, `User: ${voiceText}`]);
-    const aiResponseAudio = await getGeminiVoiceResponse(finalPrompt, sessionHistory);
-    if (aiResponseAudio) {
-      setAiAudio(aiResponseAudio);
-      setSessionHistory(prev => [...prev, `AI (audio): ${aiResponseAudio}`]);
-      if (autoPlayVoiceResponse) {
-        new Audio(aiResponseAudio).play().catch(err => console.error("Auto-play error:", err));
-      }
-    }
-  };
-
-  // Handle form submission (saving product to Firebase)
-  const handleSubmit = useCallback(async () => {
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    setError(null);
+    setSuccess(false);
     const steps: FormStep[] = ['category', 'details'];
     const invalidStep = steps.find(step => {
       if (step === 'category') return !formData.category;
       if (step === 'details') {
-        const basicValid = !!(formData.name.trim() && formData.description.trim() &&
+        const basicValid = !!(formData.name.trim() && formData.description?.trim() &&
           (typeof formData.price === 'number'
             ? formData.price > 0
             : (typeof formData.price === 'object' && Object.values(formData.price).some(price => price > 0))));
@@ -282,7 +273,8 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
       return false;
     });
     if (invalidStep) {
-      console.warn(`Submission failed: Invalid step ${invalidStep}`);
+      setError(`Submission failed: Please complete all required fields in the ${invalidStep} step.`);
+      setIsSubmitting(false);
       return;
     }
     let categoryId = formData.category;
@@ -293,12 +285,13 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
       if (!categorySnapshot.empty) {
         categoryId = categorySnapshot.docs[0].id;
       } else {
-        alert('Category not found. Please select a valid category.');
+        setError('Category not found. Please select a valid category.');
+        setIsSubmitting(false);
         return;
       }
     } catch (error) {
-      console.error('Error fetching category:', error);
-      alert('Error fetching category. Please try again.');
+      setError('Error fetching category. Please try again.');
+      setIsSubmitting(false);
       return;
     }
     const normalizedPrice = normalizePrice(formData.price);
@@ -323,28 +316,128 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
         const productsCollection = collection(db, 'products');
         await addDoc(productsCollection, productData);
       }
-      onClose?.();
-      navigate('/admin/products');
+      setSuccess(true);
+      setTimeout(() => {
+        setSuccess(false);
+        onClose?.();
+        navigate('/admin/products');
+      }, 2000);
     } catch (error: any) {
-      console.error("Error saving product:", error);
-      alert(`Failed to save product: ${error.message}`);
+      setError(`Failed to save product: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
     }
-  }, [formData, selectedImages, initialProduct, navigate, onClose, sessionHistory, selectedCategory]);
+  };
 
-  // Fetch photobank images whenever a category is selected.
+  const handleVoiceInput = async (voiceText: string) => {
+    const navCommand = isNavigationCommand(voiceText);
+    if (navCommand) {
+      switch (navCommand.type) {
+        case 'next':
+          if (currentStep === 'category') {
+            setCurrentStep('details');
+            const audio = await getGeminiVoiceResponse("Moving to details step.", sessionHistory);
+            if (audio) {
+              new Audio(audio).play();
+              setSessionHistory(prev => [...prev, `AI (audio): Moving to details step.`]);
+            }
+          }
+          break;
+        case 'previous':
+          if (currentStep === 'details') {
+            setCurrentStep('category');
+            const audio = await getGeminiVoiceResponse("Moving back to category selection.", sessionHistory);
+            if (audio) {
+              new Audio(audio).play();
+              setSessionHistory(prev => [...prev, `AI (audio): Moving back to category selection.`]);
+            }
+          }
+          break;
+        case 'submit':
+          if (currentStep === 'details') {
+            handleSubmit();
+          }
+          break;
+      }
+      setSessionHistory(prev => [...prev, `User: ${voiceText}`]);
+      return;
+    }
+
+    let finalPrompt = voiceText;
+    const searchQuery = extractSearchQuery(voiceText);
+    if (searchQuery) {
+      const searchResults = await performWebSearch(searchQuery);
+      finalPrompt += `\nWeb search results: ${searchResults}`;
+    }
+    updateFormData({ description: (formData.description || '') + " " + voiceText });
+    setSessionHistory(prev => [...prev, `User: ${voiceText}`]);
+    const aiResponseAudio = await getGeminiVoiceResponse(finalPrompt, sessionHistory);
+    if (aiResponseAudio) {
+      setAiAudio(aiResponseAudio);
+      setSessionHistory(prev => [...prev, `AI (audio): ${aiResponseAudio}`]);
+      if (autoPlayVoiceResponse) {
+        new Audio(aiResponseAudio).play().catch(err => console.error("Auto-play error:", err));
+      }
+    }
+  };
+
+  const generateAISuggestion = async () => {
+    const prompt = `Suggest a description for a product in the ${selectedCategory?.name} category named ${formData.name}.`;
+    const suggestion = await getGeminiTextResponse(prompt, sessionHistory);
+    if (suggestion) {
+      updateFormData({ description: suggestion });
+      setSessionHistory(prev => [...prev, `AI (text): ${suggestion}`]);
+    }
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' && currentStep === 'details') {
+        handleSubmit();
+      } else if (e.key === 'ArrowRight' && currentStep === 'category') {
+        setCurrentStep('details');
+      } else if (e.key === 'ArrowLeft' && currentStep === 'details') {
+        setCurrentStep('category');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentStep, handleSubmit]);
+
   useEffect(() => {
     if (formData.category) {
+      setIsLoadingPhotobank(true);
       getPhotobankImages(formData.category)
-        .then(images => setPhotobankImages(images))
-        .catch(error => console.error("Error fetching photobank images:", error));
+        .then(images => {
+          setPhotobankImages(images);
+          setIsLoadingPhotobank(false);
+        })
+        .catch(error => {
+          console.error("Error fetching photobank images:", error);
+          setError("Failed to load photobank images. Please try again.");
+          setIsLoadingPhotobank(false);
+        });
     } else {
       setPhotobankImages([]);
     }
   }, [formData.category]);
 
-  // Render Category Selection Step.
   const renderCategoryStep = () => (
     <div className="space-y-6">
+      <div className="flex justify-center space-x-4 mb-6">
+        <div className={`flex items-center space-x-2 ${currentStep === 'category' ? 'text-teal-300' : 'text-teal-500'}`}>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep === 'category' ? 'bg-teal-500' : 'bg-teal-700'}`}>
+            1
+          </div>
+          <span>Category</span>
+        </div>
+        <div className={`flex items-center space-x-2 ${currentStep === 'details' ? 'text-teal-300' : 'text-teal-500'}`}>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep === 'details' ? 'bg-teal-500' : 'bg-teal-700'}`}>
+            2
+          </div>
+          <span>Details</span>
+        </div>
+      </div>
       <h3 className="text-xl font-semibold text-teal-100 mb-4">Select Product Category</h3>
       <div className="bg-teal-900/80 border border-teal-700/50 rounded-xl p-6 space-y-6">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -355,6 +448,7 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
               className={`p-4 rounded-lg text-left transition-all duration-300 ${formData.category === category.slug
                 ? 'bg-teal-600 text-white ring-2 ring-teal-500'
                 : 'bg-teal-800 text-teal-200 hover:bg-teal-700'}`}
+              aria-label={`Select ${category.name} category`}
             >
               <div className="flex justify-between items-center">
                 <span className="font-semibold">{category.name}</span>
@@ -369,6 +463,7 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
             <button
               onClick={() => setIsCreatingCategory(true)}
               className="w-full flex items-center justify-center space-x-2 bg-teal-800 text-teal-300 hover:bg-teal-700 py-3 rounded-lg transition-colors duration-300"
+              aria-label="Create new category"
             >
               <PlusCircle className="w-5 h-5" />
               <span>Create New Category</span>
@@ -382,13 +477,14 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
                   onChange={(e) => setNewCategory(e.target.value)}
                   placeholder="Enter new category name"
                   className="flex-grow px-3 py-2 bg-teal-800 border border-teal-700 rounded text-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-teal-500"
+                  aria-label="New category name"
                 />
                 <button
                   onClick={() => {
                     if (!newCategory.trim()) return;
                     const slug = newCategory.toLowerCase().replace(/\s+/g, '-');
                     if (DEFAULT_CATEGORIES.find(cat => cat.slug === slug)) {
-                      alert('A category with this name already exists');
+                      setError('A category with this name already exists');
                       return;
                     }
                     const newCategoryConfig: CategoryConfig = {
@@ -406,12 +502,14 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
                   }}
                   disabled={!newCategory.trim()}
                   className="px-4 py-2 bg-teal-600 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-teal-500 transition-colors"
+                  aria-label="Create category"
                 >
                   Create
                 </button>
                 <button
                   onClick={() => { setIsCreatingCategory(false); setNewCategory(''); }}
                   className="px-4 py-2 bg-teal-800 text-teal-300 rounded hover:bg-teal-700 transition-colors"
+                  aria-label="Cancel category creation"
                 >
                   Cancel
                 </button>
@@ -423,7 +521,6 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
     </div>
   );
 
-  // Render Details Step: includes fields for name, price, description (with enhanced AI voice input), attributes and image selection.
   const renderDetailsStep = () => {
     const categoryAttributes = selectedCategory?.attributes?.fields || [];
     const priceObject = typeof formData.price === 'object' && formData.price !== null
@@ -432,6 +529,20 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
     const PriceKeys = ['1.75g', '3.5g', '7g', '14g', '1oz'] as const;
     return (
       <div className="space-y-6">
+        <div className="flex justify-center space-x-4 mb-6">
+          <div className={`flex items-center space-x-2 ${currentStep === 'category' ? 'text-teal-300' : 'text-teal-500'}`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep === 'category' ? 'bg-teal-500' : 'bg-teal-700'}`}>
+              1
+            </div>
+            <span>Category</span>
+          </div>
+          <div className={`flex items-center space-x-2 ${currentStep === 'details' ? 'text-teal-300' : 'text-teal-500'}`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep === 'details' ? 'bg-teal-500' : 'bg-teal-700'}`}>
+              2
+            </div>
+            <span>Details</span>
+          </div>
+        </div>
         <h3 className="text-xl font-semibold text-teal-100 mb-4">
           Product Details for {selectedCategory?.name}
         </h3>
@@ -447,6 +558,7 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
                 onChange={e => updateFormData({ name: e.target.value })}
                 placeholder="Enter product name"
                 className="w-full px-3 py-2 bg-teal-800 border border-teal-700 rounded text-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-teal-500 transition-all duration-300"
+                aria-label="Product name"
               />
             </div>
             <div className="space-y-2">
@@ -464,6 +576,7 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
                     min="0"
                     step="0.01"
                     className="w-full pl-6 pr-3 py-2 bg-teal-800 border border-teal-700 rounded text-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-teal-500 transition-all duration-300"
+                    aria-label="Product price"
                   />
                 </div>
               ) : (
@@ -481,6 +594,7 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
                         min="0"
                         step="0.01"
                         className="w-full pl-6 pr-3 py-2 bg-teal-800 border border-teal-700 rounded text-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-teal-500 transition-all duration-300"
+                        aria-label={`Price for ${key}`}
                       />
                     </div>
                   ))}
@@ -491,17 +605,21 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
           <div className="space-y-2">
             <label className="block text-sm font-medium text-teal-300">Description</label>
             <textarea
-              value={formData.description || ''}
+              value={formData.description ?? ''}
               onChange={e => updateFormData({ description: e.target.value })}
               placeholder="Enter product description"
               rows={4}
               className="w-full px-3 py-2 bg-teal-800 border border-teal-700 rounded text-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-teal-500 transition-all duration-300 resize-none"
+              aria-label="Product description"
             />
             <div
               className="w-full px-3 py-2 bg-teal-800 border border-teal-700 rounded text-teal-100 transition-all duration-300"
               style={{ whiteSpace: 'pre-wrap', marginTop: '-1rem', pointerEvents: 'none', userSelect: 'none', opacity: 0.7 }}
-              dangerouslySetInnerHTML={{ __html: applyKeywordStyling(formData.description || '') }}
+              dangerouslySetInnerHTML={{ __html: applyKeywordStyling(formData.description ?? '') }}
             />
+            <Button onClick={generateAISuggestion} className="mt-2" aria-label="Generate AI description suggestion">
+              Generate AI Suggestion
+            </Button>
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -511,6 +629,7 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
                   checked={voiceInputEnabled}
                   onChange={() => setVoiceInputEnabled(!voiceInputEnabled)}
                   className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-teal-300 rounded"
+                  aria-label="Enable voice input"
                 />
                 <span className="text-sm text-teal-300">Enable Voice Input</span>
               </label>
@@ -522,6 +641,7 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
                   checked={autoPlayVoiceResponse}
                   onChange={() => setAutoPlayVoiceResponse(!autoPlayVoiceResponse)}
                   className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-teal-300 rounded"
+                  aria-label="Auto-play AI response"
                 />
                 <span className="text-sm text-teal-300">Auto-Play AI Response</span>
               </label>
@@ -529,18 +649,30 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
           </div>
           {voiceInputEnabled && (
             <div className="space-y-4">
-              <p className="text-gray-400 text-sm">Tap the orb below and speak—try commands like “search for [product/strain]” for enhanced descriptions.</p>
+              <p className="text-gray-400 text-sm">Tap the orb and speak—try commands like “search for [product/strain]”, “next step”, “previous step”, or “submit”.</p>
               <VoiceChatOrb onVoiceInput={handleVoiceInput} />
             </div>
           )}
           {aiAudio && (
             <div className="mt-4">
-              <Button onClick={() => new Audio(aiAudio).play()} className="flex items-center space-x-2">
+              <Button onClick={() => new Audio(aiAudio).play()} className="flex items-center space-x-2" aria-label="Play AI audio response">
                 <Volume2 className="w-5 h-5" />
                 <span>Hear AI Response</span>
               </Button>
             </div>
           )}
+          <div className="mt-4">
+            <button onClick={() => setShowHistory(!showHistory)} className="text-teal-300 hover:text-teal-100" aria-label="Toggle voice command history">
+              {showHistory ? 'Hide' : 'Show'} Voice Command History
+            </button>
+            {showHistory && (
+              <div className="mt-2 p-4 bg-teal-800 rounded-lg">
+                {sessionHistory.map((entry, index) => (
+                  <p key={index} className="text-teal-100">{entry}</p>
+                ))}
+              </div>
+            )}
+          </div>
           {selectedCategory && categoryAttributes.length > 0 && (
             <div className="mt-6 space-y-6 border-t border-teal-700/50 pt-6">
               <h3 className="text-lg font-semibold text-teal-100">{selectedCategory.name} Specific Attributes</h3>
@@ -557,6 +689,7 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
                             onChange={(e) => updateFormData({ attributes: { ...formData.attributes, [attr.name]: e.target.value } })}
                             placeholder={`Enter ${attr.label}`}
                             className="w-full px-3 py-2 bg-teal-800 border border-teal-700 rounded text-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                            aria-label={`${attr.label} input`}
                           />
                         );
                       case 'number':
@@ -566,9 +699,10 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
                             value={currentValue}
                             onChange={(e) => updateFormData({ attributes: { ...formData.attributes, [attr.name]: e.target.value } })}
                             placeholder={`Enter ${attr.label}`}
-                            min={attr.min}
-                            max={attr.max}
+                            min={(attr as any).min}
+                            max={(attr as any).max}
                             className="w-full px-3 py-2 bg-teal-800 border border-teal-700 rounded text-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                            aria-label={`${attr.label} input`}
                           />
                         );
                       case 'select':
@@ -577,6 +711,7 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
                             value={String(currentValue)}
                             onChange={(e) => updateFormData({ attributes: { ...formData.attributes, [attr.name]: e.target.value } })}
                             className="w-full px-3 py-2 bg-teal-800 border border-teal-700 rounded text-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                            aria-label={`${attr.label} select`}
                           >
                             <option value="">Select {attr.label}</option>
                             {attr.options?.map((option: string) => (
@@ -595,6 +730,7 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
                                 checked={currentValue === '1'}
                                 onChange={() => updateFormData({ attributes: { ...formData.attributes, [attr.name]: '1' } })}
                                 className="text-teal-500 focus:ring-teal-500"
+                                aria-label={`${attr.label} yes`}
                               />
                               <span>Yes</span>
                             </label>
@@ -606,6 +742,7 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
                                 checked={currentValue === '0'}
                                 onChange={() => updateFormData({ attributes: { ...formData.attributes, [attr.name]: '0' } })}
                                 className="text-teal-500 focus:ring-teal-500"
+                                aria-label={`${attr.label} no`}
                               />
                               <span>No</span>
                             </label>
@@ -619,6 +756,7 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
                             onChange={(e) => updateFormData({ attributes: { ...formData.attributes, [attr.name]: e.target.value } })}
                             placeholder={`Enter ${attr.label}`}
                             className="w-full px-3 py-2 bg-teal-800 border border-teal-700 rounded text-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                            aria-label={`${attr.label} input`}
                           />
                         );
                     }
@@ -638,7 +776,11 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
           {user && !authLoading && (
             <div className="mt-6 space-y-4 border-t border-teal-700/50 pt-6">
               <h3 className="text-lg font-semibold text-teal-100">Select Product Images</h3>
-              {photobankImages.length > 0 && (
+              {isLoadingPhotobank ? (
+                <div className="flex justify-center items-center h-48">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-500"></div>
+                </div>
+              ) : photobankImages.length > 0 ? (
                 <div className="grid grid-cols-4 gap-4 mt-4">
                   {photobankImages.map((image) => (
                     <div
@@ -656,6 +798,8 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
                             setSelectedImages(prev => [...prev, image.downloadURL]);
                           }
                         }}
+                        role="button"
+                        aria-label={`Select image ${image.id}`}
                       />
                       {selectedImages.includes(image.downloadURL) && (
                         <div className="absolute top-2 right-2 bg-teal-600 text-white rounded-full p-1">
@@ -665,6 +809,8 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
                     </div>
                   ))}
                 </div>
+              ) : (
+                <p className="text-teal-300">No images available for this category.</p>
               )}
             </div>
           )}
@@ -682,33 +828,52 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
         exit={{ opacity: 0, scale: 0.9 }}
         transition={{ duration: 0.3 }}
       >
+        {success && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.5 }}
+            className="fixed top-4 right-4 bg-green-500 text-white p-4 rounded-lg shadow-lg"
+            role="alert"
+            aria-label="Success message"
+          >
+            Product saved successfully!
+          </motion.div>
+        )}
+        {error && (
+          <div className="fixed top-4 left-4 bg-red-900 text-red-100 p-4 rounded-lg shadow-lg" role="alert" aria-label="Error message">
+            {error}
+          </div>
+        )}
         <div className="sticky top-0 z-10 bg-teal-900/80 backdrop-blur-sm border-b border-teal-700/50 px-6 py-4 flex items-center justify-between">
           <h2 className="text-2xl font-bold text-teal-100">{initialProduct ? 'Edit Product' : 'Create New Product'}</h2>
-          <button onClick={() => onClose?.()} className="text-teal-300 hover:text-teal-100 transition-colors">
+          <button onClick={() => onClose?.()} className="text-teal-300 hover:text-teal-100 transition-colors" aria-label="Close form">
             <X className="w-6 h-6" />
           </button>
         </div>
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-100px)]">
-          <AnimatePresence mode="wait">
-            {currentStep === 'category' && renderCategoryStep()}
-            {currentStep === 'details' && renderDetailsStep()}
-          </AnimatePresence>
+          {currentStep === 'category' && renderCategoryStep()}
+          {currentStep === 'details' && renderDetailsStep()}
         </div>
         <div className="sticky bottom-0 bg-teal-900/80 backdrop-blur-sm border-t border-teal-700/50 px-6 py-4 flex justify-between items-center">
           {currentStep !== 'category' && (
-            <Button variant="secondary" onClick={handlePreviousStep} className="flex items-center space-x-2">
+            <Button variant="secondary" onClick={() => setCurrentStep('category')} className="flex items-center space-x-2" aria-label="Go to previous step">
               <ChevronLeft className="w-5 h-5" />
               <span>Previous</span>
             </Button>
           )}
           {currentStep !== 'details' ? (
-            <Button variant="default" onClick={() => setCurrentStep('details')} className="ml-auto flex items-center space-x-2">
+            <Button variant="default" onClick={() => setCurrentStep('details')} className="ml-auto flex items-center space-x-2" aria-label="Go to next step">
               <span>Next</span>
               <ChevronRight className="w-5 h-5" />
             </Button>
           ) : (
-            <Button variant="default" onClick={handleSubmit} className="ml-auto">
-              Submit Product
+            <Button variant="default" onClick={handleSubmit} disabled={isSubmitting} className="ml-auto" aria-label="Submit product form">
+              {isSubmitting ? (
+                <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
+              ) : (
+                "Submit Product"
+              )}
             </Button>
           )}
         </div>
