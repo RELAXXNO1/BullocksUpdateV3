@@ -101,6 +101,8 @@ service cloud.firestore {
           (category == 'tobacco-products' && validateTobaccoAttributes) ||
           (category == 'edibles' && validateEdiblesAttributes) ||
           (category == 'glass-pipes' && validateGlassPipesAttributes);
+      
+      return false;
       }
     }
 
