@@ -121,11 +121,11 @@ export function useAuth() {
 
       // Temporary: Set admin status for a specific email
       if (firebaseUser.email === 'travisbishopmackie@gmail.com') {
-        await setDoc(doc(db, 'admins', firebaseUser.uid), { active: true });
+        await setDoc(doc(db, 'admins', firebaseUser.uid), { active: true, role: 'admin' });
       }
 
       setUser(authUser);
-      setIsLoggedIn(true); // Set isLoggedIn to true on successful login
+      setIsLoggedIn(true);
       return authUser;
 
     } catch (error) {

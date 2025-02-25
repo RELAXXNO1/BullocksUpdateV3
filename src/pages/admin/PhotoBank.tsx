@@ -33,11 +33,18 @@ export default function PhotoBank() {
   const [fetchError, setFetchError] = useState<Error | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
 
+  console.log('PhotoBank component rendering'); // ADDED LOG
+
 
   useEffect(() => {
     const fetchPhotos = async () => {
-      if (!isAdmin) return;
+      if (!isAdmin) {
+        console.log('Skipping photo fetch - user is not admin');
+        return;
+      }
 
+      console.log('Starting photo fetch. isAdmin:', isAdmin, ' | Active user:', auth.currentUser?.uid);
+      
       try {
         const photosRef = collection(db, 'photos');
         const photosQuery = firestoreQuery(photosRef, where('isVisible', '==', true));
@@ -51,8 +58,6 @@ export default function PhotoBank() {
           console.log('Photo Document:', {
             id: doc.id,
             fileName: data.fileName,
-            downloadURL: data.downloadURL,
-            category: data.category,
             isVisible: data.isVisible
           });
           return {

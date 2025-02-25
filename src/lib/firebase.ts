@@ -17,8 +17,12 @@ export async function checkAdminStatus(uid: string): Promise<boolean> {
     const adminRef = doc(db, 'admins', uid);
     const adminDoc = await getDoc(adminRef);
     const adminData = adminDoc.data();
-    return adminDoc.exists() && 
-           adminData?.role === 'admin' && 
+
+    console.log('Admin Doc Exists:', adminDoc.exists());
+    console.log('Admin Data:', adminData);
+
+    return adminDoc.exists() &&
+           adminData?.role === 'admin' &&
            adminData?.active === true;
   } catch (error) {
     console.error('Error checking admin status:', error);

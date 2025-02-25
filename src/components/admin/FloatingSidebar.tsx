@@ -36,19 +36,24 @@ const NAV_ITEMS: NavItem[] = [
     path: '/admin/products'
   },
   {
+    icon: AiOutlineUnorderedList,
+    label: 'Orders',
+    path: '/admin/orders'
+  },
+  {
     icon: AiOutlineFolder,
     label: 'Category Manager',
     path: '/admin/category-manager'
   },
   {
+    icon: AiOutlineTag,
+    label: 'Promo Manager',
+    path: '/admin/promo-manager'
+  },
+  {
     icon: AiOutlineEdit,
     label: 'Store Content',
     path: '/admin/store-content'
-  },
-  {
-    icon: AiOutlineQuestionCircle,
-    label: 'Support Requests',
-    path: '/admin/support-requests'
   },
   {
     icon: AiOutlinePicture,
@@ -61,20 +66,15 @@ const NAV_ITEMS: NavItem[] = [
     path: '/admin/gemini-chatbot'
   },
   {
-    icon: AiOutlineUnorderedList,
-    label: 'Orders',
-    path: '/admin/orders'
-  },
-  {
-    icon: AiOutlineTag,
-    label: 'Promo Manager',
-    path: '/admin/promo-manager'
-  },
-  {
     icon: AiOutlineNotification,
     label: 'Pop-up Manager',
     path: '/admin/popup-manager'
-  }
+  },
+  {
+    icon: AiOutlineQuestionCircle,
+    label: 'Support Requests',
+    path: '/admin/support-requests'
+  },
 ];
 
 export default function FloatingSidebar() {
