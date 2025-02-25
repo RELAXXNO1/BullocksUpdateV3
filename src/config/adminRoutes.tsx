@@ -12,6 +12,7 @@ const Orders = lazy(() => import('../pages/admin/Orders'));
 const SupportRequests = lazy(() => import('../pages/admin/SupportRequests'));
 const GeminiChatbotPage = lazy(() => import('../pages/admin/GeminiChatbotPage'));
 const PointsPanel = lazy(() => import('../components/admin/PointsPanel'));
+const PopupManager = lazy(() => import('../components/admin/PopupManager')); 
 
 const adminRoutes: RouteObject[] = [
   {
@@ -34,6 +35,10 @@ const adminRoutes: RouteObject[] = [
       { path: 'gemini-assistant', element: <GeminiChatbotPage /> },
       { path: 'points-panel', element: <PointsPanel /> },
     ],
+  },
+  {
+    path: '/admin/popup-manager',
+    Component: PopupManager,
   },
 ];
 
