@@ -64,7 +64,7 @@ const NAV_ITEMS: NavItem[] = [
   {
     icon: HiOutlineChatAlt,
     label: 'Gemini Chatbot',
-    path: '/admin/gemini-chatbot'
+    path: '/admin/gemini-chatbot-page'
   },
   {
     icon: HiOutlineBell,
@@ -75,6 +75,11 @@ const NAV_ITEMS: NavItem[] = [
     icon: HiOutlineQuestionMarkCircle,
     label: 'Support Requests',
     path: '/admin/support-requests'
+  },
+  {
+    icon: Lucide.Gift,
+    label: 'Points for Joints',
+    path: '/admin/orders'
   },
 ];
 

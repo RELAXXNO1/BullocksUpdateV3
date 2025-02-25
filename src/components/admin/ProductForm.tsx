@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Mic, StopCircle, Volume2, X, PlusCircle, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Mic, StopCircle, X, PlusCircle, CheckCircle2, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { DEFAULT_CATEGORIES, CategoryConfig } from '../../constants/categories';
 import type { FormStep } from '../../types/form';
 import { Button } from '../ui/Button';
@@ -11,55 +11,34 @@ import { collection, addDoc, updateDoc, doc, getDocs, query, where } from 'fireb
 import { db } from '../../lib/firebase';
 import type { Product, ProductFormData } from '../../types/product';
 
-// Gemini API Integration
-const GEMINI_API_KEY = "AIzaSyDqsbCjE9_n8mSlfPqgBDv8SgBe5x0f38E";
-const GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2:streamGenerateContent";
+// Hugging Face Inference API Integration
+const HF_API_TOKEN = process.env.REACT_APP_HF_API_TOKEN || "YOUR_HF_API_TOKEN";
+const HF_ENDPOINT = "https://api-inference.huggingface.co/models/mistralai/Mixtral-8x7B-Instruct-v0.1";
 
-async function getGeminiVoiceResponse(userInput: string, sessionHistory: string[]): Promise<string | null> {
+async function getHFTextResponse(userInput: string, sessionHistory: string[]): Promise<string | null> {
   try {
-    const payload = {
-      contents: [{ role: "user", parts: [{ text: userInput }] }],
-      sessionHistory,
-      responseModalities: ["AUDIO"],
-      speechConfig: { voice: "charon", speakingRate: 1.0 }
-    };
-    const response = await fetch(GEMINI_ENDPOINT, {
+    const prompt = `${sessionHistory.join("\n")}\nUser: ${userInput}`;
+    const response = await fetch(HF_ENDPOINT, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": GEMINI_API_KEY
+        ...(HF_API_TOKEN && HF_API_TOKEN !== "YOUR_HF_API_TOKEN" ? { "Authorization": `Bearer ${HF_API_TOKEN}` } : {}),
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify({
+        inputs: prompt,
+        parameters: {
+          max_new_tokens: 150,
+          temperature: 0.7,
+          top_p: 0.9,
+          return_full_text: false,
+        },
+      }),
     });
-    if (!response.ok) throw new Error(`Gemini API Error: ${response.status}`);
+    if (!response.ok) throw new Error(`Hugging Face API Error: ${response.status} - ${response.statusText}`);
     const data = await response.json();
-    return data.responses?.[0]?.audio || null;
+    return data[0]?.generated_text || null;
   } catch (error) {
-    console.error("Gemini API error:", error);
-    return null;
-  }
-}
-
-async function getGeminiTextResponse(userInput: string, sessionHistory: string[]): Promise<string | null> {
-  try {
-    const payload = {
-      contents: [{ role: "user", parts: [{ text: userInput }] }],
-      sessionHistory,
-      responseModalities: ["TEXT"],
-    };
-    const response = await fetch(GEMINI_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": GEMINI_API_KEY
-      },
-      body: JSON.stringify(payload)
-    });
-    if (!response.ok) throw new Error(`Gemini API Error: ${response.status}`);
-    const data = await response.json();
-    return data.responses?.[0]?.text || null;
-  } catch (error) {
-    console.error("Gemini API error:", error);
+    console.error("Hugging Face API error:", error);
     return null;
   }
 }
@@ -196,20 +175,26 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
   const navigate = useNavigate();
 
   const [currentStep, setCurrentStep] = useState<FormStep>('category');
-  const [formData, setFormData] = useState<ProductFormData>(() => ({
-    category: initialProduct?.category || '',
-    name: initialProduct?.name || '',
-    description: initialProduct?.description || '',
-    price: initialProduct?.price || { '1.75g': 0, '3.5g': 0, '7g': 0, '14g': 0, '1oz': 0 },
-    attributes: initialProduct?.attributes || {},
-    isVisible: initialProduct?.isVisible ?? true,
-    images: initialProduct?.images || [],
-    createdAt: initialProduct?.createdAt || new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  }));
+  const [formData, setFormData] = useState<ProductFormData>(() => {
+    const initialPrice = initialProduct?.price
+      ? Array.isArray(initialProduct.price)
+        ? initialProduct.price
+        : Object.entries(initialProduct.price as { [key: string]: number }).map(([label, value]) => ({ label, value }))
+      : [{ label: '', value: 0 }];
+    return {
+      category: initialProduct?.category || '',
+      name: initialProduct?.name || '',
+      description: initialProduct?.description || '',
+      price: initialPrice,
+      attributes: initialProduct?.attributes || {},
+      isVisible: initialProduct?.isVisible ?? true,
+      images: initialProduct?.images || [],
+      createdAt: initialProduct?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+  });
 
   const [sessionHistory, setSessionHistory] = useState<string[]>([]);
-  const [aiAudio, setAiAudio] = useState<string | null>(null);
   const [voiceInputEnabled, setVoiceInputEnabled] = useState(true);
   const [autoPlayVoiceResponse, setAutoPlayVoiceResponse] = useState(false);
   const [photobankImages, setPhotobankImages] = useState<any[]>([]);
@@ -218,6 +203,7 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
   const [newCategory, setNewCategory] = useState('');
   const [isLoadingPhotobank, setIsLoadingPhotobank] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -232,19 +218,37 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
     }));
   };
 
-  const normalizePrice = (price: number | { [key: string]: number } | undefined): { '1.75g': number; '3.5g': number; '7g': number; '14g': number; '1oz': number } => {
-    const defaultPrice = { '1.75g': 0, '3.5g': 0, '7g': 0, '14g': 0, '1oz': 0 };
-    if (price === undefined) return defaultPrice;
-    if (typeof price === 'number') return { ...defaultPrice, '1.75g': price };
-    const normalized = { ...defaultPrice, ...price };
-    return {
-      '1.75g': normalized['1.75g'] || 0,
-      '3.5g': normalized['3.5g'] || 0,
-      '7g': normalized['7g'] || 0,
-      '14g': normalized['14g'] || 0,
-      '1oz': normalized['1oz'] || 0
-    };
+  const addPriceField = () => {
+    setFormData(prev => ({
+      ...prev,
+      price: [...prev.price, { label: '', value: 0 }]
+    }));
   };
+
+  const removePriceField = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      price: prev.price.filter((_, i) => i !== index)
+    }));
+  };
+
+  const updatePriceField = (index: number, field: 'label' | 'value', newValue: string | number) => {
+    setFormData(prev => ({
+      ...prev,
+      price: prev.price.map((item, i) =>
+        i === index ? { ...item, [field]: field === 'value' ? parseFloat(newValue as string) || 0 : newValue } : item
+      )
+    }));
+  };
+
+  useEffect(() => {
+    if (formData.category && formData.price.length === 0) {
+      setFormData(prev => ({
+        ...prev,
+        price: [{ label: '', value: 0 }]
+      }));
+    }
+  }, [formData.category]);
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
@@ -254,10 +258,11 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
     const invalidStep = steps.find(step => {
       if (step === 'category') return !formData.category;
       if (step === 'details') {
-        const basicValid = !!(formData.name.trim() && formData.description?.trim() &&
-          (typeof formData.price === 'number'
-            ? formData.price > 0
-            : (typeof formData.price === 'object' && Object.values(formData.price).some(price => price > 0))));
+        const basicValid = !!(
+          formData.name.trim() &&
+          formData.description?.trim() &&
+          formData.price.some(p => p.value > 0 && p.label.trim())
+        );
         const categoryAttributes = selectedCategory?.attributes?.fields || [];
         const attributesValid = categoryAttributes.every(attr => {
           const value = formData.attributes?.[attr.name];
@@ -294,18 +299,16 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
       setIsSubmitting(false);
       return;
     }
-    const normalizedPrice = normalizePrice(formData.price);
     const productData: ProductFormData = {
       ...formData,
       category: categoryId,
       description: formData.description || '',
       images: selectedImages,
-      price: normalizedPrice,
-      attributes: Object.fromEntries(
-        Object.entries(formData.attributes || {}).map(([key, value]) => [key, value !== undefined ? String(value) : ''])
-      ),
-      createdAt: initialProduct?.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      price: formData.price,
+      attributes: formData.attributes || {},
+      isVisible: formData.isVisible,
+      createdAt: formData.createdAt,
+      updatedAt: formData.updatedAt
     };
 
     try {
@@ -334,29 +337,13 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
     if (navCommand) {
       switch (navCommand.type) {
         case 'next':
-          if (currentStep === 'category') {
-            setCurrentStep('details');
-            const audio = await getGeminiVoiceResponse("Moving to details step.", sessionHistory);
-            if (audio) {
-              new Audio(audio).play();
-              setSessionHistory(prev => [...prev, `AI (audio): Moving to details step.`]);
-            }
-          }
+          if (currentStep === 'category') setCurrentStep('details');
           break;
         case 'previous':
-          if (currentStep === 'details') {
-            setCurrentStep('category');
-            const audio = await getGeminiVoiceResponse("Moving back to category selection.", sessionHistory);
-            if (audio) {
-              new Audio(audio).play();
-              setSessionHistory(prev => [...prev, `AI (audio): Moving back to category selection.`]);
-            }
-          }
+          if (currentStep === 'details') setCurrentStep('category');
           break;
         case 'submit':
-          if (currentStep === 'details') {
-            handleSubmit();
-          }
+          if (currentStep === 'details') handleSubmit();
           break;
       }
       setSessionHistory(prev => [...prev, `User: ${voiceText}`]);
@@ -371,23 +358,27 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
     }
     updateFormData({ description: (formData.description || '') + " " + voiceText });
     setSessionHistory(prev => [...prev, `User: ${voiceText}`]);
-    const aiResponseAudio = await getGeminiVoiceResponse(finalPrompt, sessionHistory);
-    if (aiResponseAudio) {
-      setAiAudio(aiResponseAudio);
-      setSessionHistory(prev => [...prev, `AI (audio): ${aiResponseAudio}`]);
-      if (autoPlayVoiceResponse) {
-        new Audio(aiResponseAudio).play().catch(err => console.error("Auto-play error:", err));
-      }
-    }
   };
 
-  const generateAISuggestion = async () => {
-    const prompt = `Suggest a description for a product in the ${selectedCategory?.name} category named ${formData.name}.`;
-    const suggestion = await getGeminiTextResponse(prompt, sessionHistory);
+  const generateHFDescription = async () => {
+    const productName = formData.name.trim();
+    if (!productName) {
+      setError("Please enter a product name before generating a description.");
+      return;
+    }
+    setIsGeneratingDescription(true);
+    setError(null);
+    const keywords = ["diamonds", "relaxed", "euphoric", "happy", "mood-boosting", "focus", "creativity", "sleep", "3.5g", "7.0g", "14.0g", "28.0g", "1/8", "1/4", "1/2", "1", "ounce", "o.z.", "infused", "sativa", "indica", "hybrid", "on sale!", "new arrival"];
+    const searchResults = await performWebSearch(productName);
+    const prompt = `Generate a standard product description for a cannabis product named "${productName}" in the ${selectedCategory?.name} category. Use the following keywords where relevant: ${keywords.join(", ")}. Incorporate information from a web search: ${searchResults}. Provide a concise description highlighting key features, effects, and strain type if applicable.`;
+    const suggestion = await getHFTextResponse(prompt, sessionHistory);
     if (suggestion) {
       updateFormData({ description: suggestion });
       setSessionHistory(prev => [...prev, `AI (text): ${suggestion}`]);
+    } else {
+      setError("Failed to generate description from Hugging Face API.");
     }
+    setIsGeneratingDescription(false);
   };
 
   useEffect(() => {
@@ -452,7 +443,7 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
             >
               <div className="flex justify-between items-center">
                 <span className="font-semibold">{category.name}</span>
-                {formData.category === category.slug && (<CheckCircle2 className="w-5 h-5 text-white" />)}
+                {formData.category === category.slug && <CheckCircle2 className="w-5 h-5 text-white" />}
               </div>
               <p className="text-xs text-teal-300 mt-1 line-clamp-2">{category.description}</p>
             </button>
@@ -523,10 +514,6 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
 
   const renderDetailsStep = () => {
     const categoryAttributes = selectedCategory?.attributes?.fields || [];
-    const priceObject = typeof formData.price === 'object' && formData.price !== null
-      ? formData.price
-      : { '1.75g': 0, '3.5g': 0, '7g': 0, '14g': 0, '1oz': 0 };
-    const PriceKeys = ['1.75g', '3.5g', '7g', '14g', '1oz'] as const;
     return (
       <div className="space-y-6">
         <div className="flex justify-center space-x-4 mb-6">
@@ -565,41 +552,47 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
               <label className="block text-sm font-medium text-teal-300">
                 Price <span className="text-red-500">*</span>
               </label>
-              {typeof formData.price === 'number' ? (
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-teal-400">$</span>
+              {formData.price.map((priceField, index) => (
+                <div key={index} className="flex items-center space-x-2">
                   <input
-                    type="number"
-                    value={formData.price}
-                    onChange={e => updateFormData({ price: { '1.75g': e.target.value ? parseFloat(e.target.value) : 0, '3.5g': 0, '7g': 0, '14g': 0, '1oz': 0 } })}
-                    placeholder="0.00"
-                    min="0"
-                    step="0.01"
-                    className="w-full pl-6 pr-3 py-2 bg-teal-800 border border-teal-700 rounded text-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-teal-500 transition-all duration-300"
-                    aria-label="Product price"
+                    type="text"
+                    value={priceField.label}
+                    onChange={e => updatePriceField(index, 'label', e.target.value)}
+                    placeholder="Label (e.g., 3.5g, per pack)"
+                    className="w-1/2 px-3 py-2 bg-teal-800 border border-teal-700 rounded text-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-teal-500 transition-all duration-300"
+                    aria-label={`Price label ${index + 1}`}
                   />
+                  <div className="relative w-1/2">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-teal-400">$</span>
+                    <input
+                      type="number"
+                      value={priceField.value || 0}
+                      onChange={e => updatePriceField(index, 'value', e.target.value)}
+                      min="0"
+                      step="0.01"
+                      className="w-full pl-6 pr-3 py-2 bg-teal-800 border border-teal-700 rounded text-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-teal-500 transition-all duration-300"
+                      aria-label={`Price value ${index + 1}`}
+                    />
+                  </div>
+                  {formData.price.length > 1 && (
+                    <button
+                      onClick={() => removePriceField(index)}
+                      className="text-red-400 hover:text-red-300"
+                      aria-label={`Remove price field ${index + 1}`}
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  )}
                 </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-2">
-                  {PriceKeys.map((key) => (
-                    <div key={key} className="relative">
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-teal-400">$</span>
-                      <input
-                        type="number"
-                        value={priceObject[key]}
-                        onChange={e => updateFormData({
-                          price: { ...priceObject, [key]: e.target.value ? parseFloat(e.target.value) : 0 }
-                        })}
-                        placeholder={key}
-                        min="0"
-                        step="0.01"
-                        className="w-full pl-6 pr-3 py-2 bg-teal-800 border border-teal-700 rounded text-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-teal-500 transition-all duration-300"
-                        aria-label={`Price for ${key}`}
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
+              ))}
+              <button
+                onClick={addPriceField}
+                className="mt-2 flex items-center space-x-1 text-teal-300 hover:text-teal-100"
+                aria-label="Add another price field"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>Add Price Field</span>
+              </button>
             </div>
           </div>
           <div className="space-y-2">
@@ -612,14 +605,22 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
               className="w-full px-3 py-2 bg-teal-800 border border-teal-700 rounded text-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-teal-500 transition-all duration-300 resize-none"
               aria-label="Product description"
             />
+            <Button
+              onClick={generateHFDescription}
+              className="mt-2"
+              aria-label="Generate Hugging Face description"
+              disabled={isGeneratingDescription}
+            >
+              {isGeneratingDescription ? (
+                <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white inline-block mr-2"></div>
+              ) : null}
+              Mixtral Describe
+            </Button>
             <div
               className="w-full px-3 py-2 bg-teal-800 border border-teal-700 rounded text-teal-100 transition-all duration-300"
-              style={{ whiteSpace: 'pre-wrap', marginTop: '-1rem', pointerEvents: 'none', userSelect: 'none', opacity: 0.7 }}
+              style={{ whiteSpace: 'pre-wrap', marginTop: '0.5rem', pointerEvents: 'none', userSelect: 'none', opacity: 0.7 }}
               dangerouslySetInnerHTML={{ __html: applyKeywordStyling(formData.description ?? '') }}
             />
-            <Button onClick={generateAISuggestion} className="mt-2" aria-label="Generate AI description suggestion">
-              Generate AI Suggestion
-            </Button>
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -641,24 +642,16 @@ export function ProductForm({ onClose, initialProduct }: { onClose?: () => void;
                   checked={autoPlayVoiceResponse}
                   onChange={() => setAutoPlayVoiceResponse(!autoPlayVoiceResponse)}
                   className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-teal-300 rounded"
-                  aria-label="Auto-play AI response"
+                  disabled
                 />
-                <span className="text-sm text-teal-300">Auto-Play AI Response</span>
+                <span className="text-sm text-teal-300">Auto-Play AI Response (Disabled)</span>
               </label>
             </div>
           </div>
           {voiceInputEnabled && (
             <div className="space-y-4">
-              <p className="text-gray-400 text-sm">Tap the orb and speak—try commands like “search for [product/strain]”, “next step”, “previous step”, or “submit”.</p>
+              <p className="text-gray-400 text-sm">Tap the orb and speak—try commands like “search for [product/strain]”, “next step”, “previous step”, or “submit”. (Text only, no audio response)</p>
               <VoiceChatOrb onVoiceInput={handleVoiceInput} />
-            </div>
-          )}
-          {aiAudio && (
-            <div className="mt-4">
-              <Button onClick={() => new Audio(aiAudio).play()} className="flex items-center space-x-2" aria-label="Play AI audio response">
-                <Volume2 className="w-5 h-5" />
-                <span>Hear AI Response</span>
-              </Button>
             </div>
           )}
           <div className="mt-4">

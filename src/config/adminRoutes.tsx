@@ -32,13 +32,10 @@ const adminRoutes: RouteObject[] = [
       { path: 'photo-bank', element: <PhotoBank /> },
       { path: 'orders', element: <Orders /> },
       { path: 'promo-manager', element: <PromoManager /> },
-      { path: 'gemini-assistant', element: <GeminiChatbotPage /> },
+      { path: 'gemini-chatbot-page', element: <GeminiChatbotPage /> },
       { path: 'points-panel', element: <PointsPanel /> },
+      { path: 'popup-manager', element: <PopupManager /> },
     ],
-  },
-  {
-    path: '/admin/popup-manager',
-    Component: PopupManager,
   },
 ];
 
