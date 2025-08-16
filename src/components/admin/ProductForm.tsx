@@ -12,6 +12,8 @@ import { Label } from '../ui/Label';
 import { Textarea } from '../ui/Textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Select } from '../ui/Select';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { app } from '../../lib/firebase'; // Assuming 'app' is exported from firebase.ts
 
 // ProgressBar Component
 const ProgressBar: React.FC<{ currentStep: FormStep }> = ({ currentStep }) => {
@@ -276,8 +278,42 @@ export function ProductForm({ onClose, initialProduct }: ProductFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [scrapeUrl, setScrapeUrl] = useState('');
+  const [isScraping, setIsScraping] = useState(false);
+  const [scrapeError, setScrapeError] = useState<string | null>(null);
 
   const selectedCategoryData = DEFAULT_CATEGORIES.find(cat => cat.slug === formData.category);
+
+  const handleScrapeProduct = async () => {
+    if (!scrapeUrl) {
+      setScrapeError("Please enter a URL to scrape.");
+      return;
+    }
+    setIsScraping(true);
+    setScrapeError(null);
+    try {
+      const functions = getFunctions(app);
+      const scrapeProduct = httpsCallable(functions, 'scrapeProductFromUrl');
+      const result = await scrapeProduct({ url: scrapeUrl });
+      const scrapedData = result.data as { title: string; description: string; imageUrl: string; price: string; };
+
+      setFormData(prev => ({
+        ...prev,
+        name: scrapedData.title || prev.name,
+        description: scrapedData.description || prev.description,
+        imageUrl: scrapedData.imageUrl || prev.imageUrl,
+        // Assuming price is a simple number for now, might need more complex parsing for different weights
+        price: { ...prev.price, '1g': parseFloat(scrapedData.price) || 0 },
+        images: scrapedData.imageUrl ? [scrapedData.imageUrl] : prev.images,
+      }));
+      setScrapeUrl(''); // Clear URL after successful scrape
+    } catch (e: any) {
+      console.error("Error scraping product:", e);
+      setScrapeError(`Failed to scrape product: ${e.message}`);
+    } finally {
+      setIsScraping(false);
+    }
+  };
 
   const updateFormData = useCallback(<K extends keyof ProductFormData,>(key: K, value: ProductFormData[K]) => {
     setFormData(prev => ({
@@ -362,6 +398,30 @@ export function ProductForm({ onClose, initialProduct }: ProductFormProps) {
                 />
               ) : (
                 <div className="space-y-6">
+                  <Card>
+                    <CardHeader><CardTitle>Scrape Product from URL</CardTitle></CardHeader>
+                    <CardContent className="space-y-4">
+                      <div>
+                        <Label htmlFor="scrape-url">Product URL</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            id="scrape-url"
+                            type="url"
+                            value={scrapeUrl}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setScrapeUrl(e.target.value)}
+                            placeholder="e.g., https://example.com/product-page"
+                            className="flex-grow"
+                          />
+                          <Button onClick={handleScrapeProduct} disabled={isScraping}>
+                            {isScraping && <Loader className="w-4 h-4 mr-2 animate-spin" />}
+                            {isScraping ? 'Scraping...' : 'Fetch Details'}
+                          </Button>
+                        </div>
+                        {scrapeError && <p className="text-red-400 text-sm mt-2">{scrapeError}</p>}
+                      </div>
+                    </CardContent>
+                  </Card>
+
                   <Card>
                     <CardHeader><CardTitle>Product Details</CardTitle></CardHeader>
                     <CardContent className="space-y-4">

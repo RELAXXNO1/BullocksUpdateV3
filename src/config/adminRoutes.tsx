@@ -15,7 +15,7 @@ const Orders = lazy(() => import('../pages/admin/Orders'));
 const SupportRequests = lazy(() => import('../pages/admin/SupportRequests'));
 const GeminiChatbotPage = lazy(() => import('../pages/admin/GeminiChatbotPage'));
 const PointsPanel = lazy(() => import('../components/admin/PointsPanel'));
-const PopupManager = lazy(() => import('../components/admin/PopupManager'));
+const PopupManagerPage = lazy(() => import('../pages/admin/PopupManagerPage'));
 
 const adminRoutes: RouteObject[] = [
   {
@@ -33,15 +33,12 @@ const adminRoutes: RouteObject[] = [
       { path: 'photo-bank', element: <PhotoBank /> },
       { path: 'orders', element: <Orders /> },
       { path: 'promo-manager', element: <PromoManager /> },
-      { path: 'gemini-assistant', element: <GeminiChatbotPage /> },
+      { path: 'gemini-chatbot', element: <GeminiChatbotPage /> },
       { path: 'points-panel', element: <PointsPanel /> },
+      { path: 'popup-manager', element: <PopupManagerPage /> },
       // Add Category Manager route - updated path to match sidebar
       { path: 'category-manager', element: <CategoryManager /> },
     ],
-  },
-  {
-    path: '/admin/popup-manager',
-    Component: PopupManager,
   },
 ];
 

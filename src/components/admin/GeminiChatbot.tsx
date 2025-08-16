@@ -44,7 +44,7 @@ const GeminiChatbot: React.FC = () => {
 
     // --- Initialization Effect ---
      useEffect(() => {
-        const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+        const API_KEY = 'AIzaSyCXG14VaelpqkLhzptvPLiVOTfnVHBbJsI';
         const MODEL_NAME = 'gemini-1.5-flash';
 
         if (!API_KEY) {
@@ -193,7 +193,7 @@ const GeminiChatbot: React.FC = () => {
 
     // --- Render ---
     return (
-        <div className="flex flex-col h-full bg-dark-500 w-full max-w-sm sm:max-w-full mx-auto">
+        <div className="flex flex-col h-full bg-dark-500 w-full">
             {error && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
                     <span className="block sm:inline">{error}</span>

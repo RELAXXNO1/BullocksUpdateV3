@@ -14,11 +14,11 @@ import {
   Bell,
   ChevronLeft,
   ChevronRight,
-  Settings,
   LogOut,
 } from 'lucide-react';
 import { db } from '../../lib/firebase';
 import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { useAuth } from '../../hooks/useAuth';
 
 interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
@@ -44,6 +44,7 @@ export default function FloatingSidebar({ onToggle }: { onToggle: (isExpanded: b
   const [isExpanded, setIsExpanded] = useState(true);
   const [unseenOrderCount, setUnseenOrderCount] = useState(0);
   const location = useLocation();
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
     onToggle(isExpanded);
@@ -139,9 +140,9 @@ export default function FloatingSidebar({ onToggle }: { onToggle: (isExpanded: b
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.2 }}
-              className="flex items-center"
+              className="flex items-center relative"
             >
-              <img src="/src/assets/logo.png" alt="Logo" className="h-8 w-auto" />
+              <img src="/public/logos/DALL·E 2024-12-31 21.50.35 - A series of minimalistic logo designs featuring a large triangle with variations of a smaller superscript '10' positioned in the upper right corner. V (1)-fotor-bg-remover-20241231215642 (1).png" alt="Logo" className="h-8 w-auto shadow-lg shadow-teal-500/50 z-10" />
               <span className="ml-2 text-lg font-bold">Admin Panel</span>
             </motion.div>
           )}
@@ -160,10 +161,6 @@ export default function FloatingSidebar({ onToggle }: { onToggle: (isExpanded: b
 
       <div className="px-2 py-4 border-t border-gray-800">
         <div className="space-y-2">
-          <Link to="/admin/settings" className="flex items-center w-full h-12 px-3.5 text-sm font-medium text-gray-400 rounded-lg hover:bg-gray-800 hover:text-white transition-colors">
-            <Settings className="w-5 h-5 mr-3" />
-            {isExpanded && <span className="whitespace-nowrap">Settings</span>}
-          </Link>
           <button className="flex items-center w-full h-12 px-3.5 text-sm font-medium text-gray-400 rounded-lg hover:bg-gray-800 hover:text-white transition-colors">
             <LogOut className="w-5 h-5 mr-3" />
             {isExpanded && <span className="whitespace-nowrap">Logout</span>}
@@ -174,8 +171,16 @@ export default function FloatingSidebar({ onToggle }: { onToggle: (isExpanded: b
             <img className="h-10 w-10 rounded-full object-cover" src="/src/assets/avatar.png" alt="User Avatar" />
             {isExpanded && (
               <div className="ml-3">
-                <p className="text-sm font-semibold text-white">Admin User</p>
-                <p className="text-xs text-gray-400">admin@example.com</p>
+                {authLoading ? (
+                  <p className="text-sm font-semibold text-white">Loading...</p>
+                ) : user ? (
+                  <>
+                    <p className="text-sm font-semibold text-white">{user.email}</p>
+                    <p className="text-xs text-gray-400">{user.isAdmin ? 'Admin' : 'User'}</p>
+                  </>
+                ) : (
+                  <p className="text-sm font-semibold text-white">Not Logged In</p>
+                )}
               </div>
             )}
           </div>
