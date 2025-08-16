@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '../ui/Button';
 import { useUserPoints } from '../../hooks/useUserPoints';
-import { OrderConfirmationModal } from '/workspaces/BullocksUpdateV3/src/components/store/PointsForJointsConfirmationModal';
+import { OrderConfirmationModal } from './PointsForJointsConfirmationModal';
 import { Input } from '../ui/Input';
 import { Label } from '../ui/Label';
 import { Select } from '../ui/Select';
