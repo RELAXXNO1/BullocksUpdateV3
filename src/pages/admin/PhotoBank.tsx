@@ -4,8 +4,7 @@ import { Upload, Trash2, ImageIcon, Link2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { BackButton } from '../../components/ui/BackButton';
-import { auth, storage, db } from '../../lib/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { auth, db } from '../../lib/firebase';
 import { collection, addDoc, serverTimestamp, query as firestoreQuery, getDocs, doc, setDoc, where } from 'firebase/firestore';
 import { DEFAULT_CATEGORIES } from '../../config/categories';
 import { useNavigate } from 'react-router-dom';
@@ -16,8 +15,7 @@ const WATERMARK_LOGO_PATH = '/logos/DALL·E 2024-12-31 21.50.35 - A series of mi
 
 interface Photo {
   fileName: string;
-  storagePath: string;
-  downloadURL: string;
+  base64: string;
   category: string;
   id: string;
 }
@@ -62,9 +60,8 @@ export default function PhotoBank() {
           });
           return {
             id: doc.id,
-            fileName: data.fileName, 
-            storagePath: data.storagePath, 
-            downloadURL: data.downloadURL,
+            fileName: data.fileName,
+            base64: data.base64,
             category: data.category
           };
         });
@@ -172,10 +169,18 @@ export default function PhotoBank() {
     });
   };
 
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
+  };
+
   const handleUploadPhoto = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     console.log('🚀 Photo Upload Started');
 
-    // Validate inputs
     if (!event.target.files || event.target.files.length === 0) {
       alert('Please select a photo to upload');
       return;
@@ -203,44 +208,26 @@ export default function PhotoBank() {
 
       for (let file of event.target.files) {
         try {
-          // Validate file
-          if (file.size > 10 * 1024 * 1024) {
-            throw new Error(`${file.name} is too large. Maximum size is 10MB.`);
-          }
-
-          const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-          if (!allowedTypes.includes(file.type)) {
-            throw new Error(`Unsupported file type for ${file.name}. Only JPEG, PNG, and WebP are allowed.`);
-          }
-
-          // Add watermark to image
           const watermarkedFile = await addWatermarkToImage(file);
+          const base64 = await fileToBase64(watermarkedFile);
 
-          // Generate unique storage path
-          const storagePath = `photos/${selectedCategory}/${Date.now()}_${watermarkedFile.name}`;
-          
-          // Upload to Firebase Storage
-          const fileRef = ref(storage, storagePath);
-          const uploadResult = await uploadBytes(fileRef, watermarkedFile);
-          const downloadURL = await getDownloadURL(uploadResult.ref);
+          if (base64.length > 750 * 1024) {
+            throw new Error(`${file.name} is too large. Maximum size is 750KB.`);
+          }
 
-          // Create Firestore document
           const photoDocRef = await addDoc(collection(db, 'photos'), {
             fileName: watermarkedFile.name,
-            storagePath: storagePath,
-            downloadURL: downloadURL,
+            base64: base64,
             category: selectedCategory,
             uploadedBy: auth.currentUser.uid,
             uploadedAt: serverTimestamp(),
             isVisible: true
           });
 
-          // Track successful uploads
           uploadedPhotos.push({
             id: photoDocRef.id,
             fileName: watermarkedFile.name,
-            storagePath: storagePath,
-            downloadURL: downloadURL,
+            base64: base64,
             category: selectedCategory
           });
 
@@ -256,12 +243,10 @@ export default function PhotoBank() {
         }
       }
 
-      // Update local state with uploaded photos
       if (uploadedPhotos.length > 0) {
         setPhotos(prev => [...prev, ...uploadedPhotos]);
       }
 
-      // Handle upload errors
       if (uploadErrors.length > 0) {
         alert(`Some files could not be uploaded:\n${uploadErrors.join('\n')}`);
       } else {
@@ -284,26 +269,20 @@ export default function PhotoBank() {
   }, [isAdmin, isLoading, selectedCategory]);
 
 
-  const handleDeletePhoto = useCallback(async (photoToDelete: string) => {
+  const handleDeletePhoto = useCallback(async (photoIdToDelete: string) => {
     if (!isAdmin) return;
     
     try {
-      const photoToDeleteDoc = photos.find(photo => photo.downloadURL === photoToDelete);
-      if (!photoToDeleteDoc) {
-        console.error('Photo not found in local state:', photoToDelete);
-        return;
-      }
-
-      const photoDocRef = doc(db, 'photos', photoToDeleteDoc.id);
+      const photoDocRef = doc(db, 'photos', photoIdToDelete);
       await setDoc(photoDocRef, { isVisible: false }, { merge: true });
 
-      setPhotos(prev => prev.filter(photo => photo.downloadURL !== photoToDelete));
-      console.log(`✅ Successfully deleted photo: ${photoToDelete}`);
+      setPhotos(prev => prev.filter(photo => photo.id !== photoIdToDelete));
+      console.log(`✅ Successfully deleted photo: ${photoIdToDelete}`);
     } catch (error) {
       console.error('❌ Error deleting photo:', error);
       alert('Failed to delete photo. Please try again.');
     }
-  }, [isAdmin, photos, db]);
+  }, [isAdmin, db]);
 
   const togglePhotoSelection = useCallback((photo: string) => {
     setSelectedPhotos(prev => 
@@ -404,7 +383,7 @@ export default function PhotoBank() {
               <Button 
                 variant="destructive" 
                 disabled={!isAdmin || isLoading}
-                onClick={() => selectedPhotos.forEach(handleDeletePhoto)}
+                onClick={() => selectedPhotos.forEach(photoId => handleDeletePhoto(photoId))}
                 className={`
                   ${!isAdmin || isLoading 
                     ? 'opacity-50 cursor-not-allowed' 
@@ -464,7 +443,7 @@ export default function PhotoBank() {
                     <AnimatePresence>
                       {categoryPhotos.map((photo, index) => (
                         <motion.div
-                          key={photo.downloadURL}
+                          key={photo.id}
                           initial={{ opacity: 0, scale: 0.9 }}
                           animate={{ opacity: 1, scale: 1 }}
                           exit={{ opacity: 0, scale: 0.9 }}
@@ -472,23 +451,23 @@ export default function PhotoBank() {
                           className={`
                             relative group cursor-pointer 
                             transform transition-all duration-300 
-                            ${selectedPhotos.includes(photo.downloadURL) 
+                            ${selectedPhotos.includes(photo.id) 
                               ? 'scale-105 border-4 border-primary-500' 
                               : 'hover:scale-105'}
                             rounded-lg overflow-hidden
                             shadow-lg hover:shadow-xl
                             bg-dark-500/50
                           `}
-                          onClick={() => togglePhotoSelection(photo.downloadURL)}
+                          onClick={() => togglePhotoSelection(photo.id)}
                         >
                           <img 
-                            src={photo.downloadURL} 
+                            src={photo.base64} 
                             alt={`Uploaded photo ${index + 1}`} 
                             className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-110"
                           />
                           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-dark-900/50 to-dark-900/70 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                             <div className="bg-primary-500/50 p-2 rounded-full text-white text-sm">
-                              {selectedPhotos.includes(photo.downloadURL) ? 'Selected' : 'Select'}
+                              {selectedPhotos.includes(photo.id) ? 'Selected' : 'Select'}
                             </div>
                           </div>
                         </motion.div>

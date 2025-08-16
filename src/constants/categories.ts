@@ -11,6 +11,7 @@ export interface CategoryAttribute {
   required?: boolean;
   displayOnCard?: boolean;
   description?: string;
+  placeholder?: string; // Added placeholder property
 }
 
 export interface CategoryConfig {
@@ -37,19 +38,22 @@ export const DEFAULT_CATEGORIES: CategoryConfig[] = [
           label: 'Strain', 
           type: 'select', 
           options: ['Indica', 'Sativa', 'Hybrid'],
-          displayOnCard: true 
+          displayOnCard: true,
+          placeholder: 'Select strain' // Example placeholder
         },
         { 
           name: 'thcAPercentage', 
           label: 'THC-A %', 
           type: 'number',
-          displayOnCard: true 
+          displayOnCard: true,
+          placeholder: 'Enter THC-A percentage' // Example placeholder
         },
         { 
           name: 'Infused', 
           label: 'Diamonds', 
           type: 'boolean',
-          displayOnCard: true 
+          displayOnCard: true,
+          placeholder: 'Is it infused with diamonds?' // Example placeholder
         }
       ]
     }
@@ -65,19 +69,22 @@ export const DEFAULT_CATEGORIES: CategoryConfig[] = [
           label: 'Pack Size', 
           type: 'select', 
           options: ['Single', '3 Pack', '5 Pack'],
-          displayOnCard: true 
+          displayOnCard: true,
+          placeholder: 'Select pack size'
         },
         {
           name: 'Infused', 
           label: 'Diamonds', 
           type: 'boolean',
-          displayOnCard: true 
+          displayOnCard: true,
+          placeholder: 'Is it infused with diamonds?'
         },
         { 
           name: 'weight', 
           label: 'Weight (g)', 
           type: 'number',
-          displayOnCard: true 
+          displayOnCard: true,
+          placeholder: 'Enter weight in grams'
         }
       ]
     }
@@ -92,14 +99,16 @@ export const DEFAULT_CATEGORIES: CategoryConfig[] = [
           name: 'thcMg', 
           label: 'THC (mg)', 
           type: 'number',
-          displayOnCard: true 
+          displayOnCard: true,
+          placeholder: 'Enter THC in mg'
         },
         { 
           name: 'dietaryRestrictions', 
           label: 'Dietary Info', 
           type: 'select', 
           options: ['Vegan', 'Gluten-Free', 'Sugar-Free', 'None'],
-          displayOnCard: true 
+          displayOnCard: true,
+          placeholder: 'Select dietary info'
         }
       ]
     }
@@ -115,14 +124,16 @@ export const DEFAULT_CATEGORIES: CategoryConfig[] = [
           label: 'Mushroom Type', 
           type: 'select', 
           options: ['Psychedelic', 'Lion\'s Mane', 'Reishi', 'Cordyceps'],
-          displayOnCard: true 
+          displayOnCard: true,
+          placeholder: 'Select mushroom type'
         },
         { 
           name: 'potency', 
           label: 'Potency', 
           type: 'select', 
           options: ['Micro', 'Low', 'Medium', 'High'],
-          displayOnCard: true 
+          displayOnCard: true,
+          placeholder: 'Select potency'
         }
       ]
     }
@@ -137,13 +148,15 @@ export const DEFAULT_CATEGORIES: CategoryConfig[] = [
           name: 'batteryCapacity', 
           label: 'Battery (mAh)', 
           type: 'number',
-          displayOnCard: true 
+          displayOnCard: true,
+          placeholder: 'Enter battery capacity'
         },
         { 
           name: 'flavor', 
           label: 'Flavor', 
           type: 'text',
-          displayOnCard: true 
+          displayOnCard: true,
+          placeholder: 'Enter flavor'
         }
       ]
     }
@@ -159,14 +172,16 @@ export const DEFAULT_CATEGORIES: CategoryConfig[] = [
           label: 'Material', 
           type: 'select', 
           options: ['Borosilicate Glass', 'Quartz', 'Ceramic'],
-          displayOnCard: true 
+          displayOnCard: true,
+          placeholder: 'Select material'
         },
         { 
           name: 'size', 
           label: 'Size', 
           type: 'select', 
           options: ['Small', 'Medium', 'Large'],
-          displayOnCard: true 
+          displayOnCard: true,
+          placeholder: 'Select size'
         }
       ]
     }
@@ -182,7 +197,8 @@ export const DEFAULT_CATEGORIES: CategoryConfig[] = [
           label: 'Tobacco Type', 
           type: 'select', 
           options: ['Cigarettes', 'Cigars', 'Loose Leaf', 'Chewing Tobacco'],
-          displayOnCard: true 
+          displayOnCard: true,
+          placeholder: 'Select tobacco type'
         }
       ]
     }
@@ -198,7 +214,8 @@ export const DEFAULT_CATEGORIES: CategoryConfig[] = [
           label: 'Type', 
           type: 'select', 
           options: ['Disposable', 'Refillable', 'Torch', 'Electric'],
-          displayOnCard: true 
+          displayOnCard: true,
+          placeholder: 'Select lighter type'
         }
       ]
     }

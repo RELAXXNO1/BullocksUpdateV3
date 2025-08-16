@@ -101,8 +101,6 @@ service cloud.firestore {
           (category == 'tobacco-products' && validateTobaccoAttributes) ||
           (category == 'edibles' && validateEdiblesAttributes) ||
           (category == 'glass-pipes' && validateGlassPipesAttributes);
-      
-      return false;
       }
     }
 
@@ -157,7 +155,7 @@ service cloud.firestore {
     // Photos collection rules
     match /photos/{photoId} {
       allow read: if true; // Adjust as needed
-      allow create: if request.auth.uid == resource.data.uploadedBy;
+      allow create: if isAdmin();
       allow update, delete: if isAdmin();
     }
 

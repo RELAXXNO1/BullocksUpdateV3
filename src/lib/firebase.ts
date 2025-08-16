@@ -6,7 +6,7 @@ import {
   createUserWithEmailAndPassword as firebaseCreateUser, 
   GoogleAuthProvider 
 } from 'firebase/auth';
-import { getFirestore, doc, getDoc, collection, addDoc } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, collection, addDoc, updateDoc } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { getAnalytics, logEvent } from 'firebase/analytics';
 
@@ -70,6 +70,31 @@ export const addOrder = async (orderData: any) => {
     console.log('Order added to Firestore');
   } catch (error) {
     console.error('Error adding order to Firestore:', error);
+    throw error;
+  }
+};
+
+// Function to add a product to Firestore
+export const addProduct = async (productData: any) => {
+  try {
+    const productsCollection = collection(db, 'products');
+    const docRef = await addDoc(productsCollection, productData);
+    console.log('Product added to Firestore with ID:', docRef.id);
+    return docRef.id;
+  } catch (error) {
+    console.error('Error adding product to Firestore:', error);
+    throw error;
+  }
+};
+
+// Function to update a product in Firestore
+export const updateProduct = async (productId: string, productData: any) => {
+  try {
+    const productRef = doc(db, 'products', productId);
+    await updateDoc(productRef, productData);
+    console.log('Product updated in Firestore with ID:', productId);
+  } catch (error) {
+    console.error('Error updating product in Firestore:', error);
     throw error;
   }
 };

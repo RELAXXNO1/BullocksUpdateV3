@@ -4,7 +4,7 @@ import { Button } from '../ui/Button';
 import { useCart } from '../../contexts/CartContext';
 import { DEFAULT_CATEGORIES } from '../../constants/categories';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
-import { applyKeywordStyling } from '../admin/ProductForm'; // Import the styling function
+import { applyKeywordStyling } from '../../utils/textUtils'; // Import the styling function
 
 interface ProductModalProps {
   product: Product;

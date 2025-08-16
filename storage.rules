@@ -50,7 +50,8 @@ service firebase.storage {
     }
 
     match /photos/{allPaths=**} {
-      allow list, read, create: if request.auth != null;
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
     // Store content images

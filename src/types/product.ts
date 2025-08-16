@@ -8,6 +8,8 @@ export const ProductSchema = z.object({
   price: z.union([
     z.number().positive("Price must be positive"),
     z.object({
+        '0.5g': z.number(),
+        '1g': z.number(),
         '1.75g': z.number(),
         '3.5g': z.number(),
         '7g': z.number(),
@@ -32,7 +34,9 @@ export type Product = z.infer<typeof ProductSchema> & {
   cartImage?: string;
   quantity?: number;
   pointsRequired?: number;
-    price: number | {
+    price: { // Changed to always be an object for Product
+        '0.5g': number;
+        '1g': number;
         '1.75g': number;
         '3.5g': number;
         '7g': number;
@@ -41,15 +45,19 @@ export type Product = z.infer<typeof ProductSchema> & {
     };
 };
 
-export type ProductFormData = Omit<Product, 'price'> & {
+export type ProductFormData = Omit<Product, 'price' | 'attributes' | 'images'> & {
   description?: string;
-  price: number | {
+  price: { // Changed to always be an object for ProductFormData
+        '0.5g': number;
+        '1g': number;
         '1.75g': number;
         '3.5g': number;
         '7g': number;
         '14g': number;
         '1oz': number;
     };
+  attributes: { [key: string]: string | number }; // Made non-optional
+  images: string[]; // Made non-optional
   imageFile?: File;
 };
 

@@ -1,7 +1,10 @@
 import { lazy } from 'react';
-import { RouteObject } from 'react-router-dom';
+import { RouteObject, Outlet } from 'react-router-dom'; // Import Outlet
 import ProtectedRoute from '../components/ProtectedRoute';
 import AdminLayout from '../components/layouts/AdminLayout';
+
+// Import CategoryManager component with correct handling for named export
+const CategoryManager = lazy(() => import('../components/admin/CategoryManager').then(module => ({ default: module.CategoryManager })));
 
 const AdminDashboard = lazy(() => import('../pages/admin/Dashboard'));
 const AdminProducts = lazy(() => import('../pages/admin/Products'));
@@ -12,16 +15,14 @@ const Orders = lazy(() => import('../pages/admin/Orders'));
 const SupportRequests = lazy(() => import('../pages/admin/SupportRequests'));
 const GeminiChatbotPage = lazy(() => import('../pages/admin/GeminiChatbotPage'));
 const PointsPanel = lazy(() => import('../components/admin/PointsPanel'));
-const PopupManager = lazy(() => import('../components/admin/PopupManager')); 
+const PopupManager = lazy(() => import('../components/admin/PopupManager'));
 
 const adminRoutes: RouteObject[] = [
   {
     path: '/admin',
     element: (
       <ProtectedRoute requiredRole="admin">
-        <AdminLayout>
-          <></>
-        </AdminLayout>
+        <AdminLayout /> {/* AdminLayout renders its own Outlet */}
       </ProtectedRoute>
     ),
     children: [
@@ -34,6 +35,8 @@ const adminRoutes: RouteObject[] = [
       { path: 'promo-manager', element: <PromoManager /> },
       { path: 'gemini-assistant', element: <GeminiChatbotPage /> },
       { path: 'points-panel', element: <PointsPanel /> },
+      // Add Category Manager route - updated path to match sidebar
+      { path: 'category-manager', element: <CategoryManager /> },
     ],
   },
   {
