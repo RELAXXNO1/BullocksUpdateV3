@@ -154,29 +154,14 @@ service cloud.firestore {
 
     // Photos collection rules
     match /photos/{photoId} {
-      allow read: if true; // Adjust as needed
-      allow create: if isAdmin();
-      allow update, delete: if isAdmin();
+      allow read: if true;
+      allow write: if true;
     }
 
     // Store Content collection rules
     match /store_content/{contentId} {
       allow read: if true;
-      allow write: if isAdmin() || (
-        request.auth != null &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true &&
-        validateStoreContentData(request.resource.data)
-      );
-    
-      function validateStoreContentData(content) {
-        return content.title is string &&
-               content.title.size() > 0 &&
-               content.description is string &&
-               content.isVisible is bool &&
-               (content.order is number || content.order is string || content.order == null) &&
-               content.section is string &&
-               content.section.size() > 0;
-      }
+      allow write: if true;
     }
   }
 }

@@ -24,7 +24,6 @@ export default function PhotoBank() {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const [showCategoryTooltip, setShowCategoryTooltip] = useState(false);
@@ -36,12 +35,7 @@ export default function PhotoBank() {
 
   useEffect(() => {
     const fetchPhotos = async () => {
-      if (!isAdmin) {
-        console.log('Skipping photo fetch - user is not admin');
-        return;
-      }
-
-      console.log('Starting photo fetch. isAdmin:', isAdmin, ' | Active user:', auth.currentUser?.uid);
+      console.log('Starting photo fetch.');
       
       try {
         const photosRef = collection(db, 'photos');
@@ -78,40 +72,7 @@ export default function PhotoBank() {
       }
     };
 
-    if (isAdmin) {
-      fetchPhotos();
-    }
-  }, [isAdmin]);
-
-  useEffect(() => {
-    const checkAdmin = async () => {
-      try {
-        if (auth.currentUser) {
-          const adminStatus = await checkAdminStatus(auth.currentUser.uid);
-          setIsAdmin(adminStatus);
-
-          // Ensure photos collection exists when admin is confirmed
-          if (adminStatus) {
-            try {
-              const photosCollectionRef = collection(db, 'photos');
-              const initialDocRef = doc(photosCollectionRef, 'initial_photo_collection');
-              await setDoc(initialDocRef, {
-                created_at: new Date().toISOString(),
-                description: 'Initial photo collection'
-              }, { merge: true });
-              console.log('Ensured photos collection exists');
-            } catch (collectionError) {
-              console.error('Failed to ensure photos collection:', collectionError);
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error checking admin status', error);
-        setIsAdmin(false);
-      }
-    };
-
-    checkAdmin();
+    fetchPhotos();
   }, []);
 
   const addWatermarkToImage = async (file: File): Promise<File> => {
@@ -186,11 +147,6 @@ export default function PhotoBank() {
       return;
     }
 
-    if (!isAdmin) {
-      alert('You do not have permission to upload photos');
-      return;
-    }
-
     if (!selectedCategory) {
       return;
     }
@@ -259,19 +215,17 @@ export default function PhotoBank() {
     } finally {
       setIsLoading(false);
     }
-  }, [isAdmin, selectedCategory, auth.currentUser]);
+  }, [selectedCategory, auth.currentUser]);
 
   const triggerFileInput = useCallback(() => {
-    if (isAdmin && !isLoading && fileInputRef.current && selectedCategory) {
+    if (!isLoading && fileInputRef.current && selectedCategory) {
       fileInputRef.current.click();
       setShowCategoryTooltip(false);
     }
-  }, [isAdmin, isLoading, selectedCategory]);
+  }, [isLoading, selectedCategory]);
 
 
   const handleDeletePhoto = useCallback(async (photoIdToDelete: string) => {
-    if (!isAdmin) return;
-    
     try {
       const photoDocRef = doc(db, 'photos', photoIdToDelete);
       await setDoc(photoDocRef, { isVisible: false }, { merge: true });
@@ -282,7 +236,7 @@ export default function PhotoBank() {
       console.error('❌ Error deleting photo:', error);
       alert('Failed to delete photo. Please try again.');
     }
-  }, [isAdmin, db]);
+  }, [db]);
 
   const togglePhotoSelection = useCallback((photo: string) => {
     setSelectedPhotos(prev => 
@@ -346,7 +300,7 @@ export default function PhotoBank() {
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value === "" ? undefined : e.target.value)}
               className="w-full bg-dark-600 p-2 rounded-lg"
-              disabled={!isAdmin || isLoading}
+              disabled={isLoading}
             >
               <option value="">Select Category</option>
               {DEFAULT_CATEGORIES.map((category: CategoryConfig) => (
@@ -368,7 +322,7 @@ export default function PhotoBank() {
               <Button 
                 type="button"
                 onClick={handleUploadButtonClick}
-                disabled={!isAdmin || isLoading}
+                disabled={isLoading}
                 className="flex items-center space-x-2 bg-blue-600 text-white hover:bg-blue-700"
               >
                 <Upload className="mr-2 h-4 w-4" /> Upload Photos
@@ -382,10 +336,10 @@ export default function PhotoBank() {
             {selectedPhotos.length > 0 && (
               <Button 
                 variant="destructive" 
-                disabled={!isAdmin || isLoading}
+                disabled={isLoading}
                 onClick={() => selectedPhotos.forEach(photoId => handleDeletePhoto(photoId))}
                 className={`
-                  ${!isAdmin || isLoading 
+                  ${isLoading 
                     ? 'opacity-50 cursor-not-allowed' 
                     : 'hover:bg-red-500/30 hover:shadow-[0_0_15px_rgba(239,68,68,0.3)]'}
                   transition-all duration-300
@@ -411,16 +365,12 @@ export default function PhotoBank() {
             <div className="flex flex-col items-center justify-center h-64 bg-dark-500/50 rounded-ultra-elegant border-2 border-dashed border-dark-400/30 hover:border-primary-500 transition-elegant">
               <ImageIcon className="w-16 h-16 text-primary-500/50 mb-4 animate-subtle-pulse" />
               <p className="text-secondary-400 text-center">
-                {!isAdmin 
-                  ? "Admin access required to upload photos" 
-                  : !selectedCategory
+                {!selectedCategory
                     ? "Select a category to upload photos"
                     : "No photos uploaded yet"}
                 <br />
                 <span className="text-sm text-primary-300/70">
-                  {!isAdmin 
-                    ? "Please contact system administrator" 
-                    : !selectedCategory
+                  {!selectedCategory
                       ? "Choose a category from the dropdown"
                       : "Drag and drop or click to upload"}
                 </span>

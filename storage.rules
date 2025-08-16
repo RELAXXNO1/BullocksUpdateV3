@@ -14,17 +14,18 @@ service firebase.storage {
         request.auth.token.email_verified == true;
     }
 
+    function validateProductImage(image) {
+      return image.size < 10 * 1024 * 1024 &&
+        image.contentType.matches('image/(jpeg|png|webp)') &&
+        image.name.matches('^[a-zA-Z0-9_-]+\\.(jpg|jpeg|png|webp)$');
+    }
+
     // Product images with strict validation
     match /products/{imageId} {
       allow read: if true;
       allow create: if isAdmin() &&
         validateProductImage(request.resource);
       allow update, delete: if isAdmin();
-      function validateProductImage(image) {
-        return image.size < 10 * 1024 * 1024 &&
-          image.contentType.matches('image/(jpeg|png|webp)') &&
-          image.name.matches('^[a-zA-Z0-9_-]+\\.(jpg|jpeg|png|webp)$');
-      }
     }
 
     // Watermark images (backend-controlled)
@@ -51,14 +52,12 @@ service firebase.storage {
 
     match /photos/{allPaths=**} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if true;
     }
 
     // Store content images
     match /storeContent/{allPaths=**} {
-      // Allowing any user to read, create, update, and delete files in the storeContent folder.
-      // per user request to remove all restrictions.
-      allow read, create, update, delete: if true;
+      allow read, write: if true;
     }
 
     // Global fallback deny rule
