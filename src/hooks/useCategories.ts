@@ -155,13 +155,79 @@ export function useCategories() {
     }
   };
 
-  return { 
-    categories, 
-    loading, 
-    error, 
-    createCategory, 
-    updateCategory, 
+  const updateCategoryAttribute = async (
+    categoryId: string,
+    attributeIndex: number,
+    updates: Partial<CategoryAttribute>
+  ) => {
+    try {
+      const categoryDocRef = doc(db, 'categories', categoryId);
+      const currentCategory = categories.find(cat => cat.id === categoryId);
+
+      if (!currentCategory || !currentCategory.attributes?.fields) {
+        throw new Error('Category or attributes not found');
+      }
+
+      const updatedFields = [...currentCategory.attributes.fields];
+      updatedFields[attributeIndex] = { ...updatedFields[attributeIndex], ...updates };
+
+      await updateDoc(categoryDocRef, {
+        attributes: { fields: updatedFields },
+        updatedAt: serverTimestamp()
+      });
+
+      setCategories(prev => prev.map(cat =>
+        cat.id === categoryId
+          ? { ...cat, attributes: { fields: updatedFields }, updatedAt: new Date().toISOString() }
+          : cat
+      ));
+    } catch (err) {
+      console.error('Error updating category attribute:', err);
+      throw err;
+    }
+  };
+
+  const deleteCategoryAttribute = async (
+    categoryId: string,
+    attributeIndex: number
+  ) => {
+    try {
+      const categoryDocRef = doc(db, 'categories', categoryId);
+      const currentCategory = categories.find(cat => cat.id === categoryId);
+
+      if (!currentCategory || !currentCategory.attributes?.fields) {
+        throw new Error('Category or attributes not found');
+      }
+
+      const updatedFields = currentCategory.attributes.fields.filter(
+        (_, index) => index !== attributeIndex
+      );
+
+      await updateDoc(categoryDocRef, {
+        attributes: { fields: updatedFields },
+        updatedAt: serverTimestamp()
+      });
+
+      setCategories(prev => prev.map(cat =>
+        cat.id === categoryId
+          ? { ...cat, attributes: { fields: updatedFields }, updatedAt: new Date().toISOString() }
+          : cat
+      ));
+    } catch (err) {
+      console.error('Error deleting category attribute:', err);
+      throw err;
+    }
+  };
+
+  return {
+    categories,
+    loading,
+    error,
+    createCategory,
+    updateCategory,
     deleteCategory,
-    addCategoryAttribute 
+    addCategoryAttribute,
+    updateCategoryAttribute,
+    deleteCategoryAttribute
   };
 }
